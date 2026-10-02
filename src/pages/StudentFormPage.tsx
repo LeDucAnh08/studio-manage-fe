@@ -1,16 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import dayjs from 'dayjs';
-import {
-  AlertCircle,
-  CalendarCheck,
-  CheckCircle2,
-  Gift,
-  Mars,
-  School,
-  Venus,
-} from 'lucide-react';
+import { AlertCircle, CalendarCheck, CheckCircle2, Gift, Mars, School, Venus } from 'lucide-react';
 import { studentService } from '../services/studentService';
 import { scheduleService } from '../services/scheduleService';
 import type { PublicScheduleResponse } from '../types';
@@ -39,6 +31,8 @@ type Status = 'idle' | 'loading' | 'success' | 'error';
 
 const StudentFormPage = () => {
   const { customer } = useParams<{ customer: string }>();
+  const [searchParams] = useSearchParams();
+  const access = searchParams.get('access') ?? '';
   const [schedule, setSchedule] = useState<PublicScheduleResponse | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<Status>('idle');
@@ -68,9 +62,12 @@ const StudentFormPage = () => {
   }, [schedule, gender]);
 
   useEffect(() => {
-    if (!customer) return;
+    if (!customer || !access) {
+      setLoadError(true);
+      return;
+    }
     scheduleService
-      .getPublicByCustomer(customer)
+      .getPublicByCustomer(customer, access)
       .then((s) => {
         if (!s) {
           setLoadError(true);
@@ -79,13 +76,14 @@ const StudentFormPage = () => {
         setSchedule(s);
       })
       .catch(() => setLoadError(true));
-  }, [customer]);
+  }, [customer, access]);
 
   const onSubmit = async (data: FormValues) => {
     setSubmitStatus('loading');
     try {
       await studentService.createPublic({
         customer,
+        access,
         name: data.name,
         gender: data.gender,
         height: data.height !== '' ? Number(data.height) : undefined,
@@ -136,11 +134,7 @@ const StudentFormPage = () => {
             <p className="text-sm mb-6 text-muted-foreground">
               Thông tin của bạn đã được lưu thành công.
             </p>
-            <Button
-              variant="gradient"
-              className="w-full"
-              onClick={() => setSubmitStatus('idle')}
-            >
+            <Button variant="gradient" className="w-full" onClick={() => setSubmitStatus('idle')}>
               Nhập thêm học sinh khác
             </Button>
           </CardContent>

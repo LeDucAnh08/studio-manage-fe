@@ -1,11 +1,12 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { User } from '../types';
 import { authService } from '../services/authService';
+import { clearBookingDraft, reconcileBookingDraftAccount } from '../services/bookingDraft';
 
 interface AuthContextValue {
   user: User | null;
   token: string | null;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<User>;
   logout: () => void;
   updateUser: (patch: Partial<User>) => void;
   isAuthenticated: boolean;
@@ -25,7 +26,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   });
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
-  const [isBootstrapping, setIsBootstrapping] = useState<boolean>(() => !!localStorage.getItem('token'));
+  const [isBootstrapping, setIsBootstrapping] = useState<boolean>(
+    () => !!localStorage.getItem('token'),
+  );
 
   // On mount: if a token exists, call /auth/refresh to validate it and get a
   // fresh token + up-to-date user data (e.g. role changes since last login).
@@ -35,6 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     authService
       .refresh()
       .then((res) => {
+        reconcileBookingDraftAccount(res.user, user);
         localStorage.setItem('token', res.token);
         localStorage.setItem('user', JSON.stringify(res.user));
         setToken(res.token);
@@ -51,18 +55,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .finally(() => {
         setIsBootstrapping(false);
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
     const res = await authService.login(username, password);
+    reconcileBookingDraftAccount(res.user, user);
     localStorage.setItem('token', res.token);
     localStorage.setItem('user', JSON.stringify(res.user));
     setToken(res.token);
     setUser(res.user);
-  }, []);
+    return res.user;
+  }, [user]);
 
   const logout = useCallback(() => {
+    clearBookingDraft();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);

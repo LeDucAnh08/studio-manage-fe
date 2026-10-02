@@ -17,13 +17,13 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         caption_label: 'text-sm font-semibold tracking-wide',
         nav: 'mt-4 absolute top-0 inset-x-0 z-10 flex h-9 items-center justify-between px-1',
         button_previous:
-          'h-8 w-8 inline-flex items-center justify-center rounded-lg'
-          + ' text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-          + ' focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'h-8 w-8 inline-flex items-center justify-center rounded-lg' +
+          ' text-muted-foreground transition-colors hover:bg-muted hover:text-foreground' +
+          ' focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         button_next:
-          'h-8 w-8 inline-flex items-center justify-center rounded-lg'
-          + ' text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-          + ' focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'h-8 w-8 inline-flex items-center justify-center rounded-lg' +
+          ' text-muted-foreground transition-colors hover:bg-muted hover:text-foreground' +
+          ' focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         month_grid: 'w-full border-collapse',
         weekdays: '',
         weekday:
@@ -31,11 +31,11 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         week: '',
         day: 'p-0 text-center',
         day_button:
-          'mx-auto flex h-8 w-8 items-center justify-center rounded-lg text-sm font-normal'
-          + ' transition-all duration-150'
-          + ' hover:bg-muted hover:text-foreground'
-          + ' focus:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-          + ' disabled:pointer-events-none disabled:opacity-40',
+          'mx-auto flex h-8 w-8 items-center justify-center rounded-lg text-sm font-normal' +
+          ' transition-all duration-150' +
+          ' hover:bg-muted hover:text-foreground' +
+          ' focus:outline-none focus-visible:ring-2 focus-visible:ring-ring' +
+          ' disabled:pointer-events-none disabled:opacity-40',
         selected:
           'bg-gradient-to-br from-amber-400 to-cyan-400 text-white rounded-lg shadow-sm font-semibold',
         today:

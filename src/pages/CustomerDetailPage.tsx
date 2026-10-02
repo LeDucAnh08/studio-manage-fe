@@ -7,13 +7,7 @@ import { transactionService } from '../services/transactionService';
 import { formatDate, formatCurrency } from '../utils/format';
 import type { Customer, ScheduleResponse, TransactionResponse } from '../types';
 import { SCHEDULE_STATUS_COLOR, SCHEDULE_STATUS_LABEL } from '../utils/scheduleConstants';
-import {
-  Badge,
-  Card,
-  CardContent,
-  DataTable,
-  PageLoader,
-} from '@/components/ui';
+import { Badge, Card, CardContent, DataTable, PageLoader } from '@/components/ui';
 import type { Column } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
@@ -88,9 +82,7 @@ const CustomerDetailPage = () => {
               <span className="font-medium">{customer.totalFemale ?? 0}</span>
             </div>
           </div>
-          {customer.notes && (
-            <p className="mt-3 text-sm text-muted-foreground">{customer.notes}</p>
-          )}
+          {customer.notes && <p className="mt-3 text-sm text-muted-foreground">{customer.notes}</p>}
         </CardContent>
       </Card>
 
@@ -164,7 +156,10 @@ const CustomerDetailPage = () => {
             key: 'status',
             header: 'Trạng thái',
             render: (s) => (
-              <Badge variant="outline" className={cn('border-transparent', SCHEDULE_STATUS_COLOR[s.status])}>
+              <Badge
+                variant="outline"
+                className={cn('border-transparent', SCHEDULE_STATUS_COLOR[s.status])}
+              >
                 {SCHEDULE_STATUS_LABEL[s.status]}
               </Badge>
             ),
@@ -200,7 +195,9 @@ const CustomerDetailPage = () => {
           {
             key: 'category',
             header: 'Danh mục',
-            render: (t) => <span className="text-muted-foreground">{t.categoryId?.name ?? '—'}</span>,
+            render: (t) => (
+              <span className="text-muted-foreground">{t.categoryId?.name ?? '—'}</span>
+            ),
           },
           {
             key: 'description',

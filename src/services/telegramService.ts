@@ -16,6 +16,8 @@ export const telegramService = {
   getStatus: () =>
     api.get<ApiResponse<TelegramStatus>>('/telegram/status').then((r) => r.data.data),
   generateLinkToken: () =>
-    api.post<ApiResponse<TelegramLinkResponse>>('/telegram/generate-link-token').then((r) => r.data.data),
+    api
+      .post<ApiResponse<TelegramLinkResponse>>('/telegram/generate-link-token')
+      .then((r) => r.data.data),
   unlink: () => api.delete<ApiResponse<null>>('/telegram/unlink').then((r) => r.data),
 };

@@ -7,6 +7,5 @@ export const seasonService = {
     api.post<ApiResponse<Season>>('/seasons', data).then((r) => r.data.data),
   update: (id: string, data: Omit<Season, '_id' | 'createdAt'>) =>
     api.put<ApiResponse<Season>>(`/seasons/${id}`, data).then((r) => r.data.data),
-  remove: (id: string) =>
-    api.delete<ApiResponse<null>>(`/seasons/${id}`).then((r) => r.data),
+  remove: (id: string) => api.delete<ApiResponse<null>>(`/seasons/${id}`).then((r) => r.data),
 };

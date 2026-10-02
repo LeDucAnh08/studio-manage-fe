@@ -10,27 +10,30 @@ const ratingColor = (r: number) => {
 
 interface RatingBlockProps {
   label: string;
-  item: FeedbackItem;
+  item?: FeedbackItem | null;
   className?: string;
 }
 
-export const RatingBlock = ({ label, item, className }: RatingBlockProps) => (
-  <div className={cn('rounded-lg border bg-muted/30 px-3 py-2.5', className)}>
-    <div className="flex items-center justify-between gap-2 mb-1">
-      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
-      <div className="flex items-center gap-1.5">
-        <Stars value={item.rating} />
-        <span className={cn('text-xs font-semibold', ratingColor(item.rating))}>
-          {item.rating}/5
+export const RatingBlock = ({ label, item, className }: RatingBlockProps) => {
+  const rating = typeof item?.rating === 'number' && Number.isFinite(item.rating) ? item.rating : 0;
+  return (
+    <div className={cn('rounded-lg border bg-muted/30 px-3 py-2.5', className)}>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
         </span>
+        <div className="flex items-center gap-1.5">
+          <Stars value={rating} />
+          <span className={cn('text-xs font-semibold', ratingColor(rating))}>
+            {rating ? `${rating}/5` : 'Chưa đánh giá'}
+          </span>
+        </div>
       </div>
+      {item?.description && (
+        <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground">
+          {item.description}
+        </p>
+      )}
     </div>
-    {item.description && (
-      <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground">
-        {item.description}
-      </p>
-    )}
-  </div>
-);
+  );
+};

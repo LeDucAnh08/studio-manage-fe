@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme, type ThemeMode } from '../../context/ThemeContext';
 import { ROLE_LABELS } from '../../types';
 import { navItems, adminItems, type NavItem } from '../../config/navItems';
+import { getNavigationGroupForPath } from '../../config/navigation';
 import { Logo } from '../atoms';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchSeasons, setSelectedSeason } from '../../store/slices/seasonsSlice';
@@ -23,22 +24,33 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const { list: seasons, selectedSeasonId } = useAppSelector((s) => s.seasons);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const themeMenuRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     dispatch(fetchSeasons());
   }, [dispatch]);
 
-  const getInitialOpen = () => {
-    const open: Record<string, boolean> = {};
-    [...navItems, ...adminItems].forEach((item) => {
-      if (item.children?.some((child) => location.pathname.startsWith(item.to + child.to))) {
-        open[item.to] = true;
-      }
-    });
-    return open;
-  };
+  const [openGroup, setOpenGroup] = useState<string | null>(() =>
+    getNavigationGroupForPath(location.pathname),
+  );
 
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(getInitialOpen);
+  useEffect(() => {
+    setOpenGroup(getNavigationGroupForPath(location.pathname));
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const activeLink = navRef.current?.querySelector<HTMLElement>('a[aria-current="page"]');
+    const routeGroup = getNavigationGroupForPath(location.pathname);
+    const activeGroupToggle =
+      routeGroup && routeGroup === openGroup
+        ? navRef.current?.querySelector<HTMLElement>(`[data-nav-group="${routeGroup}"]`)
+        : null;
+    const target = activeLink?.closest('[hidden]')
+      ? activeGroupToggle
+      : (activeLink ?? activeGroupToggle);
+
+    target?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  }, [location.pathname, openGroup]);
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
@@ -61,7 +73,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   };
 
   const toggleGroup = (to: string) => {
-    setOpenGroups((prev) => ({ ...prev, [to]: !prev[to] }));
+    setOpenGroup((current) => (current === to ? null : to));
   };
 
   const themeOptions: Array<{ mode: ThemeMode; label: string; icon: JSX.Element }> = [
@@ -88,13 +100,16 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     if (item.children) {
       const visibleChildren = item.children.filter((c) => !c.hidden && isAllowed(c));
       if (visibleChildren.length === 0) return null;
-      const isOpen = openGroups[item.to];
+      const isOpen = openGroup === item.to;
 
       const ParentIcon = item.icon;
       return (
         <div key={item.to}>
           <button
             onClick={() => toggleGroup(item.to)}
+            aria-expanded={isOpen}
+            aria-controls={`nav-group-${item.to.replace(/[^a-zA-Z0-9_-]/g, '-')}`}
+            data-nav-group={item.to}
             className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150"
             style={{ color: 'var(--nav-text)' }}
             onMouseEnter={(e) => {
@@ -114,42 +129,42 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-90' : ''}`}
             />
           </button>
-          {isOpen && (
-            <div
-              className="mt-1 ml-4 space-y-1 border-l pl-3"
-              style={{ borderColor: 'var(--nav-child-border)' }}
-            >
-              {visibleChildren.map((child) => {
-                const fullPath = item.to + child.to;
-                const ChildIcon = child.icon;
-                return (
-                  <NavLink
-                    key={fullPath}
-                    to={fullPath}
-                    end
-                    onClick={handleNavClick}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
-                        isActive ? 'text-white' : ''
-                      }`
-                    }
-                    style={({ isActive }) =>
-                      isActive
-                        ? {
-                            background: 'linear-gradient(135deg,#f59e0b,#b45309)',
-                            boxShadow: '0 0 12px rgba(245,158,11,0.42)',
-                            color: '#fff',
-                          }
-                        : { color: 'var(--nav-text)' }
-                    }
-                  >
-                    {ChildIcon && <ChildIcon className="w-4 h-4" />}
-                    {child.label}
-                  </NavLink>
-                );
-              })}
-            </div>
-          )}
+          <div
+            id={`nav-group-${item.to.replace(/[^a-zA-Z0-9_-]/g, '-')}`}
+            hidden={!isOpen}
+            className="mt-1 ml-4 space-y-1 border-l pl-3"
+            style={{ borderColor: 'var(--nav-child-border)' }}
+          >
+            {visibleChildren.map((child) => {
+              const fullPath = item.to + child.to;
+              const ChildIcon = child.icon;
+              return (
+                <NavLink
+                  key={fullPath}
+                  to={fullPath}
+                  end
+                  onClick={handleNavClick}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
+                      isActive ? 'text-white' : ''
+                    }`
+                  }
+                  style={({ isActive }) =>
+                    isActive
+                      ? {
+                          background: 'linear-gradient(135deg,#f59e0b,#b45309)',
+                          boxShadow: '0 0 12px rgba(245,158,11,0.42)',
+                          color: '#fff',
+                        }
+                      : { color: 'var(--nav-text)' }
+                  }
+                >
+                  {ChildIcon && <ChildIcon className="w-4 h-4" />}
+                  {child.label}
+                </NavLink>
+              );
+            })}
+          </div>
         </div>
       );
     }
@@ -276,10 +291,13 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav ref={navRef} className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {/* Season selector */}
           <div className="mb-3 pb-3" style={{ borderBottom: '1px solid var(--sidebar-border)' }}>
-            <p className="px-1 mb-1.5 text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--nav-section-label)' }}>
+            <p
+              className="px-1 mb-1.5 text-xs font-bold uppercase tracking-widest"
+              style={{ color: 'var(--nav-section-label)' }}
+            >
               Mùa chụp
             </p>
             <select
@@ -350,7 +368,10 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 ))}
               </div>
             </div>
-            <UserCircle className="w-4 h-4 flex-shrink-0 opacity-40 group-hover:opacity-70 transition-opacity" style={{ color: 'var(--text-faint)' }} />
+            <UserCircle
+              className="w-4 h-4 flex-shrink-0 opacity-40 group-hover:opacity-70 transition-opacity"
+              style={{ color: 'var(--text-faint)' }}
+            />
           </NavLink>
           <button
             onClick={handleLogout}

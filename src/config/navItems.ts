@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import { createElement } from 'react';
 import {
   Banknote,
   Calendar,
@@ -29,6 +30,11 @@ import CustomerSizePage from '../pages/CustomerSizePage';
 import PackagesPage from '../pages/PackagesPage';
 import FeedbackPage from '../pages/FeedbackPage';
 import SeasonPage from '@/pages/SeasonPage';
+import BookingsPage from '../pages/BookingsPage';
+import BookingWorkflowListPage from '../pages/BookingWorkflowListPage';
+import { clientPortalEnabled } from './features';
+
+const BookingRequests = () => createElement(BookingsPage, { admin: true });
 
 export type NavIcon = ComponentType<{ className?: string }>;
 
@@ -45,6 +51,26 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
+  ...(clientPortalEnabled
+    ? [
+        {
+          to: '/booking-requests',
+          label: 'Yêu cầu đặt dịch vụ',
+          icon: Calendar,
+          allowedRoles: [0, 1] as UserRole[],
+          component: BookingRequests,
+        },
+      ]
+    : []),
+  ...(clientPortalEnabled
+    ? [{
+        to: '/workflow-bookings',
+        label: 'Quy trình dịch vụ',
+        icon: ClipboardList,
+        allowedRoles: [0, 1, 3, 5] as UserRole[],
+        component: BookingWorkflowListPage,
+      }]
+    : []),
   {
     to: '/',
     label: 'Dashboard',
@@ -186,5 +212,5 @@ export const adminItems: NavItem[] = [
         component: SeasonPage, // TODO: create season management page
       },
     ],
-  }
+  },
 ];

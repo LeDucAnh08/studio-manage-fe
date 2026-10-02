@@ -3,7 +3,9 @@ import type { ApiResponse, Category } from '../types';
 
 export const categoryService = {
   getAll: (type?: 'income' | 'expense') =>
-    api.get<ApiResponse<Category[]>>('/categories', { params: type ? { type } : {} }).then((r) => r.data.data),
+    api
+      .get<ApiResponse<Category[]>>('/categories', { params: type ? { type } : {} })
+      .then((r) => r.data.data),
   create: (data: Partial<Category>) =>
     api.post<ApiResponse<Category>>('/categories', data).then((r) => r.data.data),
   update: (id: string, data: Partial<Category>) =>

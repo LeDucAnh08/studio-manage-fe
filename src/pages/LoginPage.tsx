@@ -1,9 +1,10 @@
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import Logo from '../components/atoms/Logo';
 import { useAuth } from '../context/AuthContext';
 import { Button, FormField, Input } from '@/components/ui';
+import { safeBookingReturnTo } from '../utils/returnTo';
 
 interface FormValues {
   username: string;
@@ -13,6 +14,11 @@ interface FormValues {
 const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const requestedReturnTo = (location.state as { from?: unknown } | null)?.from;
+  const returnTo =
+    safeBookingReturnTo(requestedReturnTo) ||
+    safeBookingReturnTo(new URLSearchParams(location.search).get('returnTo'));
   const [error, setError] = useState('');
   const {
     register,
@@ -23,8 +29,16 @@ const LoginPage = () => {
   const onSubmit = async (data: FormValues) => {
     setError('');
     try {
-      await login(data.username, data.password);
-      navigate('/');
+      const user = await login(data.username, data.password);
+      navigate(
+        user.roles.includes(6)
+          ? returnTo
+            ? returnTo
+            : '/account/bookings'
+          : user.roles.length === 1 && user.roles.includes(5)
+            ? '/manage/finance'
+            : '/',
+      );
     } catch {
       setError('Tên đăng nhập hoặc mật khẩu không đúng.');
     }
@@ -52,7 +66,7 @@ const LoginPage = () => {
           <FormField label="Tên đăng nhập" htmlFor="username">
             <Input
               id="username"
-              placeholder="superadmin"
+              placeholder="Tên đăng nhập của bạn"
               autoComplete="username"
               {...register('username', { required: true })}
             />
@@ -73,10 +87,25 @@ const LoginPage = () => {
             </p>
           )}
 
-          <Button type="submit" variant="gradient" disabled={isSubmitting} className="w-full mt-2 py-3">
+          <Button
+            type="submit"
+            variant="gradient"
+            disabled={isSubmitting}
+            className="w-full mt-2 py-3"
+          >
             {isSubmitting ? 'Đang đăng nhập…' : 'Đăng nhập'}
           </Button>
         </form>
+        <p className="mt-5 text-center text-sm text-muted-foreground">
+          Chưa có tài khoản?{' '}
+          <Link
+            to="/register"
+            state={returnTo ? { from: returnTo } : undefined}
+            className="font-medium text-primary hover:underline"
+          >
+            Đăng ký khách hàng
+          </Link>
+        </p>
       </div>
     </div>
   );

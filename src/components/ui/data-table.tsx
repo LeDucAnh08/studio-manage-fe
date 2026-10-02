@@ -177,10 +177,7 @@ export function DataTable<T>({
           return (
             <TableRow
               key={keyExtractor(row, absoluteIndex)}
-              className={cn(
-                rowClassName?.(row, absoluteIndex),
-                onRowClick && 'cursor-pointer',
-              )}
+              className={cn(rowClassName?.(row, absoluteIndex), onRowClick && 'cursor-pointer')}
               style={rowStyle?.(row, absoluteIndex)}
               onClick={(e) => {
                 if (!onRowClick) return;

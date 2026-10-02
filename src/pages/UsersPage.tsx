@@ -19,9 +19,15 @@ import {
   Label,
   Modal,
   PageHeader,
+  Textarea,
 } from '@/components/ui';
 import type { Column } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import { accountRequestService, type AccountRequest } from '../services/accountRequestService';
+
+const requestErrorText = (error: unknown) =>
+  (error as { response?: { data?: { message?: string } } }).response?.data?.message ??
+  'Không thể xử lý yêu cầu.';
 
 const ROLE_BADGE: Record<UserRole, string> = {
   0: 'bg-purple-500/15 text-purple-700 dark:text-purple-300',
@@ -30,6 +36,7 @@ const ROLE_BADGE: Record<UserRole, string> = {
   3: 'bg-orange-500/15 text-orange-700 dark:text-orange-300',
   4: 'bg-teal-500/15 text-teal-700 dark:text-teal-300',
   5: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+  6: 'bg-pink-500/15 text-pink-700 dark:text-pink-300',
 };
 
 interface FormValues {
@@ -47,6 +54,12 @@ const UsersPage = () => {
   const [editing, setEditing] = useState<User | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [selectedRoles, setSelectedRoles] = useState<UserRole[]>([2]);
+  const [accountRequests, setAccountRequests] = useState<AccountRequest[]>([]);
+  const [accountRequestError, setAccountRequestError] = useState('');
+  const [reviewTarget, setReviewTarget] = useState<AccountRequest | null>(null);
+  const [reviewDecision, setReviewDecision] = useState<'approved' | 'rejected'>('approved');
+  const [reviewNote, setReviewNote] = useState('');
+  const [reviewBusy, setReviewBusy] = useState(false);
   const {
     register,
     handleSubmit,
@@ -56,10 +69,60 @@ const UsersPage = () => {
 
   useEffect(() => {
     dispatch(fetchUsers());
+    accountRequestService
+      .getAll()
+      .then((requests) => {
+        setAccountRequests(requests);
+        setAccountRequestError('');
+      })
+      .catch((error) => setAccountRequestError(requestErrorText(error)));
   }, [dispatch]);
 
-  const toggleRole = (r: UserRole) =>
-    setSelectedRoles((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
+  const openRequestReview = (request: AccountRequest, status: 'approved' | 'rejected') => {
+    setReviewTarget(request);
+    setReviewDecision(status);
+    setReviewNote('');
+  };
+
+  const reviewRequest = async () => {
+    if (!reviewTarget || (reviewDecision === 'rejected' && !reviewNote.trim())) return;
+    setReviewBusy(true);
+    try {
+      await accountRequestService.review(
+        reviewTarget._id,
+        reviewDecision,
+        reviewNote.trim(),
+        reviewDecision === 'approved' ? [reviewTarget.requestedRole] : undefined,
+      );
+      setAccountRequests((current) =>
+        current.map((item) =>
+          item._id === reviewTarget._id
+            ? { ...item, status: reviewDecision, reviewNote: reviewNote.trim() || undefined }
+            : item,
+        ),
+      );
+      if (reviewDecision === 'approved') dispatch(fetchUsers());
+      toast.success(
+        reviewDecision === 'approved'
+          ? `Đã cấp tài khoản cho ${reviewTarget.username}`
+          : 'Đã từ chối yêu cầu',
+      );
+      setReviewTarget(null);
+    } catch (error) {
+      toast.error(requestErrorText(error));
+    } finally {
+      setReviewBusy(false);
+    }
+  };
+
+  const toggleRole = (role: UserRole) =>
+    setSelectedRoles((current) => {
+      if (role === 6) return current.includes(6) ? [] : [6];
+      const internalRoles = current.filter((value) => value !== 6);
+      return internalRoles.includes(role)
+        ? internalRoles.filter((value) => value !== role)
+        : [...internalRoles, role];
+    });
 
   const openCreate = () => {
     setEditing(null);
@@ -131,9 +194,7 @@ const UsersPage = () => {
       render: (u) => (
         <span className="font-medium">
           {u.username}
-          {u._id === me?._id && (
-            <span className="ml-2 text-xs text-muted-foreground">(bạn)</span>
-          )}
+          {u._id === me?._id && <span className="ml-2 text-xs text-muted-foreground">(bạn)</span>}
         </span>
       ),
     },
@@ -213,6 +274,56 @@ const UsersPage = () => {
           </Button>
         }
       />
+
+      {accountRequestError && (
+        <p role="alert" className="mb-6 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+          Không tải được yêu cầu cấp tài khoản: {accountRequestError}
+        </p>
+      )}
+
+      {accountRequests.some((request) => request.status === 'pending') && (
+        <section className="mb-6 rounded-xl border bg-card p-4">
+          <h2 className="font-semibold">Yêu cầu cấp tài khoản</h2>
+          <div className="mt-3 space-y-3">
+            {accountRequests
+              .filter((request) => request.status === 'pending')
+              .map((request) => (
+                <div
+                  key={request._id}
+                  className="flex flex-col gap-4 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium break-words">
+                      {request.name}{' '}
+                      <span className="text-muted-foreground">({request.username})</span>
+                    </p>
+                    <p className="text-sm text-muted-foreground break-words">
+                      {ROLE_LABELS[request.requestedRole]}
+                      {request.phone ? ` · ${request.phone}` : ''}
+                      {request.note ? ` · ${request.note}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openRequestReview(request, 'rejected')}
+                    >
+                      Từ chối
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="gradient"
+                      onClick={() => openRequestReview(request, 'approved')}
+                    >
+                      Cấp tài khoản
+                    </Button>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </section>
+      )}
 
       <div className="hidden md:block">
         <DataTable<User> data={users} keyExtractor={(u) => u._id} columns={columns} />
@@ -316,10 +427,7 @@ const UsersPage = () => {
                       checked={selectedRoles.includes(r)}
                       onCheckedChange={() => toggleRole(r)}
                     />
-                    <Badge
-                      variant="outline"
-                      className={cn('border-transparent', ROLE_BADGE[r])}
-                    >
+                    <Badge variant="outline" className={cn('border-transparent', ROLE_BADGE[r])}>
                       {label}
                     </Badge>
                   </label>
@@ -340,11 +448,58 @@ const UsersPage = () => {
             <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
               Huỷ
             </Button>
-            <Button type="submit" variant="gradient" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              variant="gradient"
+              disabled={isSubmitting || selectedRoles.length === 0}
+            >
               Lưu
             </Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        open={!!reviewTarget}
+        onOpenChange={(open) => !open && !reviewBusy && setReviewTarget(null)}
+        title={reviewDecision === 'approved' ? 'Cấp tài khoản' : 'Từ chối yêu cầu'}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {reviewTarget?.name} ({reviewTarget?.username}) ·{' '}
+            {reviewTarget ? ROLE_LABELS[reviewTarget.requestedRole] : ''}
+          </p>
+          <FormField
+            label={
+              reviewDecision === 'approved' ? 'Ghi chú nội bộ (không bắt buộc)' : 'Lý do từ chối'
+            }
+            required={reviewDecision === 'rejected'}
+          >
+            <Textarea
+              maxLength={1000}
+              rows={4}
+              value={reviewNote}
+              onChange={(event) => setReviewNote(event.target.value)}
+            />
+          </FormField>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" disabled={reviewBusy} onClick={() => setReviewTarget(null)}>
+              Huỷ
+            </Button>
+            <Button
+              variant={reviewDecision === 'approved' ? 'gradient' : 'destructive'}
+              disabled={reviewBusy || (reviewDecision === 'rejected' && !reviewNote.trim())}
+              onClick={() => void reviewRequest()}
+            >
+              {reviewBusy
+                ? 'Đang xử lý…'
+                : reviewDecision === 'approved'
+                  ? 'Xác nhận cấp tài khoản'
+                  : 'Xác nhận từ chối'}
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       <ConfirmDialog

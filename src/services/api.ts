@@ -15,10 +15,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && error.config?.url !== '/auth/login') {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      const path = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      const canResume = path.startsWith('/account/') || path.startsWith('/booking/start');
+      window.location.href = canResume
+        ? `/login?returnTo=${encodeURIComponent(path)}`
+        : '/login';
     }
     return Promise.reject(error);
   },

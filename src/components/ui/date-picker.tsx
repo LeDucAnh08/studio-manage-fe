@@ -47,10 +47,7 @@ export function DatePicker({
             // hover
             'hover:border-primary/50 hover:bg-primary/5',
             // focus / open
-            open && [
-              'border-primary/70',
-              '[box-shadow:0_0_0_3px_hsl(38_92%_50%/0.18)]',
-            ],
+            open && ['border-primary/70', '[box-shadow:0_0_0_3px_hsl(38_92%_50%/0.18)]'],
             // disabled
             'disabled:cursor-not-allowed disabled:opacity-50',
             className,

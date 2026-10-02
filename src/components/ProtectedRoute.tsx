@@ -1,7 +1,8 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import type { ReactNode } from 'react';
 import type { UserRole } from '../types';
+import { safeBookingReturnTo } from '../utils/returnTo';
 
 interface Props {
   children: ReactNode;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 const ProtectedRoute = ({ children, requiredRole, allowedRoles }: Props) => {
+  const location = useLocation();
   const { isAuthenticated, isBootstrapping, user } = useAuth();
 
   // Wait for the bootstrap refresh check before making any redirect decision
@@ -24,11 +26,23 @@ const ProtectedRoute = ({ children, requiredRole, allowedRoles }: Props) => {
     );
   }
 
-  if (!isAuthenticated) return <Navigate to="/portfolio" replace />;
+  if (!isAuthenticated)
+    return (
+      <Navigate
+        to={location.pathname === '/' ? '/portfolio' : '/login'}
+        state={{ from: safeBookingReturnTo(location.pathname + location.search) }}
+        replace
+      />
+    );
+  const home = user?.roles?.includes(6)
+    ? '/account/bookings'
+    : user?.roles?.includes(5) && user.roles.length === 1
+      ? '/manage/finance'
+      : '/';
   if (requiredRole !== undefined && !user?.roles?.includes(requiredRole))
-    return <Navigate to="/" replace />;
+    return <Navigate to={home} replace />;
   if (allowedRoles && !user?.roles?.some((r) => allowedRoles.includes(r)))
-    return <Navigate to="/" replace />;
+    return <Navigate to={home} replace />;
 
   return <>{children}</>;
 };

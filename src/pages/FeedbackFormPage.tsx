@@ -9,7 +9,7 @@ import {
   Phone,
   School,
 } from 'lucide-react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
 import Logo from '../components/atoms/Logo';
@@ -17,7 +17,6 @@ import {
   Button,
   Card,
   CardContent,
-  Combobox,
   Input,
   PageLoader,
   StarRating,
@@ -48,8 +47,9 @@ type Status = 'idle' | 'loading' | 'success' | 'error';
 
 const FeedbackFormPage = () => {
   const { customer: paramCustomerId } = useParams<{ customer: string }>();
-  const [classes, setClasses] = useState<ClassInfo[]>([]);
   const [fixedClass, setFixedClass] = useState<ClassInfo | null>(null);
+  const [searchParams] = useSearchParams();
+  const access = searchParams.get('access') ?? '';
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<Status>('idle');
@@ -78,7 +78,6 @@ const FeedbackFormPage = () => {
   const albumRating = watch('albumRating');
   const crewDescription = watch('crewDescription');
   const albumDescription = watch('albumDescription');
-  const selectedCustomerId = watch('customer');
 
   useEffect(() => {
     let cancelled = false;
@@ -87,14 +86,12 @@ const FeedbackFormPage = () => {
         if (paramCustomerId) {
           const { data } = await api.get<{ data: ClassInfo }>(
             `/public/customers/${paramCustomerId}`,
+            { params: { access } },
           );
           if (!cancelled) {
             setFixedClass(data.data);
             setValue('customer', data.data._id);
           }
-        } else {
-          const { data } = await api.get<{ data: ClassInfo[] }>('/public/customers');
-          if (!cancelled) setClasses(data.data);
         }
       } catch {
         if (!cancelled) setLoadError(true);
@@ -106,13 +103,14 @@ const FeedbackFormPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [paramCustomerId, setValue]);
+  }, [paramCustomerId, setValue, access]);
 
   const onSubmit = async (data: FormValues) => {
     setSubmitStatus('loading');
     try {
       await api.post('/public/feedback', {
         customer: data.customer || undefined,
+        access: data.customer ? access : undefined,
         phone: data.phone || undefined,
         crewFeedback: {
           rating: Number(data.crewRating),
@@ -143,21 +141,12 @@ const FeedbackFormPage = () => {
 
   const canSubmit = useMemo(
     () =>
-      (fixedClass || selectedCustomerId) &&
       crewRating > 0 &&
       albumRating > 0 &&
       crewDescription.trim().length > 0 &&
       albumDescription.trim().length > 0 &&
       !isSubmitting,
-    [
-      fixedClass,
-      selectedCustomerId,
-      crewRating,
-      albumRating,
-      crewDescription,
-      albumDescription,
-      isSubmitting,
-    ],
+    [crewRating, albumRating, crewDescription, albumDescription, isSubmitting],
   );
 
   if (loading) {
@@ -194,8 +183,8 @@ const FeedbackFormPage = () => {
             </div>
             <h2 className="font-bold mb-2 text-2xl">Cảm ơn bạn rất nhiều!</h2>
             <p className="leading-relaxed mb-8 text-muted-foreground">
-              Phản hồi của bạn đã được ghi nhận. Chúng tôi sẽ dùng ý kiến này để phục vụ bạn tốt
-              hơn trong tương lai.
+              Phản hồi của bạn đã được ghi nhận. Chúng tôi sẽ dùng ý kiến này để phục vụ bạn tốt hơn
+              trong tương lai.
             </p>
             <Button
               variant="gradient"
@@ -210,9 +199,8 @@ const FeedbackFormPage = () => {
     );
   }
 
-  const totalSteps = 5;
+  const totalSteps = 4;
   const completionCount =
-    (selectedCustomerId || fixedClass ? 1 : 0) +
     (crewRating > 0 ? 1 : 0) +
     (albumRating > 0 ? 1 : 0) +
     (crewDescription.trim().length > 0 ? 1 : 0) +
@@ -255,36 +243,12 @@ const FeedbackFormPage = () => {
               <span>{fixedClass.school}</span>
             </p>
           ) : (
-            <p className="mt-1 text-muted-foreground">
-              Ý kiến của bạn giúp studio phục vụ tốt hơn
-            </p>
+            <p className="mt-1 text-muted-foreground">Ý kiến của bạn giúp studio phục vụ tốt hơn</p>
           )}
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {fixedClass ? (
-            <input type="hidden" {...register('customer')} />
-          ) : (
-            <Card className="rounded-2xl">
-              <CardContent className="p-5">
-                <label className="block font-semibold mb-2">
-                  Lớp của bạn <span className="text-rose-500">*</span>
-                </label>
-                <Combobox
-                  options={classes.map((c) => ({
-                    value: c._id,
-                    label: c.school ? `${c.className} — ${c.school}` : c.className,
-                  }))}
-                  value={selectedCustomerId}
-                  onChange={(v) => setValue('customer', v, { shouldValidate: true })}
-                  placeholder="Chọn lớp…"
-                />
-                {errors.customer && (
-                  <p className="text-rose-500 mt-2 text-xs">{errors.customer.message}</p>
-                )}
-              </CardContent>
-            </Card>
-          )}
+          {fixedClass && <input type="hidden" {...register('customer')} />}
 
           {/* Crew rating */}
           <Card className="rounded-2xl">

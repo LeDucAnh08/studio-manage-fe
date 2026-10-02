@@ -147,21 +147,21 @@ const DashboardPage = () => {
       label: 'Tổng thu',
       value: formatCurrency(totals.income),
       color: 'text-emerald-600',
-      link: '/finance',
+      link: '/manage/finance',
       show: showFinance,
     },
     {
       label: 'Tổng chi',
       value: formatCurrency(totals.expense),
       color: 'text-rose-600',
-      link: '/finance',
+      link: '/manage/finance',
       show: showFinance,
     },
     {
       label: 'Lợi nhuận',
       value: formatCurrency(totals.profit),
       color: totals.profit >= 0 ? 'text-emerald-600' : 'text-rose-600',
-      link: '/finance',
+      link: '/manage/finance',
       show: showFinance,
     },
   ];
@@ -335,7 +335,10 @@ const DashboardPage = () => {
             ) : (
               <div className="rounded-2xl p-3 border border-border/60 bg-gradient-to-br from-blue-500/5 via-transparent to-violet-500/5">
                 <ResponsiveContainer width="100%" height={300}>
-                  <ComposedChart data={chartData} margin={{ top: 12, right: 20, left: 8, bottom: 4 }}>
+                  <ComposedChart
+                    data={chartData}
+                    margin={{ top: 12, right: 20, left: 8, bottom: 4 }}
+                  >
                     <defs>
                       <linearGradient id="barIncome" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#34d399" />
@@ -376,9 +379,12 @@ const DashboardPage = () => {
                     <Tooltip
                       formatter={(value, name) => [formatCurrency(Number(value ?? 0)), name]}
                       itemSorter={(item) =>
-                        ({ Thu: 0, Chi: 1, 'Lợi nhuận': 2, 'Lợi nhuận dồn': 3 } as Record<string, number>)[
-                          String(item.name ?? '')
-                        ] ?? 99
+                        (
+                          ({ Thu: 0, Chi: 1, 'Lợi nhuận': 2, 'Lợi nhuận dồn': 3 }) as Record<
+                            string,
+                            number
+                          >
+                        )[String(item.name ?? '')] ?? 99
                       }
                       cursor={{ fill: 'rgba(148,163,184,0.08)' }}
                       contentStyle={{
@@ -514,4 +520,3 @@ const DashboardPage = () => {
 };
 
 export default DashboardPage;
-

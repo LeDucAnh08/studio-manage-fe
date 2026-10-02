@@ -272,7 +272,9 @@ const SeasonPage = () => {
       {/* Confirm delete */}
       <ConfirmDialog
         open={!!confirmId}
-        onOpenChange={(open) => { if (!open) setConfirmId(null); }}
+        onOpenChange={(open) => {
+          if (!open) setConfirmId(null);
+        }}
         title="Xoá mùa chụp?"
         message="Hành động này không thể hoàn tác. Bạn có chắc muốn xoá mùa chụp này?"
         confirmLabel="Xoá"
@@ -283,4 +285,3 @@ const SeasonPage = () => {
 };
 
 export default SeasonPage;
-

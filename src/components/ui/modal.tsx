@@ -1,10 +1,5 @@
 import type { ReactNode } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 interface ModalProps {
@@ -41,17 +36,11 @@ export const Modal = ({
 }: ModalProps) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent
-      className={cn(
-        sizeClass[size],
-        'max-h-[calc(100dvh-2rem)] overflow-y-auto',
-        contentClassName,
-      )}
+      className={cn(sizeClass[size], 'max-h-[calc(100dvh-2rem)] overflow-y-auto', contentClassName)}
     >
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
-        {description && (
-          <p className="text-sm text-muted-foreground">{description}</p>
-        )}
+        {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </DialogHeader>
       <div className={className}>{children}</div>
     </DialogContent>

@@ -9,13 +9,7 @@ interface PageHeaderProps {
   className?: string;
 }
 
-export const PageHeader = ({
-  title,
-  kicker,
-  description,
-  action,
-  className,
-}: PageHeaderProps) => (
+export const PageHeader = ({ title, kicker, description, action, className }: PageHeaderProps) => (
   <div
     className={cn(
       'flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-6',

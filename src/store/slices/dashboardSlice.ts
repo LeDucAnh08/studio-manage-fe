@@ -12,7 +12,8 @@ const initialState: DashboardState = { stats: null, loading: false, error: null 
 
 export const fetchDashboardStats = createAsyncThunk(
   'dashboard/fetchStats',
-  (params?: { userId?: string; months?: number; season?: string }) => dashboardService.getStats(params),
+  (params?: { userId?: string; months?: number; season?: string }) =>
+    dashboardService.getStats(params),
 );
 
 const dashboardSlice = createSlice({

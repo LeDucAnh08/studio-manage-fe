@@ -79,10 +79,7 @@ export const Pagination = ({
         {onPageSizeChange && (
           <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
             <span className="hidden sm:inline">Mỗi trang</span>
-            <Select
-              value={String(pageSize)}
-              onValueChange={(v) => onPageSizeChange(Number(v))}
-            >
+            <Select value={String(pageSize)} onValueChange={(v) => onPageSizeChange(Number(v))}>
               <SelectTrigger className="h-8 w-[72px]">
                 <SelectValue />
               </SelectTrigger>

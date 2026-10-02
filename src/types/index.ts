@@ -1,5 +1,5 @@
 // 0: Superadmin | 1: Admin | 2: Sale | 3: Thợ chụp ảnh | 4: Cộng tác viên sale | 5: Kế toán
-export type UserRole = 0 | 1 | 2 | 3 | 4 | 5;
+export type UserRole = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   0: 'Superadmin',
@@ -8,6 +8,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   3: 'Thợ chụp ảnh',
   4: 'Cộng tác viên sale',
   5: 'Kế toán',
+  6: 'Khách hàng',
 };
 
 export interface User {
@@ -48,7 +49,37 @@ export interface Costume {
   description?: string;
   gender: 'male' | 'female' | 'unisex';
   type?: string;
+  itemKind?: 'clothing' | 'accessory';
+  isRentalItem?: boolean;
+  rentalPrice?: number;
+  inventory?: CostumeInventory[];
   createdAt?: string;
+}
+
+export interface CostumeInventory {
+  size: string;
+  quantity: number;
+  condition: 'good' | 'repair' | 'damaged' | 'retired';
+}
+
+export interface RentalCatalogItem {
+  _id: string;
+  name: string;
+  description?: string;
+  gender: 'male' | 'female' | 'unisex';
+  itemKind: 'clothing' | 'accessory';
+  categoryId?: string | null;
+  category?: string | null;
+  rentalPrice: number;
+  sizes: string[];
+}
+
+export interface RentalCatalogFilters {
+  itemKind?: 'clothing' | 'accessory';
+  categoryId?: string;
+  size?: string;
+  minPrice?: number;
+  maxPrice?: number;
 }
 
 /** Populated Costume returned by GET endpoints (type is populated). */
@@ -81,6 +112,8 @@ export interface Schedule {
   customer: string;
   package: string | null;
   costumes: string[];
+  workflowBooking?: string;
+  costumeReservations?: ScheduleCostumeReservation[];
   shootDate: string;
   startTime?: string;
   endTime?: string;
@@ -95,6 +128,14 @@ export interface Schedule {
   driveFolderUrl?: string;
   driveFolderId?: string;
   createdAt?: string;
+}
+
+export interface ScheduleCostumeReservation {
+  costume: string;
+  size: string;
+  quantity: number;
+  receiveDate: string;
+  returnDate: string;
 }
 
 /** Populated Schedule returned by GET endpoints (backend uses `.populate`). */
@@ -190,8 +231,8 @@ export interface Feedback {
   _id: string;
   customer: string | null;
   phone?: string;
-  crewFeedback: FeedbackItem;
-  albumFeedback: FeedbackItem;
+  crewFeedback?: FeedbackItem;
+  albumFeedback?: FeedbackItem;
   content?: string;
   suggestion?: string;
   isRead: boolean;

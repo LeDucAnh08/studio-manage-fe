@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import tnv07899 from '../assets/images/TNV07899.webp';
 import tnv00048 from '../assets/images/TNV00048.webp';
 import tnv00817 from '../assets/images/TNV00817.webp';
@@ -16,6 +16,7 @@ import tnv00451 from '../assets/images/TNV00451.webp';
 import tnv06242 from '../assets/images/TNV06242.webp';
 import { toast } from 'react-toastify';
 import Logo from '../components/atoms/Logo';
+import PublicSiteLayout from '../components/Layout/PublicSiteLayout';
 import { useTheme } from '../context/ThemeContext';
 import { customerService } from '../services/customerService';
 import { feedbackService } from '../services/feedbackService';
@@ -203,13 +204,23 @@ const initialForm: FeedbackForm = {
 /* ── Page ────────────────────────────────────── */
 
 const PortfolioPage = () => {
-  const { isDark, toggleTheme } = useTheme();
+  const { hash } = useLocation();
+  const { isDark } = useTheme();
   const [classCount, setClassCount] = useState<number | null>(null);
   const [schoolCount, setSchoolCount] = useState<number | null>(null);
   const [pkgList, setPkgList] = useState<Package[] | null>(null);
+  const [pkgError, setPkgError] = useState('');
   const [form, setForm] = useState<FeedbackForm>(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (!hash) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [hash, pkgList]);
 
   // Fetch real stats from public API
   useEffect(() => {
@@ -226,13 +237,19 @@ const PortfolioPage = () => {
       });
   }, []);
 
-  // Fetch real pricing packages from public API
-  useEffect(() => {
-    packageService
-      .listPublic()
-      .then((list) => setPkgList(list))
-      .catch(() => setPkgList([]));
+  const loadPackages = useCallback(async () => {
+    setPkgList(null);
+    setPkgError('');
+    try {
+      setPkgList(await packageService.listPublic());
+    } catch {
+      setPkgError('Không tải được bảng giá. Vui lòng thử lại hoặc liên hệ studio để được tư vấn.');
+    }
   }, []);
+
+  useEffect(() => {
+    void loadPackages();
+  }, [loadPackages]);
 
   const displayPackages = useMemo<PackageDisplay[]>(() => {
     if (pkgList === null) return [];
@@ -275,56 +292,9 @@ const PortfolioPage = () => {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-white text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors">
-      {/* ── Navigation ───────────────────────────── */}
-      <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-md bg-white/70 dark:bg-slate-950/70 border-b border-slate-200/60 dark:border-white/5">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <a href="#top" className="flex items-center gap-2">
-            <Logo size={36} />
-            <span className="font-bold text-lg text-gradient">Yume Studio</span>
-          </a>
-          <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600 dark:text-slate-300">
-            <a href="#about" className="hover:text-amber-500 transition">
-              Về Yume
-            </a>
-            <a href="#services" className="hover:text-amber-500 transition">
-              Dịch vụ
-            </a>
-            <a href="#gallery" className="hover:text-amber-500 transition">
-              Concept
-            </a>
-            <a href="#process" className="hover:text-amber-500 transition">
-              Quy trình
-            </a>
-            <a href="#packages" className="hover:text-amber-500 transition">
-              Báo giá
-            </a>
-            <a href="#feedback" className="hover:text-amber-500 transition">
-              Cảm nhận
-            </a>
-          </nav>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={toggleTheme}
-              aria-label="Đổi giao diện"
-              className="w-10 h-10 rounded-full flex items-center justify-center border border-slate-200 dark:border-white/10 hover:border-amber-300 hover:text-amber-500 transition text-slate-600 dark:text-slate-300"
-            >
-              {isDark ? '☀️' : '🌙'}
-            </button>
-            <a
-              href="#contact"
-              className="hidden sm:inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold text-white shadow-md hover:shadow-lg transition"
-              style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #22d3ee 100%)' }}
-            >
-              Đặt lịch
-            </a>
-          </div>
-        </div>
-      </header>
-
+    <PublicSiteLayout source="portfolio">
       {/* ── Hero ─────────────────────────────────── */}
-      <section id="top" className="relative pt-28 pb-20 sm:pt-36 sm:pb-28 overflow-hidden">
+      <section id="top" className="relative scroll-mt-32 overflow-hidden pt-16 pb-20 sm:pt-20 sm:pb-28">
         <div
           className="absolute inset-0 -z-10"
           style={{
@@ -353,19 +323,25 @@ const PortfolioPage = () => {
               bao giờ phai.
             </p>
             <div className="mt-10 flex flex-wrap justify-center lg:justify-start gap-4">
-              <a
-                href="#contact"
+              <Link
+                to="/booking/start?source=portfolio"
                 className="inline-flex items-center px-6 py-3 rounded-full text-sm sm:text-base font-semibold text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition"
                 style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #22d3ee 100%)' }}
               >
-                📅 Đặt lịch chụp
-              </a>
-              <a
-                href="#gallery"
+                Bắt đầu đặt lịch
+              </Link>
+              <Link
+                to="/consultation"
                 className="inline-flex items-center px-6 py-3 rounded-full text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-100 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:border-amber-300 hover:text-amber-600 transition"
               >
-                Xem concept
-              </a>
+                Nhận tư vấn
+              </Link>
+              <Link
+                to="/costumes"
+                className="inline-flex items-center px-6 py-3 rounded-full text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-100 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:border-amber-300 hover:text-amber-600 transition"
+              >
+                Tra cứu trang phục
+              </Link>
             </div>
 
             {/* Stats */}
@@ -392,7 +368,7 @@ const PortfolioPage = () => {
       </section>
 
       {/* ── About ────────────────────────────────── */}
-      <section id="about" className="py-20 sm:py-28">
+      <section id="about" className="scroll-mt-32 py-20 sm:py-28">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 grid md:grid-cols-2 gap-12 items-center">
           <div>
             <span className="text-sm font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
@@ -482,7 +458,7 @@ const PortfolioPage = () => {
       </section>
 
       {/* ── Services ─────────────────────────────── */}
-      <section id="services" className="py-20 sm:py-28 bg-slate-50 dark:bg-slate-900/50">
+      <section id="services" className="scroll-mt-32 bg-slate-50 py-20 dark:bg-slate-900/50 sm:py-28">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center max-w-2xl mx-auto">
             <span className="text-sm font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
@@ -516,7 +492,7 @@ const PortfolioPage = () => {
       </section>
 
       {/* ── Concepts / Gallery ───────────────────── */}
-      <section id="gallery" className="py-20 sm:py-28">
+      <section id="gallery" className="scroll-mt-32 py-20 sm:py-28">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center max-w-2xl mx-auto">
             <span className="text-sm font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
@@ -528,8 +504,10 @@ const PortfolioPage = () => {
           </div>
           <div className="mt-14 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {concepts.map((c) => (
-              <div
+              <Link
                 key={c.tag}
+                to={`/booking/start?source=concepts&concept=${encodeURIComponent(c.tag)}`}
+                aria-label={`Chọn concept ${c.tag} và bắt đầu đặt lịch`}
                 className={`group relative aspect-[3/4] rounded-2xl overflow-hidden bg-gradient-to-br ${c.tone} shadow-md hover:shadow-2xl hover:-translate-y-1 transition cursor-pointer`}
               >
                 <div className="absolute inset-0 flex items-center justify-center text-6xl opacity-80">
@@ -538,24 +516,24 @@ const PortfolioPage = () => {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-4">
                   <div className="text-white font-bold text-lg drop-shadow">{c.tag}</div>
-                  <div className="text-white/80 text-xs mt-0.5">Xem bộ ảnh →</div>
+                  <div className="text-white/80 text-xs mt-0.5">Chọn concept →</div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
           <div className="mt-10 text-center">
-            <a
-              href="#contact"
+            <Link
+              to="/consultation"
               className="inline-flex items-center text-sm font-semibold text-amber-600 dark:text-amber-400 hover:underline"
             >
-              Inbox để xem trọn bộ portfolio →
-            </a>
+              Nhận tư vấn về concept →
+            </Link>
           </div>
         </div>
       </section>
 
       {/* ── Process ──────────────────────────────── */}
-      <section id="process" className="py-20 sm:py-28 bg-slate-50 dark:bg-slate-900/50">
+      <section id="process" className="scroll-mt-32 bg-slate-50 py-20 dark:bg-slate-900/50 sm:py-28">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center max-w-2xl mx-auto">
             <span className="text-sm font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
@@ -581,7 +559,7 @@ const PortfolioPage = () => {
       </section>
 
       {/* ── Packages ─────────────────────────────── */}
-      <section id="packages" className="py-20 sm:py-28">
+      <section id="packages" className="scroll-mt-32 py-20 sm:py-28">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center max-w-2xl mx-auto">
             <span className="text-sm font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
@@ -592,7 +570,72 @@ const PortfolioPage = () => {
               Báo giá tham khảo. Yume sẽ tư vấn riêng cho từng lớp dựa trên concept và quy mô.
             </p>
           </div>
-          <div className="mt-14 grid md:grid-cols-3 gap-6">
+          {pkgList === null ? (
+            pkgError ? (
+              <div
+                className="mx-auto mt-10 flex max-w-2xl flex-col items-start gap-4 rounded-2xl border border-rose-300/50 bg-rose-50 p-6 dark:border-rose-400/20 dark:bg-rose-400/5 sm:flex-row sm:items-center sm:justify-between"
+                role="alert"
+              >
+                <div>
+                  <h3 className="font-semibold text-rose-800 dark:text-rose-200">
+                    Chưa thể tải bảng giá
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{pkgError}</p>
+                </div>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void loadPackages()}
+                    className="inline-flex min-h-11 items-center justify-center rounded-full border border-slate-300 px-4 text-sm font-semibold hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:border-white/20 dark:hover:bg-white/10"
+                  >
+                    Thử lại
+                  </button>
+                  <Link
+                    to="/consultation"
+                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-slate-900 px-4 text-sm font-semibold text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 dark:bg-white dark:text-slate-900"
+                  >
+                    Nhận tư vấn
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-14" role="status" aria-live="polite" aria-label="Đang tải gói dịch vụ">
+                <div className="grid gap-6 md:grid-cols-3">
+                  {Array.from({ length: 3 }, (_, index) => (
+                    <div key={index} aria-hidden="true" className="min-h-80 animate-pulse rounded-3xl border border-slate-200 bg-slate-100 p-8 motion-reduce:animate-none dark:border-white/10 dark:bg-white/5">
+                      <div className="h-4 w-28 rounded bg-slate-300 dark:bg-white/10" />
+                      <div className="mt-5 h-9 w-40 rounded bg-slate-300 dark:bg-white/10" />
+                      <div className="mt-4 h-3 w-full rounded bg-slate-300 dark:bg-white/10" />
+                      <div className="mt-3 h-3 w-4/5 rounded bg-slate-300 dark:bg-white/10" />
+                      <div className="mt-10 h-11 rounded-full bg-slate-300 dark:bg-white/10" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          ) : displayPackages.length === 0 ? (
+            <div className="mx-auto mt-10 max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-white/10 dark:bg-slate-900 sm:p-10">
+              <h3 className="text-xl font-semibold">Bảng giá đang được cập nhật</h3>
+              <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                Chia sẻ quy mô lớp và ý tưởng chụp với studio để nhận gợi ý gói phù hợp trong thời gian này.
+              </p>
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                <Link
+                  to="/consultation"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-amber-500 px-5 font-semibold text-amber-800 hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-amber-200 dark:hover:bg-amber-400/10"
+                >
+                  Nhận tư vấn
+                </Link>
+                <Link
+                  to="/booking/start?source=pricing"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full bg-slate-900 px-5 font-semibold text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 dark:bg-white dark:text-slate-900"
+                >
+                  Bắt đầu đặt lịch
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-14 grid gap-6 md:grid-cols-3">
             {displayPackages.map((p) => (
               <div
                 key={p.id}
@@ -637,21 +680,32 @@ const PortfolioPage = () => {
                     </li>
                   ))}
                 </ul>
-                <div className="mt-auto pt-8">
-                  <a
-                    href="#contact"
+                <div className="mt-auto flex flex-col gap-3 pt-8">
+                  <Link
+                    to={`/booking/start?source=pricing&package=${encodeURIComponent(p.id)}`}
                     className={`inline-flex w-full justify-center items-center px-5 py-3 rounded-full text-sm font-semibold transition ${
                       p.featured
                         ? 'bg-white text-amber-700 hover:bg-amber-50'
                         : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90'
                     }`}
                   >
-                    Tư vấn ngay
-                  </a>
+                    Bắt đầu đặt lịch
+                  </Link>
+                  <Link
+                    to="/consultation"
+                    className={`inline-flex min-h-11 w-full items-center justify-center rounded-full border px-5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 motion-reduce:transition-none ${
+                      p.featured
+                        ? 'border-white/70 text-white hover:bg-white/15'
+                        : 'border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-white/20 dark:text-slate-200 dark:hover:bg-white/10'
+                    }`}
+                  >
+                    Nhận tư vấn
+                  </Link>
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -696,7 +750,7 @@ const PortfolioPage = () => {
       </section>
 
       {/* ── Mini feedback form (uses real /public/feedback API) ────── */}
-      <section id="feedback" className="py-20 sm:py-28">
+      <section id="feedback" className="scroll-mt-32 py-20 sm:py-28">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-center">
             <span className="text-sm font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
@@ -815,7 +869,7 @@ const PortfolioPage = () => {
       </section>
 
       {/* ── Contact CTA ──────────────────────────── */}
-      <section id="contact" className="py-20 sm:py-28">
+      <section id="contact" className="scroll-mt-32 py-20 sm:py-28">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div
             className="relative rounded-3xl p-10 sm:p-14 text-center text-white overflow-hidden shadow-2xl"
@@ -826,25 +880,28 @@ const PortfolioPage = () => {
               <div className="absolute bottom-0 right-1/4 w-72 h-72 rounded-full bg-white blur-3xl" />
             </div>
             <div className="relative">
-              <h2 className="text-3xl sm:text-4xl font-extrabold">
-                Sẵn sàng có một bộ kỷ yếu để đời?
-              </h2>
+              <h2 className="text-3xl sm:text-4xl font-extrabold">Bạn cần tư vấn về buổi chụp?</h2>
               <p className="mt-4 text-base sm:text-lg text-white/90 max-w-2xl mx-auto">
-                Inbox Yume Studio để được tư vấn miễn phí concept, nhận báo giá chi tiết và giữ lịch
-                chụp.
+                Chọn kênh liên hệ để trao đổi về concept, quy mô lớp và ngân sách dự kiến.
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-4">
+                <Link
+                  to="/booking/start?source=portfolio"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-amber-800 shadow-md transition hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-amber-500 motion-reduce:transition-none"
+                >
+                  Bắt đầu đặt lịch
+                </Link>
                 <a
-                  href="tel:0987654321"
+                  href="tel:0869318118"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm sm:text-base font-semibold text-amber-700 bg-white hover:bg-amber-50 shadow-md transition"
                 >
-                  📞 0869318118
+                  Gọi 0869318118
                 </a>
                 <a
                   href="mailto:hello@yumestudio.vn"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm sm:text-base font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/40 backdrop-blur transition"
                 >
-                  ✉️ hello@yumestudio.vn
+                  Email hello@yumestudio.vn
                 </a>
                 <a
                   href="https://www.facebook.com"
@@ -852,7 +909,7 @@ const PortfolioPage = () => {
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm sm:text-base font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/40 backdrop-blur transition"
                 >
-                  💬 Facebook / Zalo
+                  Facebook / Zalo
                 </a>
               </div>
               <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm text-white/90">
@@ -864,20 +921,7 @@ const PortfolioPage = () => {
         </div>
       </section>
 
-      {/* ── Footer ───────────────────────────────── */}
-      <footer className="border-t border-slate-200 dark:border-white/5 py-10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500 dark:text-slate-400">
-          <div className="flex items-center gap-2">
-            <Logo size={28} />
-            <span className="font-semibold text-slate-700 dark:text-slate-200">Yume Studio</span>
-          </div>
-          <div>© {new Date().getFullYear()} Yume Studio. Mọi quyền được bảo lưu.</div>
-          <Link to="/login" className="hover:text-amber-500 transition">
-            Đăng nhập quản trị
-          </Link>
-        </div>
-      </footer>
-    </div>
+    </PublicSiteLayout>
   );
 };
 

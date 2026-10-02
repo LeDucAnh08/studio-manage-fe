@@ -9,12 +9,7 @@ interface LoadingButtonProps extends ButtonProps {
 
 export const LoadingButton = React.forwardRef<HTMLButtonElement, LoadingButtonProps>(
   ({ loading, disabled, children, className, ...props }, ref) => (
-    <Button
-      ref={ref}
-      disabled={disabled || loading}
-      className={cn(className)}
-      {...props}
-    >
+    <Button ref={ref} disabled={disabled || loading} className={cn(className)} {...props}>
       {loading && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
       {children}
     </Button>

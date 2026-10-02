@@ -359,7 +359,10 @@ const CustomersPage = () => {
               error={errors.className?.message}
               className="col-span-2 sm:col-span-1"
             >
-              <Input id="className" {...register('className', { required: 'Vui lòng nhập tên lớp' })} />
+              <Input
+                id="className"
+                {...register('className', { required: 'Vui lòng nhập tên lớp' })}
+              />
             </FormField>
             <FormField
               label="Trường"
@@ -383,7 +386,12 @@ const CustomersPage = () => {
                 {...register('total', { valueAsNumber: true, required: 'Vui lòng nhập sĩ số' })}
               />
             </FormField>
-            <FormField label="Số nam" required htmlFor="totalMale" error={errors.totalMale?.message}>
+            <FormField
+              label="Số nam"
+              required
+              htmlFor="totalMale"
+              error={errors.totalMale?.message}
+            >
               <Input
                 id="totalMale"
                 type="number"
@@ -456,7 +464,10 @@ const CustomersPage = () => {
                 name="season"
                 control={control}
                 render={({ field }) => (
-                  <Select value={field.value ?? ''} onValueChange={(v) => field.onChange(v || null)}>
+                  <Select
+                    value={field.value ?? ''}
+                    onValueChange={(v) => field.onChange(v || null)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="-- Chọn mùa --" />
                     </SelectTrigger>

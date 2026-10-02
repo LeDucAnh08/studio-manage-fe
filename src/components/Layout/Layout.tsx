@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import Breadcrumbs from './Breadcrumbs';
 import { Logo } from '../atoms';
 
 const Layout = () => {
@@ -39,6 +40,7 @@ const Layout = () => {
       </div>
 
       <main className="flex-1 md:ml-60 p-4 md:p-6 overflow-y-auto pt-[4.5rem] md:pt-6">
+        <Breadcrumbs />
         <Outlet />
       </main>
     </div>

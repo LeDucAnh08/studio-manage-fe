@@ -120,9 +120,7 @@ const FinancePage = () => {
 
   useEffect(() => {
     dispatch(
-      fetchCustomers(
-        selectedSeasonId ? { limit: 200, season: selectedSeasonId } : { limit: 200 },
-      ),
+      fetchCustomers(selectedSeasonId ? { limit: 200, season: selectedSeasonId } : { limit: 200 }),
     );
     dispatch(fetchCategories());
     if (canRefund) dispatch(fetchUsers());
@@ -271,10 +269,7 @@ const FinancePage = () => {
       align: 'right',
       render: (t) => (
         <span
-          className={cn(
-            'font-medium',
-            t.type === 'income' ? 'text-emerald-600' : 'text-rose-600',
-          )}
+          className={cn('font-medium', t.type === 'income' ? 'text-emerald-600' : 'text-rose-600')}
         >
           {t.type === 'expense' ? '-' : '+'}
           {formatCurrency(t.amount)}
@@ -351,12 +346,7 @@ const FinancePage = () => {
       header: 'Lợi nhuận',
       align: 'right',
       render: (row) => (
-        <span
-          className={cn(
-            'font-medium',
-            row.profit >= 0 ? 'text-emerald-600' : 'text-rose-600',
-          )}
-        >
+        <span className={cn('font-medium', row.profit >= 0 ? 'text-emerald-600' : 'text-rose-600')}>
           {formatCurrency(row.profit)}
         </span>
       ),
@@ -453,11 +443,19 @@ const FinancePage = () => {
             />
           </FormField>
           <div className="flex gap-2 md:justify-end">
-            <Button variant="gradient" onClick={applyFilter} className="flex-1 md:flex-none min-w-[96px]">
+            <Button
+              variant="gradient"
+              onClick={applyFilter}
+              className="flex-1 md:flex-none min-w-[96px]"
+            >
               Lọc
             </Button>
-            <Button variant="outline" onClick={resetFilter} className="flex-1 md:flex-none min-w-[88px]">
-              Xoá
+            <Button
+              variant="outline"
+              onClick={resetFilter}
+              className="flex-1 md:flex-none min-w-[88px]"
+            >
+              Xóa bộ lọc
             </Button>
           </div>
         </div>
@@ -465,10 +463,7 @@ const FinancePage = () => {
 
       {/* Tabs */}
       <div className="flex gap-2 mb-4 flex-wrap">
-        <Button
-          variant={tab === 'list' ? 'gradient' : 'outline'}
-          onClick={() => setTab('list')}
-        >
+        <Button variant={tab === 'list' ? 'gradient' : 'outline'} onClick={() => setTab('list')}>
           Danh sách
         </Button>
         <Button
@@ -510,9 +505,7 @@ const FinancePage = () => {
                   <div className="flex items-start justify-between mb-2 gap-2">
                     <div className="min-w-0">
                       <div className="text-sm text-muted-foreground">{formatDate(t.date)}</div>
-                      <div className="text-sm font-medium mt-0.5">
-                        {t.categoryId?.name ?? '—'}
-                      </div>
+                      <div className="text-sm font-medium mt-0.5">{t.categoryId?.name ?? '—'}</div>
                       {t.customer && (
                         <div className="text-xs text-muted-foreground">{t.customer.className}</div>
                       )}
@@ -636,9 +629,7 @@ const FinancePage = () => {
                 <div className="grid grid-cols-3 gap-2 text-center text-sm">
                   <div>
                     <div className="text-xs text-muted-foreground">Thu</div>
-                    <div className="text-emerald-500 font-medium">
-                      {formatCurrency(row.income)}
-                    </div>
+                    <div className="text-emerald-500 font-medium">{formatCurrency(row.income)}</div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Chi</div>
@@ -818,7 +809,10 @@ const FinancePage = () => {
                 name="season"
                 control={control}
                 render={({ field }) => (
-                  <Select value={field.value ?? ''} onValueChange={(v) => field.onChange(v || null)}>
+                  <Select
+                    value={field.value ?? ''}
+                    onValueChange={(v) => field.onChange(v || null)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="-- Chọn mùa --" />
                     </SelectTrigger>

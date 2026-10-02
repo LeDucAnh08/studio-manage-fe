@@ -73,6 +73,7 @@ const CustomerSizePage = () => {
   const [totalFemale, setTotalFemale] = useState(0);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [publicAccessToken, setPublicAccessToken] = useState('');
   const [copiedInfo, setCopiedInfo] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<StudentResponse | null>(null);
@@ -137,6 +138,9 @@ const CustomerSizePage = () => {
       setTotalFemale(0);
       return;
     }
+    customerService
+      .getPublicLink(selectedCustomer._id)
+      .then((result) => setPublicAccessToken(result.token));
     setLoadingStudents(true);
     studentService
       .getAll({ customer: selectedCustomer._id })
@@ -168,9 +172,10 @@ const CustomerSizePage = () => {
     if (showDupOnly && duplicateNorms.size === 0) setShowDupOnly(false);
   }, [duplicateNorms, showDupOnly]);
 
-  const publicUrl = selectedCustomer
-    ? `${window.location.origin}/form/${selectedCustomer._id}`
-    : '';
+  const publicUrl =
+    selectedCustomer && publicAccessToken
+      ? `${window.location.origin}/form/${selectedCustomer._id}?access=${publicAccessToken}`
+      : '';
 
   const handleCopy = () => {
     if (!selectedCustomer) return;
@@ -585,9 +590,7 @@ ${costumeLines || `- ${totalMale} bộ nam\n- ${totalFemale} bộ nữ`}
             <School className="h-10 w-10 text-sky-500" />
           </div>
           <p className="text-base font-medium">Xin mời chọn lớp để xem danh sách học sinh</p>
-          <p className="text-sm mt-1">
-            Sau đó bạn có thể copy link để học sinh tự nhập thông tin
-          </p>
+          <p className="text-sm mt-1">Sau đó bạn có thể copy link để học sinh tự nhập thông tin</p>
         </div>
       )}
 
@@ -763,11 +766,7 @@ ${costumeLines || `- ${totalMale} bộ nam\n- ${totalFemale} bộ nữ`}
                     />
                     {showDupOnly && displayedStudents.length === 0 && (
                       <div className="text-center mt-2">
-                        <Button
-                          variant="link"
-                          size="sm"
-                          onClick={() => setShowDupOnly(false)}
-                        >
+                        <Button variant="link" size="sm" onClick={() => setShowDupOnly(false)}>
                           Hiện tất cả
                         </Button>
                       </div>

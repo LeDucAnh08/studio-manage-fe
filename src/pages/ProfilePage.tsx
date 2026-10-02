@@ -118,7 +118,7 @@ function PasswordSection() {
           autoComplete="new-password"
           {...register('newPassword', {
             required: 'Vui lòng nhập mật khẩu mới',
-            minLength: { value: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự' },
+            minLength: { value: 8, message: 'Mật khẩu phải có ít nhất 8 ký tự' },
           })}
         />
         {errors.newPassword && (
@@ -176,7 +176,9 @@ function TelegramSection() {
       const res = await telegramService.generateLinkToken();
       // Open Telegram deeplink in new tab
       window.open(res.url, '_blank', 'noopener,noreferrer');
-      toast.info('Mở Telegram và bấm "Start" để hoàn tất liên kết. Token có hiệu lực trong 15 phút.');
+      toast.info(
+        'Mở Telegram và bấm "Start" để hoàn tất liên kết. Token có hiệu lực trong 15 phút.',
+      );
       // Poll for link completion every 3s for up to 60s
       let attempts = 0;
       const poll = setInterval(async () => {
@@ -258,11 +260,7 @@ function TelegramSection() {
 
       {status?.linked ? (
         <Button variant="outline" onClick={handleUnlink} disabled={unlinking}>
-          {unlinking ? (
-            <Spinner className="mr-2 h-4 w-4" />
-          ) : (
-            <Link2Off className="mr-2 w-4 h-4" />
-          )}
+          {unlinking ? <Spinner className="mr-2 h-4 w-4" /> : <Link2Off className="mr-2 w-4 h-4" />}
           Huỷ liên kết
         </Button>
       ) : (
@@ -317,10 +315,7 @@ const ProfilePage = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Hồ sơ cá nhân"
-        kicker={`${user?.username}`}
-      />
+      <PageHeader title="Hồ sơ cá nhân" kicker={`${user?.username}`} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl">
         <SectionCard icon={UserIcon} title="Thông tin cá nhân">
           <ProfileSection />
@@ -330,9 +325,11 @@ const ProfilePage = () => {
           <PasswordSection />
         </SectionCard>
 
-        <SectionCard icon={Link2} title="Liên kết Telegram">
-          <TelegramSection />
-        </SectionCard>
+        {!user?.roles.includes(6) && (
+          <SectionCard icon={Link2} title="Liên kết Telegram">
+            <TelegramSection />
+          </SectionCard>
+        )}
       </div>
     </div>
   );

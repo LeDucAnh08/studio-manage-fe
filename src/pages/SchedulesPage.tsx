@@ -58,6 +58,10 @@ import { fetchPhotographers, fetchSales } from '../store/slices/usersSlice';
 import type { CostumeResponse, ScheduleResponse } from '../types';
 import { ROLE_LABELS } from '../types';
 import { formatDate } from '../utils/format';
+import ScheduleCostumeReservations, {
+  type ReservationDraft,
+} from '../components/ScheduleCostumeReservations';
+import { vietnamCalendarDate } from '../utils/vietnamCalendarDate';
 import {
   SCHEDULE_STATUS_COLOR as statusColor,
   SCHEDULE_STATUS_LABEL as statusLabel,
@@ -391,6 +395,7 @@ const SchedulesPage = () => {
   const [pageSize, setPageSize] = useState(20);
   const [allCostumes, setAllCostumes] = useState<CostumeResponse[]>([]);
   const [selectedCostumes, setSelectedCostumes] = useState<string[]>([]);
+  const [reservationRows, setReservationRows] = useState<ReservationDraft[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<ScheduleResponse | null>(null);
   const [supportIds, setSupportIds] = useState<string[]>([]);
@@ -458,22 +463,37 @@ const SchedulesPage = () => {
     setEditing(null);
     setSupportIds([]);
     setSelectedCostumes([]);
+    setReservationRows([]);
     setCostumeTouched(false);
     reset({ status: 'pending', season: selectedSeasonId || null });
     setModalOpen(true);
   };
 
   const openEdit = (s: ScheduleResponse) => {
+    if (s.workflowBooking) {
+      toast.error(
+        'Lịch này đã liên kết hồ sơ dịch vụ. Quản trị viên xử lý thay đổi trong Quy trình dịch vụ.',
+      );
+      return;
+    }
     setEditing(s);
     const leadId = s.leadPhotographer?._id ?? '';
     const supIds = s.supportPhotographers.map((u) => u._id);
     setSupportIds(supIds);
     setSelectedCostumes(s.costumes?.map((c) => c._id) ?? []);
+    setReservationRows(
+      (s.costumeReservations ?? []).map((row) => ({
+        ...row,
+        quantity: String(row.quantity),
+        receiveDate: vietnamCalendarDate(row.receiveDate),
+        returnDate: vietnamCalendarDate(row.returnDate),
+      })),
+    );
     setCostumeTouched(false);
     reset({
       customer: s.customer._id,
       package: s.package?._id ?? '',
-      shootDate: s.shootDate.slice(0, 10),
+      shootDate: vietnamCalendarDate(s.shootDate),
       startTime: s.startTime,
       endTime: s.endTime,
       location: s.location,
@@ -491,9 +511,34 @@ const SchedulesPage = () => {
       toast.error('Vui lòng chọn ít nhất một trang phục.');
       return;
     }
+    const reservations = reservationRows.filter((row) => selectedCostumes.includes(row.costume));
+    const keys = reservations.map((row) => `${row.costume}:${row.size}`);
+    if (
+      data.status !== 'cancelled' &&
+      (selectedCostumes.some((id) => !reservations.some((row) => row.costume === id)) ||
+        new Set(keys).size !== keys.length ||
+        reservations.some(
+          (row) =>
+            !row.size ||
+            !Number.isSafeInteger(Number(row.quantity)) ||
+            Number(row.quantity) < 1 ||
+            Number(row.quantity) > 10000 ||
+            !row.receiveDate ||
+            !row.returnDate ||
+            row.receiveDate > data.shootDate ||
+            row.returnDate < data.shootDate ||
+            row.receiveDate > row.returnDate,
+        ))
+    ) {
+      toast.error(
+        'Đối soát đủ mẫu, kích cỡ và số lượng; ngày nhận–trả phải bao gồm ngày chụp. Mỗi mẫu và kích cỡ chỉ có một dòng.',
+      );
+      return;
+    }
     const payload = {
       ...data,
       costumes: selectedCostumes,
+      costumeReservations: reservations.map((row) => ({ ...row, quantity: Number(row.quantity) })),
       leadPhotographer: data.leadPhotographer || undefined,
       bookedBy: data.bookedBy || undefined,
       supportPhotographers: supportIds,
@@ -510,12 +555,21 @@ const SchedulesPage = () => {
       dispatch(fetchSchedules(buildFilterParams(appliedFilter, page, pageSize)));
 
       setDetail(await scheduleService.getOne(saved._id));
-    } catch {
-      toast.error('Có lỗi xảy ra, vui lòng thử lại.');
+    } catch (error) {
+      toast.error(
+        (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
+          'Có lỗi xảy ra, vui lòng thử lại.',
+      );
     }
   };
 
-  const handleDelete = (id: string) => setConfirmId(id);
+  const handleDelete = (id: string) => {
+    if (schedules.find((schedule) => schedule._id === id)?.workflowBooking) {
+      toast.error('Lịch có hồ sơ dịch vụ cần được hủy qua đề xuất và xác nhận của khách.');
+      return;
+    }
+    setConfirmId(id);
+  };
 
   const doDelete = async () => {
     if (!confirmId) return;
@@ -1032,8 +1086,23 @@ const SchedulesPage = () => {
                 <CostumePicker
                   costumes={availableCostumes}
                   selected={selectedCostumes}
-                  onChange={setSelectedCostumes}
+                  onChange={(selected) => {
+                    setSelectedCostumes(selected);
+                    setReservationRows((rows) =>
+                      rows.filter((row) => !row.costume || selected.includes(row.costume)),
+                    );
+                  }}
                   showError={costumeTouched && selectedCostumes.length === 0}
+                />
+              </div>
+            )}
+            {selectedCostumes.length > 0 && (
+              <div className="lg:col-span-3">
+                <ScheduleCostumeReservations
+                  costumes={allCostumes.filter((costume) => selectedCostumes.includes(costume._id))}
+                  rows={reservationRows}
+                  shootDate={watch('shootDate') ?? ''}
+                  onChange={setReservationRows}
                 />
               </div>
             )}
@@ -1589,9 +1658,9 @@ const SchedulesPage = () => {
                 Đóng
               </Button>
               {/* {!contractDocUrl && ( */}
-                <Button type="submit" disabled={isContractSubmitting}>
-                  {isContractSubmitting ? 'Đang tạo...' : 'Tạo hợp đồng'}
-                </Button>
+              <Button type="submit" disabled={isContractSubmitting}>
+                {isContractSubmitting ? 'Đang tạo...' : 'Tạo hợp đồng'}
+              </Button>
               {/* )} */}
             </div>
           </form>
