@@ -113,16 +113,22 @@ const DashboardPage = () => {
   };
 
   const chartData = chartBaseData.reduce<
-    Array<{ name: string; Thu: number; Chi: number; 'Lợi nhuận': number; 'Lợi nhuận dồn': number }>
+    Array<{
+      name: string;
+      Thu: number;
+      Chi: number;
+      'Chênh lệch thu–chi': number;
+      'Chênh lệch lũy kế': number;
+    }>
   >((acc, d) => {
     const profit = d.income - d.expense;
-    const cumulative = (acc[acc.length - 1]?.['Lợi nhuận dồn'] ?? 0) + profit;
+    const cumulative = (acc[acc.length - 1]?.['Chênh lệch lũy kế'] ?? 0) + profit;
     acc.push({
       name: formatChartLabel(d.label),
       Thu: d.income,
       Chi: d.expense,
-      'Lợi nhuận': profit,
-      'Lợi nhuận dồn': cumulative,
+      'Chênh lệch thu–chi': profit,
+      'Chênh lệch lũy kế': cumulative,
     });
     return acc;
   }, []);
@@ -158,7 +164,7 @@ const DashboardPage = () => {
       show: showFinance,
     },
     {
-      label: 'Lợi nhuận',
+      label: 'Chênh lệch thu–chi',
       value: formatCurrency(totals.profit),
       color: totals.profit >= 0 ? 'text-emerald-600' : 'text-rose-600',
       link: '/manage/finance',
@@ -320,11 +326,11 @@ const DashboardPage = () => {
               </span>
               <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
                 <span className="h-2.5 w-2.5 rounded-full bg-blue-400" />
-                Lợi nhuận
+                Chênh lệch thu–chi
               </span>
               <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
                 <span className="h-2.5 w-2.5 rounded-full bg-violet-400" />
-                Lợi nhuận dồn
+                Chênh lệch lũy kế
               </span>
             </div>
 
@@ -380,10 +386,12 @@ const DashboardPage = () => {
                       formatter={(value, name) => [formatCurrency(Number(value ?? 0)), name]}
                       itemSorter={(item) =>
                         (
-                          ({ Thu: 0, Chi: 1, 'Lợi nhuận': 2, 'Lợi nhuận dồn': 3 }) as Record<
-                            string,
-                            number
-                          >
+                          ({
+                            Thu: 0,
+                            Chi: 1,
+                            'Chênh lệch thu–chi': 2,
+                            'Chênh lệch lũy kế': 3,
+                          }) as Record<string, number>
                         )[String(item.name ?? '')] ?? 99
                       }
                       cursor={{ fill: 'rgba(148,163,184,0.08)' }}
@@ -411,7 +419,7 @@ const DashboardPage = () => {
                     />
                     <Line
                       type="monotone"
-                      dataKey="Lợi nhuận"
+                      dataKey="Chênh lệch thu–chi"
                       stroke="#60a5fa"
                       strokeWidth={2.5}
                       strokeDasharray="5 3"
@@ -420,7 +428,7 @@ const DashboardPage = () => {
                     />
                     <Line
                       type="monotone"
-                      dataKey="Lợi nhuận dồn"
+                      dataKey="Chênh lệch lũy kế"
                       stroke="#a78bfa"
                       strokeWidth={3}
                       dot={{ r: 3, strokeWidth: 1.5, stroke: '#a78bfa', fill: '#0f172a' }}

@@ -7,6 +7,39 @@ import { authService } from '../services/authService';
 import { telegramService, type TelegramStatus } from '../services/telegramService';
 import { ROLE_LABELS } from '../types';
 import { Button, FormField, Input, PageHeader, Spinner } from '@/components/ui';
+import { useCustomerAppearance } from '@/components/customer/CustomerAppearance';
+import { CustomerButton } from '@/components/customer/CustomerButton';
+import { CustomerFormField, CustomerInput } from '@/components/customer/CustomerFields';
+import { CustomerStatusBadge } from '@/components/customer/CustomerStatusBadge';
+import { CustomerSurface } from '@/components/customer/CustomerSurface';
+import '../styles/customer-forms.css';
+
+function ProfileField({
+  label,
+  htmlFor,
+  error,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  const isCustomer = useCustomerAppearance();
+  if (isCustomer) {
+    return (
+      <CustomerFormField label={label} htmlFor={htmlFor} error={error}>
+        {children}
+      </CustomerFormField>
+    );
+  }
+  return (
+    <FormField label={label} htmlFor={htmlFor}>
+      {children}
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </FormField>
+  );
+}
 
 // ── Profile form ─────────────────────────────────────────────────────────────
 
@@ -15,6 +48,9 @@ interface ProfileFormValues {
 }
 
 function ProfileSection() {
+  const isCustomer = useCustomerAppearance();
+  const ProfileInput = isCustomer ? CustomerInput : Input;
+  const ProfileButton = isCustomer ? CustomerButton : Button;
   const { user, updateUser } = useAuth();
   const {
     register,
@@ -35,33 +71,43 @@ function ProfileSection() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <FormField label="Tên đăng nhập" htmlFor="username">
-        <Input id="username" value={user?.username ?? ''} disabled />
-      </FormField>
-      <FormField label="Họ tên hiển thị" htmlFor="name">
-        <Input id="name" placeholder="Nhập tên hiển thị" {...register('name')} />
-      </FormField>
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className={isCustomer ? 'customer-form-stack' : 'space-y-4'}
+    >
+      <ProfileField label="Tên đăng nhập" htmlFor="username">
+        <ProfileInput id="username" value={user?.username ?? ''} disabled />
+      </ProfileField>
+      <ProfileField label="Họ tên hiển thị" htmlFor="name">
+        <ProfileInput id="name" placeholder="Nhập tên hiển thị" {...register('name')} />
+      </ProfileField>
       <div>
-        <p className="text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+        <p
+          className={isCustomer ? 'customer-field__label' : 'text-sm font-medium mb-1.5'}
+          style={isCustomer ? undefined : { color: 'var(--text-secondary)' }}
+        >
           Vai trò
         </p>
-        <div className="flex flex-wrap gap-2">
-          {user?.roles?.map((r) => (
-            <span
-              key={r}
-              className="text-xs px-2.5 py-1 rounded-lg font-medium"
-              style={{ background: 'var(--user-role-bg)', color: 'var(--user-role-text)' }}
-            >
-              {ROLE_LABELS[r]}
-            </span>
-          ))}
+        <div className={isCustomer ? 'customer-profile-roles' : 'flex flex-wrap gap-2'}>
+          {user?.roles?.map((r) =>
+            isCustomer ? (
+              <CustomerStatusBadge key={r}>{ROLE_LABELS[r]}</CustomerStatusBadge>
+            ) : (
+              <span
+                key={r}
+                className="text-xs px-2.5 py-1 rounded-lg font-medium"
+                style={{ background: 'var(--user-role-bg)', color: 'var(--user-role-text)' }}
+              >
+                {ROLE_LABELS[r]}
+              </span>
+            ),
+          )}
         </div>
       </div>
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? <Spinner className="mr-2 h-4 w-4" /> : null}
+      <ProfileButton type="submit" disabled={isSubmitting}>
+        {isSubmitting ? <Spinner className={isCustomer ? 'h-4 w-4' : 'mr-2 h-4 w-4'} /> : null}
         Lưu thay đổi
-      </Button>
+      </ProfileButton>
     </form>
   );
 }
@@ -75,6 +121,9 @@ interface PasswordFormValues {
 }
 
 function PasswordSection() {
+  const isCustomer = useCustomerAppearance();
+  const ProfileInput = isCustomer ? CustomerInput : Input;
+  const ProfileButton = isCustomer ? CustomerButton : Button;
   const {
     register,
     handleSubmit,
@@ -99,20 +148,24 @@ function PasswordSection() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <FormField label="Mật khẩu hiện tại" htmlFor="currentPassword">
-        <Input
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className={isCustomer ? 'customer-form-stack' : 'space-y-4'}
+    >
+      <ProfileField
+        label="Mật khẩu hiện tại"
+        htmlFor="currentPassword"
+        error={errors.currentPassword?.message}
+      >
+        <ProfileInput
           id="currentPassword"
           type="password"
           autoComplete="current-password"
           {...register('currentPassword', { required: 'Vui lòng nhập mật khẩu hiện tại' })}
         />
-        {errors.currentPassword && (
-          <p className="text-xs text-red-500 mt-1">{errors.currentPassword.message}</p>
-        )}
-      </FormField>
-      <FormField label="Mật khẩu mới" htmlFor="newPassword">
-        <Input
+      </ProfileField>
+      <ProfileField label="Mật khẩu mới" htmlFor="newPassword" error={errors.newPassword?.message}>
+        <ProfileInput
           id="newPassword"
           type="password"
           autoComplete="new-password"
@@ -121,12 +174,13 @@ function PasswordSection() {
             minLength: { value: 8, message: 'Mật khẩu phải có ít nhất 8 ký tự' },
           })}
         />
-        {errors.newPassword && (
-          <p className="text-xs text-red-500 mt-1">{errors.newPassword.message}</p>
-        )}
-      </FormField>
-      <FormField label="Xác nhận mật khẩu mới" htmlFor="confirmPassword">
-        <Input
+      </ProfileField>
+      <ProfileField
+        label="Xác nhận mật khẩu mới"
+        htmlFor="confirmPassword"
+        error={errors.confirmPassword?.message}
+      >
+        <ProfileInput
           id="confirmPassword"
           type="password"
           autoComplete="new-password"
@@ -135,14 +189,11 @@ function PasswordSection() {
             validate: (v) => v === newPassword || 'Mật khẩu không khớp',
           })}
         />
-        {errors.confirmPassword && (
-          <p className="text-xs text-red-500 mt-1">{errors.confirmPassword.message}</p>
-        )}
-      </FormField>
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? <Spinner className="mr-2 h-4 w-4" /> : null}
+      </ProfileField>
+      <ProfileButton type="submit" disabled={isSubmitting}>
+        {isSubmitting ? <Spinner className={isCustomer ? 'h-4 w-4' : 'mr-2 h-4 w-4'} /> : null}
         Đổi mật khẩu
-      </Button>
+      </ProfileButton>
     </form>
   );
 }
@@ -288,6 +339,18 @@ function SectionCard({
   title: string;
   children: React.ReactNode;
 }) {
+  const isCustomer = useCustomerAppearance();
+  if (isCustomer) {
+    return (
+      <CustomerSurface className="customer-profile-section">
+        <div className="customer-profile-section__header">
+          <Icon className="customer-profile-section__icon" />
+          <h2 className="customer-section-title">{title}</h2>
+        </div>
+        {children}
+      </CustomerSurface>
+    );
+  }
   return (
     <div
       className="rounded-2xl p-6"
@@ -311,12 +374,24 @@ function SectionCard({
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 const ProfilePage = () => {
+  const isCustomer = useCustomerAppearance();
   const { user } = useAuth();
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Hồ sơ cá nhân" kicker={`${user?.username}`} />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl">
+    <div className={isCustomer ? 'customer-profile customer-form-stack' : 'space-y-6'}>
+      {isCustomer ? (
+        <header className="customer-form-header">
+          <p className="customer-caption">{user?.username}</p>
+          <h1 className="customer-page-title">Hồ sơ cá nhân</h1>
+        </header>
+      ) : (
+        <PageHeader title="Hồ sơ cá nhân" kicker={`${user?.username}`} />
+      )}
+      <div
+        className={
+          isCustomer ? 'customer-profile-grid' : 'grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl'
+        }
+      >
         <SectionCard icon={UserIcon} title="Thông tin cá nhân">
           <ProfileSection />
         </SectionCard>

@@ -1,43 +1,43 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import tnv07899 from '../assets/images/TNV07899.webp';
-import tnv00048 from '../assets/images/TNV00048.webp';
-import tnv00817 from '../assets/images/TNV00817.webp';
-import tnv03816 from '../assets/images/TNV03816.webp';
-import tnv05927 from '../assets/images/TNV05927.webp';
-import tnv06047 from '../assets/images/TNV06047.webp';
-import hdz07441 from '../assets/images/HDZ07441.webp';
-import may01381 from '../assets/images/MAY01381.webp';
-import pbi00061 from '../assets/images/PBI00061.webp';
-import pbi01583 from '../assets/images/PBI01583.webp';
-import pbi01850 from '../assets/images/PBI01850.webp';
-import tnv00451 from '../assets/images/TNV00451.webp';
-import tnv06242 from '../assets/images/TNV06242.webp';
+import { ArrowUp } from 'lucide-react';
+import { portfolioImages } from '../assets/images/portfolio-images';
 import { toast } from 'react-toastify';
 import Logo from '../components/atoms/Logo';
 import PublicSiteLayout from '../components/Layout/PublicSiteLayout';
-import { useTheme } from '../context/ThemeContext';
 import { customerService } from '../services/customerService';
 import { feedbackService } from '../services/feedbackService';
 import { packageService } from '../services/packageService';
 import type { Package } from '../types';
+import { CustomerButton } from '../components/customer/CustomerButton';
+import {
+  CustomerFormField,
+  CustomerInput,
+  CustomerTextarea,
+} from '../components/customer/CustomerFields';
+import { CustomerSurface } from '../components/customer/CustomerSurface';
+import { CustomerPrice } from '../components/customer/CustomerPrice';
+import { CustomerPackageCard } from '../components/customer/CustomerPackageCard';
+import { CustomerRatingInput } from '../components/customer/CustomerRatingInput';
+import { CustomerImage } from '../components/customer/CustomerImage';
+import '../styles/customer-portfolio.css';
 
 /* ── Static content ──────────────────────────── */
 
 const AboutImage = [
-  tnv03816,
-  tnv05927,
-  tnv07899,
-  tnv00817,
-  tnv06047,
-  hdz07441,
-  pbi00061,
-  may01381,
-  pbi01583,
-  pbi01850,
-  tnv00451,
-  tnv06242,
+  portfolioImages.tnv03816,
+  portfolioImages.tnv05927,
+  portfolioImages.tnv07899,
+  portfolioImages.tnv00817,
+  portfolioImages.tnv06047,
+  portfolioImages.hdz07441,
+  portfolioImages.pbi00061,
+  portfolioImages.may01381,
+  portfolioImages.pbi01583,
+  portfolioImages.pbi01850,
+  portfolioImages.tnv00451,
+  portfolioImages.tnv06242,
 ];
 const services = [
   {
@@ -114,13 +114,10 @@ const editingScopeLabel: Record<NonNullable<Package['editingScope']>, string> = 
   partial: 'Hậu kỳ blend màu ảnh chọn lọc',
 };
 
-const formatVnd = (n: number) =>
-  `${n.toLocaleString('vi-VN', { maximumFractionDigits: 0 })}đ / bạn`;
-
 interface PackageDisplay {
   id: string;
   name: string;
-  price: string;
+  amount: number;
   note: string;
   items: string[];
   featured: boolean;
@@ -149,7 +146,7 @@ const toDisplay = (list: Package[]): PackageDisplay[] => {
     return {
       id: p._id,
       name: p.name,
-      price: p.pricePerMember > 0 ? formatVnd(p.pricePerMember) : 'Liên hệ',
+      amount: p.pricePerMember,
       note: p.description?.trim() || 'Báo giá tham khảo, tư vấn riêng theo lớp',
       items,
       featured: p._id === featuredId,
@@ -205,7 +202,6 @@ const initialForm: FeedbackForm = {
 
 const PortfolioPage = () => {
   const { hash } = useLocation();
-  const { isDark } = useTheme();
   const [classCount, setClassCount] = useState<number | null>(null);
   const [schoolCount, setSchoolCount] = useState<number | null>(null);
   const [pkgList, setPkgList] = useState<Package[] | null>(null);
@@ -213,6 +209,14 @@ const PortfolioPage = () => {
   const [form, setForm] = useState<FeedbackForm>(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
+
+  useEffect(() => {
+    const updateScrollToTop = () => setShowScrollToTop(window.scrollY > 480);
+    updateScrollToTop();
+    window.addEventListener('scroll', updateScrollToTop, { passive: true });
+    return () => window.removeEventListener('scroll', updateScrollToTop);
+  }, []);
 
   useEffect(() => {
     if (!hash) return;
@@ -293,752 +297,476 @@ const PortfolioPage = () => {
 
   return (
     <PublicSiteLayout source="portfolio">
-      {/* ── Hero ─────────────────────────────────── */}
-      <section id="top" className="relative scroll-mt-32 overflow-hidden pt-16 pb-20 sm:pt-20 sm:pb-28">
-        <div
-          className="absolute inset-0 -z-10"
-          style={{
-            background: isDark
-              ? 'radial-gradient(circle at 20% 20%, rgba(245,158,11,0.18), transparent 60%), radial-gradient(circle at 80% 80%, rgba(34,211,238,0.18), transparent 60%), linear-gradient(180deg, #0a0a12 0%, #0c1a2e 100%)'
-              : 'radial-gradient(circle at 20% 20%, rgba(245,158,11,0.18), transparent 60%), radial-gradient(circle at 80% 80%, rgba(34,211,238,0.18), transparent 60%), linear-gradient(180deg, #fff7ed 0%, #ecfeff 100%)',
-          }}
-        />
-        <div className="absolute -top-20 -left-20 w-96 h-96 rounded-full bg-amber-200/40 dark:bg-amber-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-20 -right-20 w-96 h-96 rounded-full bg-cyan-200/40 dark:bg-cyan-500/10 blur-3xl pointer-events-none" />
-
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left: text */}
-          <div className="text-center lg:text-left">
-            <span className="inline-block px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider uppercase text-amber-700 bg-amber-100/80 border border-amber-200 dark:text-amber-300 dark:bg-amber-400/10 dark:border-amber-400/30">
-              Studio chụp ảnh kỷ yếu chuyên nghiệp
-            </span>
-            <h1 className="mt-6 text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1]">
-              <span className="text-gradient">Lưu giữ thanh xuân</span>
-              <br />
-              <span className="text-slate-800 dark:text-white">qua từng khung hình</span>
-            </h1>
-            <p className="mt-6 max-w-xl mx-auto lg:mx-0 text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
-              Yume Studio đồng hành cùng các lớp 12, sinh viên năm cuối tạo nên những bộ ảnh và
-              video kỷ yếu chuẩn điện ảnh – nơi mỗi nụ cười, mỗi cái ôm đều trở thành kỷ niệm không
-              bao giờ phai.
-            </p>
-            <div className="mt-10 flex flex-wrap justify-center lg:justify-start gap-4">
-              <Link
-                to="/booking/start?source=portfolio"
-                className="inline-flex items-center px-6 py-3 rounded-full text-sm sm:text-base font-semibold text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition"
-                style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #22d3ee 100%)' }}
-              >
-                Bắt đầu đặt lịch
-              </Link>
-              <Link
-                to="/consultation"
-                className="inline-flex items-center px-6 py-3 rounded-full text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-100 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:border-amber-300 hover:text-amber-600 transition"
-              >
-                Nhận tư vấn
-              </Link>
-              <Link
-                to="/costumes"
-                className="inline-flex items-center px-6 py-3 rounded-full text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-100 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:border-amber-300 hover:text-amber-600 transition"
-              >
-                Tra cứu trang phục
-              </Link>
-            </div>
-
-            {/* Stats */}
-            <div className="mt-12 grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {stats.map((f) => (
-                <div
-                  key={f.label}
-                  className="rounded-2xl bg-white/80 dark:bg-white/5 backdrop-blur border border-white dark:border-white/10 shadow-sm py-4"
-                >
-                  <div className="text-xl sm:text-2xl font-extrabold text-gradient px-2">
-                    {f.num}
-                  </div>
-                  <div className="mt-1 text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 px-2">
-                    {f.label}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right: photo collage (auto-rotating) */}
-          <HeroCollage />
-        </div>
-      </section>
-
-      {/* ── About ────────────────────────────────── */}
-      <section id="about" className="scroll-mt-32 py-20 sm:py-28">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 grid md:grid-cols-2 gap-12 items-center">
-          <div>
-            <span className="text-sm font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-              Về Yume Studio
-            </span>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-bold">Mỗi bộ ảnh là một câu chuyện</h2>
-            <p className="mt-5 text-slate-600 dark:text-slate-300 leading-relaxed">
-              Chúng tôi không chỉ chụp ảnh – chúng tôi kể lại tuổi 18 của bạn bằng ngôn ngữ điện
-              ảnh. Từ ánh sáng, màu sắc đến từng khoảnh khắc tự nhiên nhất, Yume Studio biến buổi
-              chụp kỷ yếu thành một ngày đáng nhớ trong đời.
-            </p>
-            <p className="mt-4 text-slate-600 dark:text-slate-300 leading-relaxed">
-              Hơn 5 năm đồng hành cùng các lớp và sinh viên trên khắp cả nước, chúng tôi tự hào là
-              studio được nhiều trường lựa chọn nhờ sự chỉn chu trong từng tiểu tiết.
-            </p>
-            <ul className="mt-6 space-y-3">
-              {[
-                'Ekip 5–8 người, tận tâm trong từng buổi chụp',
-                'Concept đa dạng, cập nhật xu hướng mới mỗi mùa',
-                'Trả ảnh đúng hẹn, chỉnh sửa theo yêu cầu',
-                'Hệ thống quản lý lịch & trang phục online minh bạch',
-              ].map((item) => (
-                <li
-                  key={item}
-                  className="flex items-start gap-3 text-slate-700 dark:text-slate-300"
-                >
-                  <span className="mt-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-400/20 dark:text-amber-300 text-xs font-bold flex-shrink-0">
-                    ✓
-                  </span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="relative">
-            <div
-              className="aspect-[4/5] rounded-3xl shadow-xl overflow-hidden flex items-center justify-center relative"
-              style={{
-                background:
-                  'linear-gradient(135deg, rgba(245,158,11,0.18) 0%, rgba(34,211,238,0.18) 100%)',
-              }}
-            >
-              <div className="absolute inset-0 grid grid-cols-3 grid-rows-4 gap-2 p-3">
-                {AboutImage.map((_, i) => (
-                  <div
-                    key={i}
-                    className="rounded-lg"
-                    style={{
-                      background: `linear-gradient(135deg, hsl(${(i * 30) % 360}, 70%, 70%), hsl(${
-                        (i * 30 + 60) % 360
-                      }, 70%, 60%))`,
-                      opacity: 0.7,
-                    }}
-                  >
-                    <img
-                      src={AboutImage[i]}
-                      alt="TNV03816"
-                      className="w-full h-full object-cover rounded-lg"
-                    />
+      <div className="customer-portfolio">
+        <section id="top" className="customer-portfolio__band">
+          <div className="customer-portfolio__container customer-portfolio__hero">
+            <div>
+              <p className="customer-portfolio__eyebrow">Studio chụp ảnh kỷ yếu chuyên nghiệp</p>
+              <h1 className="customer-page-title customer-portfolio__title">
+                Lưu giữ thanh xuân
+                <br />
+                qua từng khung hình
+              </h1>
+              <p className="customer-portfolio__copy">
+                Yume Studio đồng hành cùng các lớp 12, sinh viên năm cuối tạo nên những bộ ảnh và
+                video kỷ yếu chuẩn điện ảnh – nơi mỗi nụ cười, mỗi cái ôm đều trở thành kỷ niệm
+                không bao giờ phai.
+              </p>
+              <div className="customer-portfolio__actions">
+                <CustomerButton asChild>
+                  <Link to="/booking/start?source=portfolio">Bắt đầu đặt lịch</Link>
+                </CustomerButton>
+                <CustomerButton asChild variant="secondary">
+                  <Link to="/consultation">Nhận tư vấn</Link>
+                </CustomerButton>
+                <CustomerButton asChild variant="secondary">
+                  <Link to="/costumes">Tra cứu trang phục</Link>
+                </CustomerButton>
+              </div>
+              <div className="customer-portfolio__stats">
+                {stats.map((stat) => (
+                  <div key={stat.label} className="customer-portfolio__stat">
+                    <strong>{stat.num}</strong>
+                    <span>{stat.label}</span>
                   </div>
                 ))}
               </div>
-              <div className="relative z-10">
-                <Logo size={120} />
-              </div>
             </div>
-            <div className="absolute -bottom-20 -left-20 bg-white dark:bg-slate-900 rounded-2xl shadow-lg p-5 max-w-[200px] hidden sm:block border border-slate-100 dark:border-white/10">
-              <div className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Khách hàng hài lòng
-              </div>
-              <div className="mt-1 text-2xl font-extrabold text-amber-600 dark:text-amber-400">
-                98%
-              </div>
-            </div>
-            <div className="absolute -top-20 -right-20 bg-white dark:bg-slate-900 rounded-2xl shadow-lg p-5 hidden sm:block border border-slate-100 dark:border-white/10">
-              <div className="flex -space-x-2">
-                <div className="w-9 h-9 rounded-full bg-amber-200 dark:bg-amber-400/40 border-2 border-white dark:border-slate-900" />
-                <div className="w-9 h-9 rounded-full bg-cyan-200 dark:bg-cyan-400/40 border-2 border-white dark:border-slate-900" />
-                <div className="w-9 h-9 rounded-full bg-pink-200 dark:bg-pink-400/40 border-2 border-white dark:border-slate-900" />
-              </div>
-              <div className="mt-2 text-xs text-slate-600 dark:text-slate-400">
-                Hàng trăm lớp đã chọn
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Services ─────────────────────────────── */}
-      <section id="services" className="scroll-mt-32 bg-slate-50 py-20 dark:bg-slate-900/50 sm:py-28">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-2xl mx-auto">
-            <span className="text-sm font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-              Dịch vụ
-            </span>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-bold">
-              Trọn gói cho ngày kỷ yếu hoàn hảo
-            </h2>
-            <p className="mt-4 text-slate-600 dark:text-slate-300">
-              Từ chụp ảnh, quay phim đến trang phục và hậu kỳ, Yume Studio cung cấp giải pháp toàn
-              diện để biến ngày kỷ yếu của bạn thành một trải nghiệm đáng nhớ và trọn vẹn nhất.
-            </p>
-          </div>
-          <div className="mt-14 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {services.map((s) => (
-              <div
-                key={s.title}
-                className="group rounded-2xl bg-white dark:bg-slate-900 p-7 border border-slate-100 dark:border-white/5 hover:border-amber-200 dark:hover:border-amber-400/40 shadow-sm hover:shadow-lg hover:-translate-y-1 transition"
-              >
-                <div className="text-4xl">{s.icon}</div>
-                <h3 className="mt-4 text-lg font-semibold group-hover:text-amber-600 dark:group-hover:text-amber-400 transition">
-                  {s.title}
-                </h3>
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  {s.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Concepts / Gallery ───────────────────── */}
-      <section id="gallery" className="scroll-mt-32 py-20 sm:py-28">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-2xl mx-auto">
-            <span className="text-sm font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-              Concept nổi bật
-            </span>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-bold">
-              Đa dạng phong cách – chọn “chất” riêng cho lớp
-            </h2>
-          </div>
-          <div className="mt-14 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {concepts.map((c) => (
-              <Link
-                key={c.tag}
-                to={`/booking/start?source=concepts&concept=${encodeURIComponent(c.tag)}`}
-                aria-label={`Chọn concept ${c.tag} và bắt đầu đặt lịch`}
-                className={`group relative aspect-[3/4] rounded-2xl overflow-hidden bg-gradient-to-br ${c.tone} shadow-md hover:shadow-2xl hover:-translate-y-1 transition cursor-pointer`}
-              >
-                <div className="absolute inset-0 flex items-center justify-center text-6xl opacity-80">
-                  {c.icon}
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 p-4">
-                  <div className="text-white font-bold text-lg drop-shadow">{c.tag}</div>
-                  <div className="text-white/80 text-xs mt-0.5">Chọn concept →</div>
-                </div>
-              </Link>
-            ))}
-          </div>
-          <div className="mt-10 text-center">
-            <Link
-              to="/consultation"
-              className="inline-flex items-center text-sm font-semibold text-amber-600 dark:text-amber-400 hover:underline"
-            >
-              Nhận tư vấn về concept →
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Process ──────────────────────────────── */}
-      <section id="process" className="scroll-mt-32 bg-slate-50 py-20 dark:bg-slate-900/50 sm:py-28">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-2xl mx-auto">
-            <span className="text-sm font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-              Quy trình
-            </span>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-bold">4 bước – nhẹ nhàng, minh bạch</h2>
-          </div>
-          <div className="mt-14 grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {steps.map((s) => (
-              <div
-                key={s.n}
-                className="relative rounded-2xl p-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 hover:shadow-lg transition"
-              >
-                <div className="text-4xl font-extrabold text-gradient">{s.n}</div>
-                <h3 className="mt-3 text-lg font-semibold">{s.title}</h3>
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  {s.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Packages ─────────────────────────────── */}
-      <section id="packages" className="scroll-mt-32 py-20 sm:py-28">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-2xl mx-auto">
-            <span className="text-sm font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-              Báo giá
-            </span>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-bold">Gói dịch vụ phù hợp mọi lớp</h2>
-            <p className="mt-4 text-slate-600 dark:text-slate-300">
-              Báo giá tham khảo. Yume sẽ tư vấn riêng cho từng lớp dựa trên concept và quy mô.
-            </p>
-          </div>
-          {pkgList === null ? (
-            pkgError ? (
-              <div
-                className="mx-auto mt-10 flex max-w-2xl flex-col items-start gap-4 rounded-2xl border border-rose-300/50 bg-rose-50 p-6 dark:border-rose-400/20 dark:bg-rose-400/5 sm:flex-row sm:items-center sm:justify-between"
-                role="alert"
-              >
-                <div>
-                  <h3 className="font-semibold text-rose-800 dark:text-rose-200">
-                    Chưa thể tải bảng giá
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{pkgError}</p>
-                </div>
-                <div className="flex shrink-0 flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void loadPackages()}
-                    className="inline-flex min-h-11 items-center justify-center rounded-full border border-slate-300 px-4 text-sm font-semibold hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:border-white/20 dark:hover:bg-white/10"
-                  >
-                    Thử lại
-                  </button>
-                  <Link
-                    to="/consultation"
-                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-slate-900 px-4 text-sm font-semibold text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 dark:bg-white dark:text-slate-900"
-                  >
-                    Nhận tư vấn
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-14" role="status" aria-live="polite" aria-label="Đang tải gói dịch vụ">
-                <div className="grid gap-6 md:grid-cols-3">
-                  {Array.from({ length: 3 }, (_, index) => (
-                    <div key={index} aria-hidden="true" className="min-h-80 animate-pulse rounded-3xl border border-slate-200 bg-slate-100 p-8 motion-reduce:animate-none dark:border-white/10 dark:bg-white/5">
-                      <div className="h-4 w-28 rounded bg-slate-300 dark:bg-white/10" />
-                      <div className="mt-5 h-9 w-40 rounded bg-slate-300 dark:bg-white/10" />
-                      <div className="mt-4 h-3 w-full rounded bg-slate-300 dark:bg-white/10" />
-                      <div className="mt-3 h-3 w-4/5 rounded bg-slate-300 dark:bg-white/10" />
-                      <div className="mt-10 h-11 rounded-full bg-slate-300 dark:bg-white/10" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          ) : displayPackages.length === 0 ? (
-            <div className="mx-auto mt-10 max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-white/10 dark:bg-slate-900 sm:p-10">
-              <h3 className="text-xl font-semibold">Bảng giá đang được cập nhật</h3>
-              <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                Chia sẻ quy mô lớp và ý tưởng chụp với studio để nhận gợi ý gói phù hợp trong thời gian này.
-              </p>
-              <div className="mt-6 flex flex-wrap justify-center gap-3">
-                <Link
-                  to="/consultation"
-                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-amber-500 px-5 font-semibold text-amber-800 hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-amber-200 dark:hover:bg-amber-400/10"
-                >
-                  Nhận tư vấn
-                </Link>
-                <Link
-                  to="/booking/start?source=pricing"
-                  className="inline-flex min-h-11 items-center justify-center rounded-full bg-slate-900 px-5 font-semibold text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 dark:bg-white dark:text-slate-900"
-                >
-                  Bắt đầu đặt lịch
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-14 grid gap-6 md:grid-cols-3">
-            {displayPackages.map((p) => (
-              <div
-                key={p.id}
-                className={`relative h-full flex flex-col rounded-3xl p-8 border transition ${
-                  p.featured
-                    ? 'border-transparent text-white shadow-2xl md:scale-[1.03]'
-                    : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-lg'
-                }`}
-                style={
-                  p.featured
-                    ? { background: 'linear-gradient(135deg, #f59e0b 0%, #22d3ee 100%)' }
-                    : undefined
-                }
-              >
-                {p.featured && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-white text-amber-700 text-xs font-bold shadow">
-                    PHỔ BIẾN
-                  </span>
-                )}
-                <div className="text-sm font-semibold uppercase tracking-wider opacity-80">
-                  {p.name}
-                </div>
-                <div className="mt-3 text-3xl sm:text-4xl font-extrabold">{p.price}</div>
-                <div
-                  className={`mt-1 text-sm ${
-                    p.featured ? 'text-white/80' : 'text-slate-500 dark:text-slate-400'
-                  }`}
-                >
-                  {p.note}
-                </div>
-                <ul className="mt-6 space-y-2.5 text-sm">
-                  {p.items.map((it) => (
-                    <li key={it} className="flex items-start gap-2">
-                      <span className={p.featured ? 'text-white' : 'text-amber-500'}>✓</span>
-                      <span
-                        className={
-                          p.featured ? 'text-white/95' : 'text-slate-700 dark:text-slate-300'
-                        }
-                      >
-                        {it}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-auto flex flex-col gap-3 pt-8">
-                  <Link
-                    to={`/booking/start?source=pricing&package=${encodeURIComponent(p.id)}`}
-                    className={`inline-flex w-full justify-center items-center px-5 py-3 rounded-full text-sm font-semibold transition ${
-                      p.featured
-                        ? 'bg-white text-amber-700 hover:bg-amber-50'
-                        : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90'
-                    }`}
-                  >
-                    Bắt đầu đặt lịch
-                  </Link>
-                  <Link
-                    to="/consultation"
-                    className={`inline-flex min-h-11 w-full items-center justify-center rounded-full border px-5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 motion-reduce:transition-none ${
-                      p.featured
-                        ? 'border-white/70 text-white hover:bg-white/15'
-                        : 'border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-white/20 dark:text-slate-200 dark:hover:bg-white/10'
-                    }`}
-                  >
-                    Nhận tư vấn
-                  </Link>
-                </div>
-              </div>
-            ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ── Testimonials ─────────────────────────── */}
-      <section className="py-20 sm:py-28 bg-slate-50 dark:bg-slate-900/50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-2xl mx-auto">
-            <span className="text-sm font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-              Cảm nhận khách hàng
-            </span>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-bold">Lớp đã chụp cùng Yume nói gì?</h2>
-          </div>
-          <div className="mt-14 grid md:grid-cols-3 gap-6">
-            {testimonials.map((t) => (
-              <figure
-                key={t.name}
-                className="rounded-2xl bg-white dark:bg-slate-900 p-7 border border-slate-100 dark:border-white/5 shadow-sm flex flex-col"
-              >
-                <div className="text-amber-500 text-xl">
-                  {'★'.repeat(t.rating)}
-                  <span className="text-slate-200 dark:text-white/10">
-                    {'★'.repeat(5 - t.rating)}
-                  </span>
-                </div>
-                <blockquote className="mt-3 text-sm text-slate-700 dark:text-slate-300 leading-relaxed flex-1">
-                  “{t.quote}”
-                </blockquote>
-                <figcaption className="mt-5 flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-full"
-                    style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #22d3ee 100%)' }}
+            <div className="customer-portfolio__hero-images">
+              {[portfolioImages.tnv00817, portfolioImages.tnv00048, portfolioImages.tnv07899].map(
+                (image, index) => (
+                  <CustomerImage
+                    key={image.original.file}
+                    {...image}
+                    className="customer-portfolio__hero-image"
+                    alt={index === 0 ? 'Ảnh kỷ yếu cùng Yume Studio' : ''}
+                    priority={index === 0}
+                    sizes={
+                      index === 0
+                        ? '(min-width: 1280px) 341px, (min-width: 1128px) calc((100vw - 112px) * 0.291667), (min-width: 744px) calc((100vw - 56px) * 0.583333), calc((100vw - 40px) * 0.583333)'
+                        : '(min-width: 1280px) 243px, (min-width: 1128px) calc((100vw - 112px) * 0.208333), (min-width: 744px) calc((100vw - 56px) * 0.416667), calc((100vw - 40px) * 0.416667)'
+                    }
                   />
-                  <div>
-                    <div className="text-sm font-semibold">{t.name}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">{t.role}</div>
-                  </div>
-                </figcaption>
-              </figure>
-            ))}
+                ),
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── Mini feedback form (uses real /public/feedback API) ────── */}
-      <section id="feedback" className="scroll-mt-32 py-20 sm:py-28">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <div className="text-center">
-            <span className="text-sm font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-              Chia sẻ cảm nhận
-            </span>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-bold">
-              Đã chụp cùng Yume? Hãy cho chúng mình biết!
-            </h2>
-            <p className="mt-4 text-slate-600 dark:text-slate-300">
-              Cảm nhận của bạn là động lực để Yume hoàn thiện mỗi ngày.
-            </p>
-          </div>
-
-          {submitted ? (
-            <div className="mt-10 rounded-3xl p-10 text-center border border-amber-200 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-400/10">
-              <div className="text-5xl">🎉</div>
-              <h3 className="mt-3 text-xl font-bold">Đã nhận cảm nhận của bạn!</h3>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                Cảm ơn bạn rất nhiều. Yume sẽ tiếp tục nỗ lực để mang đến những trải nghiệm tốt hơn.
+        <section id="about" className="customer-portfolio__band">
+          <div className="customer-portfolio__container customer-portfolio__split">
+            <div>
+              <p className="customer-portfolio__eyebrow">Về Yume Studio</p>
+              <h2 className="customer-portfolio__heading">Mỗi bộ ảnh là một câu chuyện</h2>
+              <p className="customer-portfolio__copy">
+                Chúng tôi không chỉ chụp ảnh – chúng tôi kể lại tuổi 18 của bạn bằng ngôn ngữ điện
+                ảnh. Từ ánh sáng, màu sắc đến từng khoảnh khắc tự nhiên nhất, Yume Studio biến buổi
+                chụp kỷ yếu thành một ngày đáng nhớ trong đời.
               </p>
-              <button
-                type="button"
-                onClick={() => setSubmitted(false)}
-                className="mt-6 inline-flex items-center px-5 py-2.5 rounded-full text-sm font-semibold border border-amber-300 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-400/10 transition"
-              >
-                Gửi cảm nhận khác
-              </button>
+              <p className="customer-portfolio__copy">
+                Hơn 5 năm đồng hành cùng các lớp và sinh viên trên khắp cả nước, chúng tôi tự hào là
+                studio được nhiều trường lựa chọn nhờ sự chỉn chu trong từng tiểu tiết.
+              </p>
+              <ul className="customer-portfolio__features">
+                {[
+                  'Ekip 5–8 người, tận tâm trong từng buổi chụp',
+                  'Concept đa dạng, cập nhật xu hướng mới mỗi mùa',
+                  'Trả ảnh đúng hẹn, chỉnh sửa theo yêu cầu',
+                  'Hệ thống quản lý lịch & trang phục online minh bạch',
+                ].map((item) => (
+                  <li key={item}>
+                    <span aria-hidden="true">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-          ) : (
-            <form
-              onSubmit={handleSubmitFeedback}
-              className="mt-10 rounded-3xl p-6 sm:p-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 shadow-lg space-y-6"
-            >
-              <div>
-                <label className="block text-sm font-semibold mb-2">Số điện thoại (tuỳ chọn)</label>
-                <input
-                  type="tel"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  placeholder="VD: 098 765 4321"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
-                />
+            <div>
+              <div className="customer-portfolio__about-mosaic">
+                {AboutImage.map((image) => (
+                  <CustomerImage
+                    key={image.original.file}
+                    {...image}
+                    alt=""
+                    sizes="(min-width: 1280px) 187px, (min-width: 1128px) calc((100vw - 160px) / 6), (min-width: 744px) calc((100vw - 144px) / 6), calc((100vw - 64px) / 3)"
+                  />
+                ))}
+                <div className="customer-portfolio__about-logo">
+                  <Logo size={120} />
+                </div>
               </div>
-
-              <div className="grid sm:grid-cols-2 gap-6">
-                <RatingField
-                  label="Đánh giá ekip chụp"
-                  value={form.crewRating}
-                  onChange={(v) => setForm({ ...form, crewRating: v })}
-                />
-                <RatingField
-                  label="Đánh giá album / video"
-                  value={form.albumRating}
-                  onChange={(v) => setForm({ ...form, albumRating: v })}
-                />
+              <div className="customer-portfolio__about-facts">
+                <span>Khách hàng hài lòng · 98%</span>
+                <span>Hàng trăm lớp đã chọn</span>
               </div>
+            </div>
+          </div>
+        </section>
 
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Cảm nhận về ekip <span className="text-rose-500">*</span>
-                </label>
-                <textarea
-                  rows={3}
-                  value={form.crewDesc}
-                  onChange={(e) => setForm({ ...form, crewDesc: e.target.value })}
-                  placeholder="Photographer, makeup, stylist… đã hỗ trợ bạn ra sao?"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-amber-400 transition resize-none"
-                  required
-                />
-              </div>
+        <section id="services" className="customer-portfolio__band customer-portfolio__band--soft">
+          <div className="customer-portfolio__container">
+            <div className="customer-portfolio__intro">
+              <p className="customer-portfolio__eyebrow">Dịch vụ</p>
+              <h2 className="customer-portfolio__heading">Trọn gói cho ngày kỷ yếu hoàn hảo</h2>
+              <p className="customer-portfolio__copy">
+                Từ chụp ảnh, quay phim đến trang phục và hậu kỳ, Yume Studio cung cấp giải pháp toàn
+                diện để biến ngày kỷ yếu của bạn thành một trải nghiệm đáng nhớ và trọn vẹn nhất.
+              </p>
+            </div>
+            <div className="customer-portfolio__grid customer-portfolio__grid--services">
+              {services.map((service) => (
+                <CustomerSurface key={service.title} as="article">
+                  <div className="customer-portfolio__service-icon" aria-hidden="true">
+                    {service.icon}
+                  </div>
+                  <h3 className="customer-portfolio__card-title">{service.title}</h3>
+                  <p className="customer-portfolio__card-copy">{service.desc}</p>
+                </CustomerSurface>
+              ))}
+            </div>
+          </div>
+        </section>
 
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Cảm nhận về album / video <span className="text-rose-500">*</span>
-                </label>
-                <textarea
-                  rows={3}
-                  value={form.albumDesc}
-                  onChange={(e) => setForm({ ...form, albumDesc: e.target.value })}
-                  placeholder="Chất lượng ảnh, màu sắc, layout, video…"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-amber-400 transition resize-none"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-2">Góp ý thêm cho Yume</label>
-                <textarea
-                  rows={2}
-                  value={form.suggestion}
-                  onChange={(e) => setForm({ ...form, suggestion: e.target.value })}
-                  placeholder="Yume cần cải thiện điều gì?"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-amber-400 transition resize-none"
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+        <section id="gallery" className="customer-portfolio__band">
+          <div className="customer-portfolio__container">
+            <div className="customer-portfolio__intro">
+              <p className="customer-portfolio__eyebrow">Concept nổi bật</p>
+              <h2 className="customer-portfolio__heading">
+                Đa dạng phong cách – chọn “chất” riêng cho lớp
+              </h2>
+            </div>
+            <div className="customer-portfolio__grid customer-portfolio__grid--concepts">
+              {concepts.map((concept) => (
                 <Link
-                  to="/feedback"
-                  className="text-sm font-semibold text-amber-600 dark:text-amber-400 hover:underline"
+                  key={concept.tag}
+                  to={'/booking/start?source=concepts&concept=' + encodeURIComponent(concept.tag)}
+                  aria-label={'Chọn concept ' + concept.tag + ' và bắt đầu đặt lịch'}
+                  className="customer-portfolio__concept"
                 >
-                  Mở trang phản hồi đầy đủ →
+                  <div className="customer-portfolio__concept-illustration" aria-hidden="true">
+                    {concept.icon}
+                  </div>
+                  <strong>{concept.tag}</strong>
+                  <span className="customer-portfolio__caption">Chọn concept →</span>
                 </Link>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="inline-flex items-center px-7 py-3 rounded-full text-sm font-semibold text-white shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed transition"
-                  style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #22d3ee 100%)' }}
-                >
-                  {submitting ? 'Đang gửi...' : 'Gửi cảm nhận'}
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
-      </section>
-
-      {/* ── Contact CTA ──────────────────────────── */}
-      <section id="contact" className="scroll-mt-32 py-20 sm:py-28">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div
-            className="relative rounded-3xl p-10 sm:p-14 text-center text-white overflow-hidden shadow-2xl"
-            style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #22d3ee 100%)' }}
-          >
-            <div className="absolute inset-0 opacity-20 pointer-events-none">
-              <div className="absolute top-0 left-1/4 w-64 h-64 rounded-full bg-white blur-3xl" />
-              <div className="absolute bottom-0 right-1/4 w-72 h-72 rounded-full bg-white blur-3xl" />
+              ))}
             </div>
-            <div className="relative">
-              <h2 className="text-3xl sm:text-4xl font-extrabold">Bạn cần tư vấn về buổi chụp?</h2>
-              <p className="mt-4 text-base sm:text-lg text-white/90 max-w-2xl mx-auto">
+            <div className="customer-portfolio__actions customer-portfolio__actions--center">
+              <CustomerButton asChild variant="text">
+                <Link to="/consultation">Nhận tư vấn về concept →</Link>
+              </CustomerButton>
+            </div>
+          </div>
+        </section>
+
+        <section id="process" className="customer-portfolio__band customer-portfolio__band--soft">
+          <div className="customer-portfolio__container">
+            <div className="customer-portfolio__intro">
+              <p className="customer-portfolio__eyebrow">Quy trình</p>
+              <h2 className="customer-portfolio__heading">4 bước – nhẹ nhàng, minh bạch</h2>
+            </div>
+            <div className="customer-portfolio__grid customer-portfolio__grid--process">
+              {steps.map((step) => (
+                <CustomerSurface key={step.n} as="article">
+                  <p className="customer-portfolio__step">{step.n}</p>
+                  <h3 className="customer-portfolio__card-title">{step.title}</h3>
+                  <p className="customer-portfolio__card-copy">{step.desc}</p>
+                </CustomerSurface>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="packages" className="customer-portfolio__band">
+          <div className="customer-portfolio__container">
+            <div className="customer-portfolio__intro">
+              <p className="customer-portfolio__eyebrow">Báo giá</p>
+              <h2 className="customer-portfolio__heading">Gói dịch vụ phù hợp mọi lớp</h2>
+              <p className="customer-portfolio__copy">
+                Báo giá tham khảo. Yume sẽ tư vấn riêng cho từng lớp dựa trên concept và quy mô.
+              </p>
+            </div>
+            {pkgList === null ? (
+              pkgError ? (
+                <CustomerSurface className="customer-portfolio__message" role="alert">
+                  <h3 className="customer-section-title">Chưa thể tải bảng giá</h3>
+                  <p className="customer-error">{pkgError}</p>
+                  <div className="customer-portfolio__actions">
+                    <CustomerButton
+                      type="button"
+                      variant="secondary"
+                      onClick={() => void loadPackages()}
+                    >
+                      Thử lại
+                    </CustomerButton>
+                    <CustomerButton asChild>
+                      <Link to="/consultation">Nhận tư vấn</Link>
+                    </CustomerButton>
+                  </div>
+                </CustomerSurface>
+              ) : (
+                <div
+                  className="customer-portfolio__grid customer-portfolio__grid--packages"
+                  role="status"
+                  aria-live="polite"
+                  aria-label="Đang tải gói dịch vụ"
+                >
+                  {Array.from({ length: 3 }, (_, index) => (
+                    <div key={index} className="customer-portfolio__skeleton" aria-hidden="true" />
+                  ))}
+                </div>
+              )
+            ) : displayPackages.length === 0 ? (
+              <CustomerSurface className="customer-portfolio__message customer-portfolio__empty">
+                <h3 className="customer-section-title">Bảng giá đang được cập nhật</h3>
+                <p className="customer-portfolio__copy">
+                  Chia sẻ quy mô lớp và ý tưởng chụp với studio để nhận gợi ý gói phù hợp trong thời
+                  gian này.
+                </p>
+                <div className="customer-portfolio__actions customer-portfolio__actions--center">
+                  <CustomerButton asChild variant="secondary">
+                    <Link to="/consultation">Nhận tư vấn</Link>
+                  </CustomerButton>
+                  <CustomerButton asChild>
+                    <Link to="/booking/start?source=pricing">Bắt đầu đặt lịch</Link>
+                  </CustomerButton>
+                </div>
+              </CustomerSurface>
+            ) : (
+              <div className="customer-portfolio__grid customer-portfolio__grid--packages">
+                {displayPackages.map((item) => (
+                  <CustomerPackageCard
+                    key={item.id}
+                    name={item.name}
+                    price={
+                      item.amount > 0 ? (
+                        <CustomerPrice amount={item.amount} unit="/ bạn" />
+                      ) : (
+                        'Liên hệ'
+                      )
+                    }
+                    note={item.note}
+                    featured={item.featured}
+                    featuredLabel="PHỔ BIẾN"
+                    actions={
+                      <>
+                        <CustomerButton asChild>
+                          <Link
+                            to={
+                              '/booking/start?source=pricing&package=' + encodeURIComponent(item.id)
+                            }
+                          >
+                            Bắt đầu đặt lịch
+                          </Link>
+                        </CustomerButton>
+                        <CustomerButton asChild variant="secondary">
+                          <Link to="/consultation">Nhận tư vấn</Link>
+                        </CustomerButton>
+                      </>
+                    }
+                  >
+                    <ul>
+                      {item.items.map((feature) => (
+                        <li key={feature}>✓ {feature}</li>
+                      ))}
+                    </ul>
+                  </CustomerPackageCard>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="customer-portfolio__band customer-portfolio__band--soft">
+          <div className="customer-portfolio__container">
+            <div className="customer-portfolio__intro">
+              <p className="customer-portfolio__eyebrow">Cảm nhận khách hàng</p>
+              <h2 className="customer-portfolio__heading">Lớp đã chụp cùng Yume nói gì?</h2>
+            </div>
+            <div className="customer-portfolio__grid customer-portfolio__grid--reviews">
+              {testimonials.map((review) => (
+                <CustomerSurface
+                  key={review.name}
+                  as="article"
+                  className="customer-portfolio__testimonial"
+                >
+                  <p
+                    className="customer-portfolio__stars"
+                    role="img"
+                    aria-label={review.rating + ' trên 5 sao'}
+                  >
+                    {'★'.repeat(review.rating)}
+                  </p>
+                  <blockquote>“{review.quote}”</blockquote>
+                  <p>
+                    <strong>{review.name}</strong>
+                    <br />
+                    <span className="customer-portfolio__caption">{review.role}</span>
+                  </p>
+                </CustomerSurface>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="feedback" className="customer-portfolio__band">
+          <div className="customer-portfolio__container">
+            <div className="customer-portfolio__feedback">
+              <div className="customer-portfolio__intro">
+                <p className="customer-portfolio__eyebrow">Chia sẻ cảm nhận</p>
+                <h2 className="customer-portfolio__heading">
+                  Đã chụp cùng Yume? Hãy cho chúng mình biết!
+                </h2>
+                <p className="customer-portfolio__copy">
+                  Cảm nhận của bạn là động lực để Yume hoàn thiện mỗi ngày.
+                </p>
+              </div>
+              {submitted ? (
+                <CustomerSurface className="customer-portfolio__message customer-portfolio__empty">
+                  <h3 className="customer-section-title">Đã nhận cảm nhận của bạn!</h3>
+                  <p className="customer-portfolio__copy">
+                    Cảm ơn bạn rất nhiều. Yume sẽ tiếp tục nỗ lực để mang đến những trải nghiệm tốt
+                    hơn.
+                  </p>
+                  <div className="customer-portfolio__actions customer-portfolio__actions--center">
+                    <CustomerButton
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setSubmitted(false)}
+                    >
+                      Gửi cảm nhận khác
+                    </CustomerButton>
+                  </div>
+                </CustomerSurface>
+              ) : (
+                <CustomerSurface padding="compact" className="customer-portfolio__message">
+                  <form
+                    onSubmit={handleSubmitFeedback}
+                    className="customer-portfolio__feedback-form"
+                  >
+                    <CustomerFormField label="Số điện thoại (tuỳ chọn)" htmlFor="portfolio-phone">
+                      <CustomerInput
+                        id="portfolio-phone"
+                        type="tel"
+                        autoComplete="tel"
+                        value={form.phone}
+                        onChange={(event) => setForm({ ...form, phone: event.target.value })}
+                        placeholder="VD: 098 765 4321"
+                      />
+                    </CustomerFormField>
+                    <div className="customer-portfolio__ratings">
+                      <CustomerRatingInput
+                        label="Đánh giá ekip chụp"
+                        value={form.crewRating}
+                        onChange={(value) => setForm({ ...form, crewRating: value })}
+                        disabled={submitting}
+                      />
+                      <CustomerRatingInput
+                        label="Đánh giá album / video"
+                        value={form.albumRating}
+                        onChange={(value) => setForm({ ...form, albumRating: value })}
+                        disabled={submitting}
+                      />
+                    </div>
+                    <CustomerFormField label="Cảm nhận về ekip" htmlFor="portfolio-crew" required>
+                      <CustomerTextarea
+                        id="portfolio-crew"
+                        rows={3}
+                        value={form.crewDesc}
+                        onChange={(event) => setForm({ ...form, crewDesc: event.target.value })}
+                        placeholder="Photographer, makeup, stylist… đã hỗ trợ bạn ra sao?"
+                        required
+                      />
+                    </CustomerFormField>
+                    <CustomerFormField
+                      label="Cảm nhận về album / video"
+                      htmlFor="portfolio-album"
+                      required
+                    >
+                      <CustomerTextarea
+                        id="portfolio-album"
+                        rows={3}
+                        value={form.albumDesc}
+                        onChange={(event) => setForm({ ...form, albumDesc: event.target.value })}
+                        placeholder="Chất lượng ảnh, màu sắc, layout, video…"
+                        required
+                      />
+                    </CustomerFormField>
+                    <CustomerFormField label="Góp ý thêm cho Yume" htmlFor="portfolio-suggestion">
+                      <CustomerTextarea
+                        id="portfolio-suggestion"
+                        rows={2}
+                        value={form.suggestion}
+                        onChange={(event) => setForm({ ...form, suggestion: event.target.value })}
+                        placeholder="Yume cần cải thiện điều gì?"
+                      />
+                    </CustomerFormField>
+                    <div className="customer-portfolio__actions">
+                      <CustomerButton asChild variant="text">
+                        <Link to="/feedback">Mở trang phản hồi đầy đủ →</Link>
+                      </CustomerButton>
+                      <CustomerButton type="submit" disabled={submitting}>
+                        {submitting ? 'Đang gửi...' : 'Gửi cảm nhận'}
+                      </CustomerButton>
+                    </div>
+                  </form>
+                </CustomerSurface>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section id="contact" className="customer-portfolio__band">
+          <div className="customer-portfolio__container">
+            <CustomerSurface className="customer-portfolio__empty">
+              <h2 className="customer-portfolio__heading">Bạn cần tư vấn về buổi chụp?</h2>
+              <p className="customer-portfolio__copy">
                 Chọn kênh liên hệ để trao đổi về concept, quy mô lớp và ngân sách dự kiến.
               </p>
-              <div className="mt-8 flex flex-wrap justify-center gap-4">
-                <Link
-                  to="/booking/start?source=portfolio"
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-amber-800 shadow-md transition hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-amber-500 motion-reduce:transition-none"
-                >
-                  Bắt đầu đặt lịch
-                </Link>
-                <a
-                  href="tel:0869318118"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm sm:text-base font-semibold text-amber-700 bg-white hover:bg-amber-50 shadow-md transition"
-                >
-                  Gọi 0869318118
-                </a>
-                <a
-                  href="mailto:hello@yumestudio.vn"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm sm:text-base font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/40 backdrop-blur transition"
-                >
-                  Email hello@yumestudio.vn
-                </a>
-                <a
-                  href="https://www.facebook.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm sm:text-base font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/40 backdrop-blur transition"
-                >
-                  Facebook / Zalo
-                </a>
+              <div className="customer-portfolio__actions customer-portfolio__actions--center">
+                <CustomerButton asChild>
+                  <Link to="/booking/start?source=portfolio">Bắt đầu đặt lịch</Link>
+                </CustomerButton>
+                <CustomerButton asChild variant="secondary">
+                  <a href="tel:0869318118">Gọi 0869318118</a>
+                </CustomerButton>
+                <CustomerButton asChild variant="secondary">
+                  <a href="mailto:hello@yumestudio.vn">Email hello@yumestudio.vn</a>
+                </CustomerButton>
+                <CustomerButton asChild variant="secondary">
+                  <a href="https://www.facebook.com" target="_blank" rel="noreferrer">
+                    Facebook / Zalo
+                  </a>
+                </CustomerButton>
               </div>
-              <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm text-white/90">
-                <span>📍 Hà Nội, Việt Nam</span>
-                <span>🕒 T2 – CN: 8:00 – 20:00</span>
-              </div>
-            </div>
+              <p className="customer-portfolio__copy">
+                📍 Hà Nội, Việt Nam · 🕒 T2 – CN: 8:00 – 20:00
+              </p>
+            </CustomerSurface>
           </div>
-        </div>
-      </section>
-
+        </section>
+        {showScrollToTop && (
+          <CustomerButton
+            type="button"
+            variant="secondary"
+            aria-label="Về đầu trang"
+            title="Về đầu trang"
+            onClick={() =>
+              window.scrollTo({
+                top: 0,
+                behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                  ? 'instant'
+                  : 'smooth',
+              })
+            }
+            className="customer-portfolio__scroll"
+          >
+            <ArrowUp aria-hidden="true" />
+          </CustomerButton>
+        )}
+      </div>
     </PublicSiteLayout>
   );
 };
-
-/* ── Sub-components ──────────────────────────── */
-
-const heroCards = [
-  { bg: `url(${tnv00817}) center / cover no-repeat` },
-  { bg: `url(${tnv00048}) center / cover no-repeat` },
-  { bg: `url(${tnv07899}) center / cover no-repeat` },
-];
-
-// 3 positions arranged in a circle around the collage (more spaced apart).
-// `z` is animated as translateZ so cards smoothly recede / come forward
-// instead of snapping their stacking order — fixes the "jump-down" glitch
-// when the front card moves out of the way.
-const heroSlots = [
-  // top-right (mid depth)
-  { x: 160, y: -170, rotate: 8, scale: 0.98, z: -40 },
-  // bottom-center (front)
-  { x: 20, y: 100, rotate: 0, scale: 1.08, z: 40 },
-  // left (back)
-  { x: -200, y: -30, rotate: -10, scale: 0.92, z: -80 },
-];
-
-const HeroCollage = () => {
-  const [offset, setOffset] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => setOffset((o) => (o + 1) % heroCards.length), 5000);
-    return () => clearInterval(id);
-  }, []);
-
-  return (
-    <div className="relative h-[520px] hidden lg:block">
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div
-          className="relative w-[520px] h-[460px]"
-          style={{ perspective: 1400, transformStyle: 'preserve-3d' }}
-        >
-          {heroCards.map((card, i) => {
-            const slot = heroSlots[(i + offset) % heroSlots.length];
-            const W = 232;
-            const H = 288;
-            return (
-              <div
-                key={i}
-                className="absolute top-1/2 left-1/2 rounded-3xl shadow-2xl overflow-hidden"
-                style={{
-                  width: W,
-                  height: H,
-                  background: card.bg,
-                  transform: `translate3d(calc(-50% + ${slot.x}px), calc(-50% + ${slot.y}px), ${slot.z}px) rotate(${slot.rotate}deg) scale(${slot.scale})`,
-                  // Long, gentle easing for very smooth circular motion
-                  transition: 'transform 1500ms cubic-bezier(0.65, 0, 0.35, 1)',
-                  willChange: 'transform',
-                  backfaceVisibility: 'hidden',
-                  transformStyle: 'preserve-3d',
-                }}
-              ></div>
-            );
-          })}
-        </div>
-      </div>
-      <div className="absolute -bottom-2 left-4 z-50">
-        <div className="relative">
-          {/* Two ripples — synced with badge pulse so each ripple fires exactly
-              at the moments the badge reaches its smallest (scale 1) and
-              largest (scale 1.04) size. */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-2xl border border-amber-400/50 yume-ripple"
-          />
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-2xl border border-amber-400/50 yume-ripple"
-            style={{ animationDelay: '1.8s' }}
-          />
-          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3 border border-slate-100 dark:border-white/10 yume-pulse">
-            <div className="text-2xl">⭐</div>
-            <div>
-              <div className="text-sm font-bold">4.9 / 5</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">Trên 500+ đánh giá</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const RatingField = ({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-}) => (
-  <div>
-    <label className="block text-sm font-semibold mb-2">{label}</label>
-    <div className="flex gap-1">
-      {[1, 2, 3, 4, 5].map((n) => (
-        <button
-          key={n}
-          type="button"
-          onClick={() => onChange(n)}
-          className={`text-3xl transition hover:scale-110 ${
-            n <= value ? 'text-amber-500' : 'text-slate-300 dark:text-white/15'
-          }`}
-          aria-label={`${n} sao`}
-        >
-          ★
-        </button>
-      ))}
-    </div>
-  </div>
-);
 
 export default PortfolioPage;

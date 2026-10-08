@@ -59,7 +59,8 @@ const isBookingDraft = (value: unknown): value is BookingDraft => {
     draft.version === 1 &&
     (draft.ownerId === null || typeof draft.ownerId === 'string') &&
     typeof draft.idempotencyKey === 'string' &&
-    (draft.submissionFingerprint === undefined || typeof draft.submissionFingerprint === 'string') &&
+    (draft.submissionFingerprint === undefined ||
+      typeof draft.submissionFingerprint === 'string') &&
     (draft.step === 1 || draft.step === 2 || draft.step === 3) &&
     typeof draft.source === 'string' &&
     typeof draft.concept === 'string' &&
@@ -117,7 +118,10 @@ export const clearBookingDraft = () => {
 export const reconcileBookingDraftAccount = (user: User, previousUser?: User | null) => {
   const draft = readBookingDraft();
   if (!draft) return;
-  if ((previousUser && previousUser._id !== user._id) || (draft.ownerId && draft.ownerId !== user._id)) {
+  if (
+    (previousUser && previousUser._id !== user._id) ||
+    (draft.ownerId && draft.ownerId !== user._id)
+  ) {
     clearBookingDraft();
     return;
   }

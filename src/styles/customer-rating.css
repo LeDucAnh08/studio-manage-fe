@@ -1,0 +1,74 @@
+.customer-rating {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.customer-rating__label {
+  margin-bottom: var(--customer-space-8);
+  color: var(--customer-muted);
+  font: 500 14px/1.29 var(--customer-font);
+}
+
+.customer-rating__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--customer-space-2);
+}
+
+.customer-rating__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--customer-space-8) var(--customer-space-16);
+}
+
+.customer-rating__description {
+  color: var(--customer-ink);
+  font: 500 14px/1.43 var(--customer-font);
+}
+
+.customer-rating__option {
+  position: relative;
+  cursor: pointer;
+}
+
+.customer-rating__option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.customer-rating__star {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--customer-radius-control);
+  color: var(--customer-muted-soft);
+}
+
+.customer-rating__star svg {
+  width: 40px;
+  height: 40px;
+  fill: transparent;
+  stroke-width: 1.5;
+}
+
+.customer-rating__star svg.is-filled {
+  fill: var(--customer-ink);
+  color: var(--customer-ink);
+}
+
+.customer-rating__option input:focus-visible + .customer-rating__star {
+  outline: 2px solid var(--customer-ink);
+  outline-offset: 1px;
+}
+
+.customer-rating:disabled .customer-rating__option {
+  cursor: not-allowed;
+}

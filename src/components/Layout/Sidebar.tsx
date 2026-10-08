@@ -65,7 +65,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/staff/login');
   };
 
   const handleNavClick = () => {

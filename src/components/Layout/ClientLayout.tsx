@@ -1,47 +1,80 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Button } from '@/components/ui';
+import { clientRentalEnabled } from '../../config/features';
+import Logo from '../atoms/Logo';
+import { CustomerButton } from '../customer/CustomerButton';
+import { CustomerContainer } from '../customer/CustomerContainer';
+import { CustomerFooter } from '../customer/CustomerFooter';
+import { CustomerMobileMenu } from '../customer/CustomerMobileMenu';
 
 export default function ClientLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const name = user?.name || user?.username;
+  const signOut = () => {
+    logout();
+    navigate('/portfolio');
+  };
+  const primary = (
+    <>
+      <NavLink to="/account/bookings" className="customer-nav-link">
+        Dịch vụ của tôi
+      </NavLink>
+      {clientRentalEnabled && (
+        <NavLink to="/account/rentals" className="customer-nav-link">
+          Đơn thuê của tôi
+        </NavLink>
+      )}
+      <NavLink to="/account/profile" className="customer-nav-link">
+        Hồ sơ
+      </NavLink>
+    </>
+  );
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b bg-card">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
-          <Link to="/portfolio" className="font-bold text-xl">
-            Yume Studio
+    <div className="customer-shell">
+      <a href="#account-content" className="customer-skip-link">
+        Bỏ qua điều hướng
+      </a>
+      <header className="customer-header">
+        <CustomerContainer className="customer-header__row">
+          <Link to="/portfolio" className="customer-brand">
+            <Logo size={36} appearance="customer" />
+            <span className="customer-brand__name">Yume Studio</span>
           </Link>
-          <div className="flex items-center gap-3 text-sm">
-            <span>{user?.name || user?.username}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                logout();
-                navigate('/portfolio');
-              }}
-            >
+          <nav aria-label="Tài khoản khách hàng" className="customer-header__nav">
+            {primary}
+          </nav>
+          <div className="customer-header__utilities">
+            <span className="customer-header__username" title={name}>
+              {name}
+            </span>
+            <CustomerButton variant="secondary" onClick={signOut}>
               Đăng xuất
-            </Button>
+            </CustomerButton>
           </div>
-        </div>
-        <nav className="max-w-5xl mx-auto px-4 pb-4 flex flex-wrap gap-5 text-sm">
-          <NavLink
-            to="/account/bookings"
-            className={({ isActive }) => (isActive ? 'text-primary font-semibold' : '')}
-          >
-            Dịch vụ của tôi
-          </NavLink>
-          <Link to="/account/bookings/new">Đặt dịch vụ</Link>
-          <NavLink to="/account/profile">Hồ sơ</NavLink>
-          <Link to="/portfolio#packages">Khám phá dịch vụ</Link>
-          <Link to="/rental-catalog">Trang phục & phụ kiện</Link>
-        </nav>
+          <CustomerMobileMenu>
+            <p className="customer-menu__username">{name}</p>
+            <nav aria-label="Tài khoản khách hàng trên điện thoại" className="customer-menu__links">
+              {primary}
+              <NavLink to="/account/bookings/new">Đặt dịch vụ</NavLink>
+              <Link to="/portfolio#packages">Khám phá dịch vụ</Link>
+              <Link to="/rental-catalog">Trang phục & phụ kiện</Link>
+            </nav>
+            <CustomerButton variant="secondary" onClick={signOut}>
+              Đăng xuất
+            </CustomerButton>
+          </CustomerMobileMenu>
+        </CustomerContainer>
       </header>
-      <main className="max-w-5xl mx-auto px-4 py-8">
+      <CustomerContainer
+        as="main"
+        id="account-content"
+        tabIndex={-1}
+        className="customer-shell__main customer-shell__main--account"
+      >
         <Outlet />
-      </main>
+      </CustomerContainer>
+      <CustomerFooter minimal account />
     </div>
   );
 }

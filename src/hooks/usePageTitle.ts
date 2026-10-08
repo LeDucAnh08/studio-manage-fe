@@ -52,6 +52,7 @@ const EXTRA_ROUTES: FlatRoute[] = [
   { path: '/account/profile', label: 'Hồ sơ cá nhân' },
   { path: '/booking-requests/:id', label: 'Xét duyệt booking' },
   { path: '/login', label: 'Đăng nhập' },
+  { path: '/staff/login', label: 'Đăng nhập nhân sự' },
   { path: '/portfolio', label: 'Giới thiệu studio' },
   { path: '/form/:customer', label: 'Thông tin học sinh' },
   { path: '/feedback', label: 'Phản hồi' },

@@ -11,6 +11,11 @@ export default {
       screens: { '2xl': '1400px' },
     },
     extend: {
+      screens: {
+        'customer-tablet': '744px',
+        'customer-desktop': '1128px',
+        'customer-wide': '1440px',
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',

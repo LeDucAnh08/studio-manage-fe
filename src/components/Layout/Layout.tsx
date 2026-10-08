@@ -39,7 +39,7 @@ const Layout = () => {
         <span className="ml-2 font-bold text-sm text-gradient">Yume Studio</span>
       </div>
 
-      <main className="flex-1 md:ml-60 p-4 md:p-6 overflow-y-auto pt-[4.5rem] md:pt-6">
+      <main className="min-w-0 flex-1 md:ml-60 p-4 md:p-6 overflow-y-auto pt-[4.5rem] md:pt-6">
         <Breadcrumbs />
         <Outlet />
       </main>

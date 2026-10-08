@@ -17,12 +17,16 @@ import StudentFormPage from './pages/StudentFormPage';
 import FeedbackFormPage from './pages/FeedbackFormPage';
 import PortfolioPage from './pages/PortfolioPage';
 import RentalCatalogPage from './pages/RentalCatalogPage';
+import NewRentalPage from './pages/NewRentalPage';
+import RentalListPage from './pages/RentalListPage';
+import RentalDetailPage from './pages/RentalDetailPage';
 import ProfilePage from './pages/ProfilePage';
-import { ToastContainer } from 'react-toastify';
+import CustomerScope from './components/customer/CustomerScope';
+import CustomerToastContainer from './components/customer/CustomerToastContainer';
 import 'react-toastify/dist/ReactToastify.css';
 import { usePageTitle } from './hooks/usePageTitle';
 import { TooltipProvider } from '@/components/ui';
-import { clientPortalEnabled } from './config/features';
+import { clientPortalEnabled, clientRentalEnabled } from './config/features';
 
 function PageTitleManager() {
   usePageTitle();
@@ -90,64 +94,87 @@ function App() {
           <BrowserRouter>
             <PageTitleManager />
             <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route
-                path="/register"
-                element={
-                  clientPortalEnabled ? (
-                    <ClientRegisterPage />
-                  ) : (
-                    <Navigate to="/portfolio" replace />
-                  )
-                }
-              />
+              <Route path="/staff/login" element={<LoginPage />} />
               <Route path="/staff-register" element={<RegisterRequestPage />} />
-              <Route path="/services" element={<Navigate to="/portfolio#services" replace />} />
-              <Route path="/concepts" element={<Navigate to="/portfolio#gallery" replace />} />
-              <Route path="/pricing" element={<Navigate to="/portfolio#packages" replace />} />
-              <Route path="/consultation" element={<Navigate to="/portfolio#contact" replace />} />
-              <Route
-                path="/booking/start"
-                element={
-                  clientPortalEnabled ? (
-                    <PublicSiteLayout source="portfolio">
-                      <NewBookingPage />
-                    </PublicSiteLayout>
-                  ) : (
-                    <Navigate to="/consultation" replace />
-                  )
-                }
-              />
-              {clientPortalEnabled && (
+              <Route element={<CustomerScope />}>
+                <Route path="/login" element={<LoginPage />} />
                 <Route
-                  path="/account"
+                  path="/register"
                   element={
-                    <ProtectedRoute allowedRoles={[6]}>
-                      <ClientLayout />
-                    </ProtectedRoute>
+                    clientPortalEnabled ? (
+                      <ClientRegisterPage />
+                    ) : (
+                      <Navigate to="/portfolio" replace />
+                    )
                   }
-                >
-                  <Route index element={<Navigate to="bookings" replace />} />
-                  <Route path="bookings" element={<BookingsPage />} />
-                  <Route path="bookings/new" element={<NewBookingPage />} />
-                  <Route path="bookings/:id" element={<BookingWorkflowDetailPage />} />
-                  <Route path="profile" element={<ProfilePage />} />
-                </Route>
-              )}
-              <Route path="/portfolio" element={<PortfolioPage />} />
-              <Route path="/costumes" element={<RentalCatalogPage />} />
-              <Route path="/rental-catalog" element={<SearchPreservingRedirect pathname="/costumes" />} />
-              <Route path="/form/:customer" element={<StudentFormPage />} />
-              <Route
-                path="/member-intake/:token"
-                element={
-                  <PublicSiteLayout source="portfolio">
-                    <PublicMemberIntakePage />
-                  </PublicSiteLayout>
-                }
-              />
-              <Route path="/feedback" element={<FeedbackFormPage />} />
-              <Route path="/feedback/:customer" element={<FeedbackFormPage />} />
+                />
+                <Route path="/services" element={<Navigate to="/portfolio#services" replace />} />
+                <Route path="/concepts" element={<Navigate to="/portfolio#gallery" replace />} />
+                <Route path="/pricing" element={<Navigate to="/portfolio#packages" replace />} />
+                <Route
+                  path="/consultation"
+                  element={<Navigate to="/portfolio#contact" replace />}
+                />
+                <Route
+                  path="/booking/start"
+                  element={
+                    clientPortalEnabled ? (
+                      <PublicSiteLayout source="portfolio">
+                        <NewBookingPage />
+                      </PublicSiteLayout>
+                    ) : (
+                      <Navigate to="/consultation" replace />
+                    )
+                  }
+                />
+                {clientPortalEnabled && (
+                  <Route
+                    path="/account"
+                    element={
+                      <ProtectedRoute allowedRoles={[6]}>
+                        <ClientLayout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route index element={<Navigate to="bookings" replace />} />
+                    <Route path="bookings" element={<BookingsPage />} />
+                    <Route path="bookings/new" element={<NewBookingPage />} />
+                    <Route path="bookings/:id" element={<BookingWorkflowDetailPage />} />
+                    <Route path="profile" element={<ProfilePage />} />
+                    {clientRentalEnabled && <Route path="rentals" element={<RentalListPage />} />}
+                    {clientRentalEnabled && (
+                      <Route path="rentals/:id" element={<RentalDetailPage />} />
+                    )}
+                  </Route>
+                )}
+                <Route path="/portfolio" element={<PortfolioPage />} />
+                <Route path="/costumes" element={<RentalCatalogPage />} />
+                {clientRentalEnabled && (
+                  <Route
+                    path="/rental/start"
+                    element={
+                      <PublicSiteLayout source="costumes">
+                        <NewRentalPage />
+                      </PublicSiteLayout>
+                    }
+                  />
+                )}
+                <Route
+                  path="/rental-catalog"
+                  element={<SearchPreservingRedirect pathname="/costumes" />}
+                />
+                <Route path="/form/:customer" element={<StudentFormPage />} />
+                <Route
+                  path="/member-intake/:token"
+                  element={
+                    <PublicSiteLayout source="portfolio">
+                      <PublicMemberIntakePage />
+                    </PublicSiteLayout>
+                  }
+                />
+                <Route path="/feedback" element={<FeedbackFormPage />} />
+                <Route path="/feedback/:customer" element={<FeedbackFormPage />} />
+              </Route>
               <Route
                 path="/"
                 element={
@@ -158,7 +185,26 @@ function App() {
               >
                 {[...navItems, ...adminItems].map(renderRouteItem)}
                 <Route path="profile" element={<ProfilePage />} />
-                {clientPortalEnabled && <Route path="workflow-bookings/:id" element={<ProtectedRoute allowedRoles={[0, 1, 3, 5]}><BookingWorkflowDetailPage /></ProtectedRoute>} />}
+                {clientRentalEnabled && (
+                  <Route
+                    path="rental-orders/:id"
+                    element={
+                      <ProtectedRoute allowedRoles={[0, 1, 2, 4, 5]}>
+                        <RentalDetailPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                )}
+                {clientPortalEnabled && (
+                  <Route
+                    path="workflow-bookings/:id"
+                    element={
+                      <ProtectedRoute allowedRoles={[0, 1, 3, 5]}>
+                        <BookingWorkflowDetailPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                )}
                 {clientPortalEnabled && (
                   <Route
                     path="booking-requests/:id"
@@ -172,7 +218,7 @@ function App() {
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-            <ToastContainer position="bottom-right" autoClose={3000} hideProgressBar={false} />
+            <CustomerToastContainer />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>

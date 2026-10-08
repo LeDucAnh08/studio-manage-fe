@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Button, Textarea } from '@/components/ui';
+import { Textarea } from '@/components/ui';
+import { OrderButton as Button, OrderSelect } from '../components/customer/CustomerOrderControls';
+import { useCustomerAppearance } from '../components/customer/CustomerAppearance';
+import { CustomerOrderCard } from '../components/customer/CustomerOrderCard';
+import { CustomerStatusBadge } from '../components/customer/CustomerStatusBadge';
+import '../styles/customer-orders.css';
 import {
   bookingService,
   bookingLabels,
@@ -9,7 +14,8 @@ import {
   type BookingNotification,
 } from '../services/bookingService';
 
-const date = (value: string) => new Date(value).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+const date = (value: string) =>
+  new Date(value).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
 const money = (value: number) => value.toLocaleString('vi-VN') + ' đ';
 const errorText = (e: unknown) =>
   (e as { response?: { data?: { message?: string } } }).response?.data?.message ||
@@ -17,6 +23,7 @@ const errorText = (e: unknown) =>
 const selectClass = 'h-10 rounded-md border bg-background px-3 text-sm w-full';
 
 export function BookingNotifications({ base }: { base: string }) {
+  const customer = useCustomerAppearance();
   const [items, setItems] = useState<BookingNotification[]>([]);
   const [error, setError] = useState('');
   const reload = useCallback(
@@ -36,9 +43,15 @@ export function BookingNotifications({ base }: { base: string }) {
     return () => clearInterval(timer);
   }, [reload]);
   return (
-    <section className="border rounded-xl p-4 bg-card space-y-3">
+    <section
+      className={
+        customer
+          ? 'customer-order-surface customer-order-surface--compact'
+          : 'border rounded-xl p-4 bg-card space-y-3'
+      }
+    >
       <div className="flex flex-wrap justify-between items-center gap-2">
-        <h2 className="font-semibold">
+        <h2 className={customer ? 'customer-order-title' : 'font-semibold'}>
           Thông báo {items.some((i) => i.unread) && `(${items.filter((i) => i.unread).length} mới)`}
         </h2>
         <Button
@@ -70,10 +83,16 @@ export function BookingNotifications({ base }: { base: string }) {
           <Link
             key={i._id}
             to={`${base}/${i.bookingId}`}
-            className={`block rounded-lg p-3 text-sm ${i.unread ? 'bg-primary/10' : 'bg-muted/30'}`}
+            className={
+              customer
+                ? `customer-order-notification ${i.unread ? 'customer-order-notification--unread' : ''}`
+                : `block rounded-lg p-3 text-sm ${i.unread ? 'bg-primary/10' : 'bg-muted/30'}`
+            }
           >
             <p>{i.message}</p>
-            <time className="text-xs text-muted-foreground">{date(i.at)}</time>
+            <time className={customer ? 'customer-caption' : 'text-xs text-muted-foreground'}>
+              {date(i.at)}
+            </time>
           </Link>
         ))}
       </div>
@@ -82,6 +101,9 @@ export function BookingNotifications({ base }: { base: string }) {
 }
 
 export default function BookingsPage({ admin = false }: { admin?: boolean }) {
+  const customer = useCustomerAppearance();
+  const OrderCard = customer ? CustomerOrderCard : Link;
+  const Status = customer ? CustomerStatusBadge : 'span';
   const [items, setItems] = useState<Booking[]>([]);
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState('');
@@ -113,10 +135,12 @@ export default function BookingsPage({ admin = false }: { admin?: boolean }) {
     };
   }, [page, status, refresh]);
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap justify-between gap-3">
+    <div className={customer ? 'customer-orders' : 'space-y-6'}>
+      <div
+        className={customer ? 'customer-orders__header' : 'flex flex-wrap justify-between gap-3'}
+      >
         <div>
-          <h1 className="text-2xl font-bold">
+          <h1 className={customer ? 'customer-page-title' : 'text-2xl font-bold'}>
             {admin ? 'Yêu cầu đặt dịch vụ' : 'Booking của tôi'}
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -125,19 +149,24 @@ export default function BookingsPage({ admin = false }: { admin?: boolean }) {
               : 'Theo dõi yêu cầu và phản hồi từ Yume Studio.'}
           </p>
         </div>
-        {!admin && (
-          <Link
-            to="/account/bookings/new"
-            className="rounded-lg bg-primary text-primary-foreground px-4 py-3 self-start"
-          >
-            Đặt dịch vụ
-          </Link>
-        )}
+        {!admin &&
+          (customer ? (
+            <Button asChild>
+              <Link to="/account/bookings/new">Đặt dịch vụ</Link>
+            </Button>
+          ) : (
+            <Link
+              to="/account/bookings/new"
+              className="rounded-lg bg-primary text-primary-foreground px-4 py-3 self-start"
+            >
+              Đặt dịch vụ
+            </Link>
+          ))}
       </div>
       <BookingNotifications base={base} />
-      <div className="flex flex-wrap gap-3 items-center">
+      <div className={customer ? 'customer-orders__toolbar' : 'flex flex-wrap gap-3 items-center'}>
         <label htmlFor="status">Trạng thái</label>
-        <select
+        <OrderSelect
           id="status"
           className={`${selectClass} max-w-xs`}
           value={status}
@@ -152,7 +181,7 @@ export default function BookingsPage({ admin = false }: { admin?: boolean }) {
               {v}
             </option>
           ))}
-        </select>
+        </OrderSelect>
         <Button variant="outline" onClick={() => setRefresh((v) => v + 1)}>
           Tải lại
         </Button>
@@ -164,21 +193,33 @@ export default function BookingsPage({ admin = false }: { admin?: boolean }) {
           {error}
         </p>
       ) : !items.length ? (
-        <p className="border rounded-xl p-8 text-center text-muted-foreground">
+        <p
+          className={
+            customer
+              ? 'customer-order-surface text-center text-muted-foreground'
+              : 'border rounded-xl p-8 text-center text-muted-foreground'
+          }
+        >
           Chưa có yêu cầu phù hợp.
         </p>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className={customer ? 'customer-order-grid' : 'grid gap-4 md:grid-cols-2'}>
           {items.map((item) => (
-            <Link
+            <OrderCard
               key={item._id}
               to={`${base}/${item._id}`}
-              className="border bg-card rounded-xl p-5 hover:border-primary transition space-y-2"
+              className={
+                customer
+                  ? undefined
+                  : 'border bg-card rounded-xl p-5 hover:border-primary transition space-y-2'
+              }
             >
-              <span className="text-xs rounded-full bg-muted px-3 py-1">
+              <Status className={customer ? undefined : 'text-xs rounded-full bg-muted px-3 py-1'}>
                 {bookingLabels[item.status]}
-              </span>
-              <h2 className="font-semibold text-lg">{item.packageName}</h2>
+              </Status>
+              <h2 className={customer ? 'customer-order-title' : 'font-semibold text-lg'}>
+                {item.packageName}
+              </h2>
               {admin && (
                 <p>
                   {item.contactName} · {item.phone}
@@ -188,12 +229,16 @@ export default function BookingsPage({ admin = false }: { admin?: boolean }) {
                 {date(item.startAt)} — {date(item.endAt)}
               </p>
               <p className="text-sm text-muted-foreground break-words">{item.location}</p>
-              <p className="text-primary text-sm">Xem chi tiết →</p>
-            </Link>
+              <p className={customer ? 'customer-order-meta' : 'text-primary text-sm'}>
+                Xem chi tiết →
+              </p>
+            </OrderCard>
           ))}
         </div>
       )}
-      <div className="flex items-center justify-end gap-3">
+      <div
+        className={customer ? 'customer-orders__pagination' : 'flex items-center justify-end gap-3'}
+      >
         <Button
           variant="outline"
           disabled={page === 1 || loading}

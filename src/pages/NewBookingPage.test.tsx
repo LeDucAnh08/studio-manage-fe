@@ -42,7 +42,10 @@ const vnDateTimeInput = (value: Date) => {
 const futureWindow = (days = 30, hours = 2) => {
   const start = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
   start.setSeconds(0, 0);
-  return { start: vnDateTimeInput(start), end: vnDateTimeInput(new Date(start.getTime() + hours * 60 * 60 * 1000)) };
+  return {
+    start: vnDateTimeInput(start),
+    end: vnDateTimeInput(new Date(start.getTime() + hours * 60 * 60 * 1000)),
+  };
 };
 
 async function choosePackage() {
@@ -54,15 +57,25 @@ async function choosePackage() {
 
 function fillDetails(options: { endDays?: number } = {}) {
   const { start, end } = futureWindow(30);
-  const endValue = options.endDays ? vnDateTimeInput(new Date(Date.parse(`${start}:00+07:00`) + options.endDays * 24 * 60 * 60 * 1000)) : end;
+  const endValue = options.endDays
+    ? vnDateTimeInput(
+        new Date(Date.parse(`${start}:00+07:00`) + options.endDays * 24 * 60 * 60 * 1000),
+      )
+    : end;
   fireEvent.change(screen.getByLabelText('Tên lớp / nhóm'), { target: { value: '12A1' } });
   fireEvent.change(screen.getByLabelText('Trường'), { target: { value: 'THPT Yume' } });
-  fireEvent.change(screen.getByLabelText('Họ tên người liên hệ'), { target: { value: 'Khách thử' } });
+  fireEvent.change(screen.getByLabelText('Họ tên người liên hệ'), {
+    target: { value: 'Khách thử' },
+  });
   fireEvent.change(screen.getByLabelText('Số điện thoại'), { target: { value: '0901234567' } });
   fireEvent.change(screen.getByLabelText('Số thành viên dự kiến'), { target: { value: '30' } });
   fireEvent.change(screen.getByLabelText('Địa điểm mong muốn'), { target: { value: 'Hà Nội' } });
-  fireEvent.change(screen.getByLabelText('Ngày và giờ bắt đầu mong muốn (giờ Việt Nam)'), { target: { value: start } });
-  fireEvent.change(screen.getByLabelText('Ngày và giờ kết thúc mong muốn (giờ Việt Nam)'), { target: { value: endValue } });
+  fireEvent.change(screen.getByLabelText('Ngày và giờ bắt đầu mong muốn (giờ Việt Nam)'), {
+    target: { value: start },
+  });
+  fireEvent.change(screen.getByLabelText('Ngày và giờ kết thúc mong muốn (giờ Việt Nam)'), {
+    target: { value: endValue },
+  });
   return { start, end: endValue };
 }
 
@@ -87,17 +100,27 @@ describe('NewBookingPage', () => {
 
   it('keeps discovery context and package comparison while collecting class and VN schedule details', async () => {
     render(
-      <MemoryRouter initialEntries={['/booking/start?source=portfolio&package=package-1&concept=Vintage&item=costume-1&itemName=Áo%20dài']}>
+      <MemoryRouter
+        initialEntries={[
+          '/booking/start?source=portfolio&package=package-1&concept=Vintage&item=costume-1&itemName=Áo%20dài',
+        ]}
+      >
         <NewBookingPage />
       </MemoryRouter>,
     );
 
     await screen.findByText('Concept tham khảo: Vintage');
     const packageCards = screen.getAllByRole('article');
-    packageCards.slice(0, 3).forEach((card) => fireEvent.click(within(card).getByRole('button', { name: 'So sánh gói' })));
+    packageCards
+      .slice(0, 3)
+      .forEach((card) =>
+        fireEvent.click(within(card).getByRole('button', { name: 'So sánh gói' })),
+      );
     expect(screen.getByRole('heading', { name: 'So sánh gói dịch vụ' })).toBeInTheDocument();
     fireEvent.click(within(packageCards[3]).getByRole('button', { name: 'So sánh gói' }));
-    expect(await screen.findByText('Bạn có thể so sánh tối đa 3 gói cùng lúc.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Bạn có thể so sánh tối đa 3 gói cùng lúc.'),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Đang chọn' }));
     fireEvent.click(screen.getByRole('button', { name: /Tiếp tục/ }));
 
@@ -105,12 +128,16 @@ describe('NewBookingPage', () => {
     await reviewRequest();
     expect(screen.getByText('12A1')).toBeInTheDocument();
     expect(screen.getByText('THPT Yume')).toBeInTheDocument();
-    expect(screen.getAllByText('Trang phục/phụ kiện tham khảo: Áo dài (mã costume-1)')).toHaveLength(2);
+    expect(
+      screen.getAllByText('Trang phục/phụ kiện tham khảo: Áo dài (mã costume-1)'),
+    ).toHaveLength(2);
     expect(screen.getByText('Bạn đang tham khảo')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Sửa thông tin' }));
     expect(screen.getByLabelText('Tên lớp / nhóm')).toHaveValue('12A1');
-    expect(screen.getByLabelText('Ngày và giờ bắt đầu mong muốn (giờ Việt Nam)')).toHaveValue(times.start);
+    expect(screen.getByLabelText('Ngày và giờ bắt đầu mong muốn (giờ Việt Nam)')).toHaveValue(
+      times.start,
+    );
     fireEvent.click(screen.getByRole('button', { name: /Quay lại/ }));
     expect(screen.getByRole('heading', { name: 'So sánh gói dịch vụ' })).toBeInTheDocument();
     expect(screen.getAllByText('Gói thử')).toHaveLength(2);
@@ -177,7 +204,9 @@ describe('NewBookingPage', () => {
     await choosePackage();
     fillDetails({ endDays: 8 });
     fireEvent.click(screen.getByRole('button', { name: /Xem lại yêu cầu/ }));
-    expect(await screen.findByText('Khoảng thời gian yêu cầu không được dài quá 7 ngày.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Khoảng thời gian yêu cầu không được dài quá 7 ngày.'),
+    ).toBeInTheDocument();
     expect(bookingService.create).not.toHaveBeenCalled();
   });
 });

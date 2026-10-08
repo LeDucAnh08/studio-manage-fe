@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { loginEntryForPath } from '../utils/loginEntry';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
@@ -19,10 +20,13 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       const path = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-      const canResume = path.startsWith('/account/') || path.startsWith('/booking/start');
+      const canResume =
+        path.startsWith('/account/') ||
+        path.startsWith('/booking/start') ||
+        path.startsWith('/rental/start');
       window.location.href = canResume
         ? `/login?returnTo=${encodeURIComponent(path)}`
-        : '/login';
+        : loginEntryForPath(window.location.pathname);
     }
     return Promise.reject(error);
   },

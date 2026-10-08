@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
@@ -13,16 +13,17 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
 import Logo from '../components/atoms/Logo';
+import { Spinner } from '@/components/ui';
+import { CustomerButton } from '@/components/customer/CustomerButton';
+import { CustomerFeedbackSection } from '@/components/customer/CustomerFeedbackSection';
 import {
-  Button,
-  Card,
-  CardContent,
-  Input,
-  PageLoader,
-  StarRating,
-  Textarea,
-} from '@/components/ui';
-import { cn } from '@/lib/utils';
+  CustomerFormField,
+  CustomerInput,
+  CustomerTextarea,
+} from '@/components/customer/CustomerFields';
+import { CustomerRatingInput } from '@/components/customer/CustomerRatingInput';
+import { CustomerSurface } from '@/components/customer/CustomerSurface';
+import '../styles/customer-forms.css';
 
 const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api' });
 
@@ -53,6 +54,8 @@ const FeedbackFormPage = () => {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<Status>('idle');
+  const submitBarRef = useRef<HTMLDivElement>(null);
+  const [submitBarHeight, setSubmitBarHeight] = useState(0);
 
   const {
     register,
@@ -149,52 +152,62 @@ const FeedbackFormPage = () => {
     [crewRating, albumRating, crewDescription, albumDescription, isSubmitting],
   );
 
+  useEffect(() => {
+    const bar = submitBarRef.current;
+    if (!bar) return;
+    const measure = () => setSubmitBarHeight(bar.getBoundingClientRect().height);
+    measure();
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(measure);
+      observer.observe(bar);
+      return () => observer.disconnect();
+    }
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [loading, loadError, submitStatus]);
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <PageLoader />
+      <div className="customer-standalone-form">
+        <div
+          className="customer-form-loading"
+          role="status"
+          aria-label="Đang tải biểu mẫu phản hồi"
+        >
+          <Spinner />
+        </div>
       </div>
     );
   }
 
   if (loadError) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <Card className="max-w-sm w-full text-center">
-          <CardContent className="py-10">
-            <div className="mb-4 flex justify-center">
-              <AlertCircle className="h-12 w-12 text-amber-500" />
-            </div>
-            <p className="font-semibold text-lg">Không tìm thấy thông tin</p>
-            <p className="mt-1 text-sm text-muted-foreground">Link có thể không còn hợp lệ</p>
-          </CardContent>
-        </Card>
+      <div className="customer-standalone-form">
+        <CustomerSurface className="customer-form-state customer-form-error" role="alert">
+          <AlertCircle className="customer-form-state__icon" aria-hidden="true" />
+          <h1 className="customer-page-title">Không tìm thấy thông tin</h1>
+          <p className="customer-form-copy">Link có thể không còn hợp lệ</p>
+        </CustomerSurface>
       </div>
     );
   }
 
   if (submitStatus === 'success') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <Card className="max-w-md w-full text-center rounded-3xl">
-          <CardContent className="p-10">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg">
-              <Logo size={80} />
-            </div>
-            <h2 className="font-bold mb-2 text-2xl">Cảm ơn bạn rất nhiều!</h2>
-            <p className="leading-relaxed mb-8 text-muted-foreground">
-              Phản hồi của bạn đã được ghi nhận. Chúng tôi sẽ dùng ý kiến này để phục vụ bạn tốt hơn
-              trong tương lai.
-            </p>
-            <Button
-              variant="gradient"
-              className="w-full py-3"
-              onClick={() => setSubmitStatus('idle')}
-            >
-              Gửi phản hồi khác
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="customer-standalone-form">
+        <CustomerSurface className="customer-form-state" role="status">
+          <div className="customer-feedback-success-logo">
+            <Logo size={80} appearance="customer" />
+          </div>
+          <h1 className="customer-page-title">Cảm ơn bạn rất nhiều!</h1>
+          <p className="customer-copy">
+            Phản hồi của bạn đã được ghi nhận. Chúng tôi sẽ dùng ý kiến này để phục vụ bạn tốt hơn
+            trong tương lai.
+          </p>
+          <CustomerButton fullWidth onClick={() => setSubmitStatus('idle')}>
+            Gửi phản hồi khác
+          </CustomerButton>
+        </CustomerSurface>
       </div>
     );
   }
@@ -208,204 +221,183 @@ const FeedbackFormPage = () => {
   const progress = Math.round((completionCount / totalSteps) * 100);
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-10 backdrop-blur bg-background/80 border-b">
-        <div className="max-w-xl mx-auto px-5 py-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-cyan-500 flex items-center justify-center shadow-sm">
-            <Logo size={36} />
+    <div className="customer-feedback-page" style={{ paddingBottom: submitBarHeight }}>
+      <header className="customer-feedback-header">
+        <div className="customer-feedback-header__inner">
+          <div className="customer-feedback-logo">
+            <Logo size={36} appearance="customer" />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-bold leading-tight truncate">Yume Studio</p>
-            <p className="leading-tight text-xs text-muted-foreground">
-              Đánh giá trải nghiệm của bạn
-            </p>
+          <div className="customer-form-header">
+            <p className="customer-form-title">Yume Studio</p>
+            <p className="customer-caption">Đánh giá trải nghiệm của bạn</p>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-16 h-1.5 rounded-full overflow-hidden bg-muted">
-              <div
-                className="h-full bg-gradient-to-r from-amber-500 to-cyan-500 transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
+          <div className="customer-feedback-progress">
+            <div
+              className="customer-feedback-progress__track"
+              role="progressbar"
+              aria-label="Các mục phản hồi đã hoàn thành"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progress}
+            >
+              <div className="customer-feedback-progress__fill" style={{ width: `${progress}%` }} />
             </div>
-            <span className="tabular-nums text-xs text-muted-foreground">{progress}%</span>
+            <span className="customer-caption">{progress}%</span>
           </div>
         </div>
       </header>
 
-      <div className="max-w-xl mx-auto px-5 py-8">
-        <div className="mb-8">
-          <h1 className="font-bold leading-tight text-2xl sm:text-3xl">
+      <div className="customer-standalone-form customer-form-stack">
+        <div className="customer-form-header">
+          <h1 className="customer-page-title">
             {fixedClass ? fixedClass.className : 'Gửi phản hồi'}
           </h1>
           {fixedClass?.school ? (
-            <p className="mt-1 text-muted-foreground inline-flex items-center gap-1.5">
-              <School className="h-4 w-4 text-sky-500" />
+            <p className="customer-form-meta">
+              <School aria-hidden="true" />
               <span>{fixedClass.school}</span>
             </p>
           ) : (
-            <p className="mt-1 text-muted-foreground">Ý kiến của bạn giúp studio phục vụ tốt hơn</p>
+            <p className="customer-copy">Ý kiến của bạn giúp studio phục vụ tốt hơn</p>
           )}
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form
+          id="customer-feedback-form"
+          onSubmit={handleSubmit(onSubmit)}
+          className="customer-form-stack"
+        >
           {fixedClass && <input type="hidden" {...register('customer')} />}
 
           {/* Crew rating */}
-          <Card className="rounded-2xl">
-            <CardContent className="p-5">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-blue-500/15">
-                  <Film className="h-5 w-5 text-blue-500" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold">
-                    Ekip chụp ảnh <span className="text-rose-500">*</span>
-                  </h3>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Thái độ, sự chuyên nghiệp và kỹ năng
-                  </p>
-                </div>
-              </div>
-              <input type="hidden" {...register('crewRating', { required: true, min: 1 })} />
-              <StarRating
-                value={crewRating}
-                onChange={(v) => setValue('crewRating', v, { shouldValidate: true })}
-              />
-              <Textarea
+          <CustomerFeedbackSection
+            icon={Film}
+            title="Ekip chụp ảnh"
+            description="Thái độ, sự chuyên nghiệp và kỹ năng"
+            required
+          >
+            <input type="hidden" {...register('crewRating', { required: true, min: 1 })} />
+            <CustomerRatingInput
+              aria-label="Đánh giá ekip chụp ảnh"
+              required
+              value={crewRating}
+              onChange={(v) => setValue('crewRating', v, { shouldValidate: true })}
+            />
+            <CustomerFormField
+              label="Nhận xét về ekip"
+              htmlFor="crew-description"
+              error={errors.crewDescription ? 'Vui lòng chia sẻ thêm về ekip' : undefined}
+              required
+            >
+              <CustomerTextarea
+                id="crew-description"
                 rows={2}
                 placeholder="Chia sẻ thêm về ekip…"
-                className={cn('mt-4 resize-none', errors.crewDescription && 'border-destructive')}
                 {...register('crewDescription', {
                   required: true,
                   validate: (v) => v.trim().length > 0,
                 })}
               />
-              {errors.crewDescription && (
-                <p className="mt-1 text-xs text-destructive">Vui lòng chia sẻ thêm về ekip</p>
-              )}
-            </CardContent>
-          </Card>
+            </CustomerFormField>
+          </CustomerFeedbackSection>
 
           {/* Album rating */}
-          <Card className="rounded-2xl">
-            <CardContent className="p-5">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-violet-500/15">
-                  <ImageIcon className="h-5 w-5 text-violet-500" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold">
-                    Album ảnh <span className="text-rose-500">*</span>
-                  </h3>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Chất lượng, bố cục và màu sắc
-                  </p>
-                </div>
-              </div>
-              <input type="hidden" {...register('albumRating', { required: true, min: 1 })} />
-              <StarRating
-                value={albumRating}
-                onChange={(v) => setValue('albumRating', v, { shouldValidate: true })}
-              />
-              <Textarea
+          <CustomerFeedbackSection
+            icon={ImageIcon}
+            title="Album ảnh"
+            description="Chất lượng, bố cục và màu sắc"
+            required
+          >
+            <input type="hidden" {...register('albumRating', { required: true, min: 1 })} />
+            <CustomerRatingInput
+              aria-label="Đánh giá album ảnh"
+              required
+              value={albumRating}
+              onChange={(v) => setValue('albumRating', v, { shouldValidate: true })}
+            />
+            <CustomerFormField
+              label="Nhận xét về album"
+              htmlFor="album-description"
+              error={errors.albumDescription ? 'Vui lòng chia sẻ thêm về album' : undefined}
+              required
+            >
+              <CustomerTextarea
+                id="album-description"
                 rows={2}
                 placeholder="Chia sẻ thêm về album…"
-                className={cn('mt-4 resize-none', errors.albumDescription && 'border-destructive')}
                 {...register('albumDescription', {
                   required: true,
                   validate: (v) => v.trim().length > 0,
                 })}
               />
-              {errors.albumDescription && (
-                <p className="mt-1 text-xs text-destructive">Vui lòng chia sẻ thêm về album</p>
-              )}
-            </CardContent>
-          </Card>
+            </CustomerFormField>
+          </CustomerFeedbackSection>
 
           {/* General feedback */}
-          <Card className="rounded-2xl">
-            <CardContent className="p-5">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-teal-500/15">
-                  <MessageCircle className="h-5 w-5 text-teal-500" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold">Cảm nhận chung</h3>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Trải nghiệm tổng thể của bạn
-                  </p>
-                </div>
-              </div>
-              <Textarea
+          <CustomerFeedbackSection
+            icon={MessageCircle}
+            title="Cảm nhận chung"
+            description="Trải nghiệm tổng thể của bạn"
+          >
+            <CustomerFormField label="Cảm nhận của bạn" htmlFor="feedback-content">
+              <CustomerTextarea
+                id="feedback-content"
                 rows={3}
-                className="resize-none"
                 placeholder="Hãy chia sẻ cảm nhận của bạn…"
                 {...register('content')}
               />
-            </CardContent>
-          </Card>
+            </CustomerFormField>
+          </CustomerFeedbackSection>
 
           {/* Suggestion */}
-          <Card className="rounded-2xl">
-            <CardContent className="p-5">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-amber-500/15">
-                  <Lightbulb className="h-5 w-5 text-amber-500" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold">Đề xuất cải thiện</h3>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Studio có thể làm gì tốt hơn?
-                  </p>
-                </div>
-              </div>
-              <Textarea
+          <CustomerFeedbackSection
+            icon={Lightbulb}
+            title="Đề xuất cải thiện"
+            description="Studio có thể làm gì tốt hơn?"
+          >
+            <CustomerFormField label="Đề xuất của bạn" htmlFor="feedback-suggestion">
+              <CustomerTextarea
+                id="feedback-suggestion"
                 rows={3}
-                className="resize-none"
                 placeholder="Góp ý để studio phục vụ bạn tốt hơn…"
                 {...register('suggestion')}
               />
-            </CardContent>
-          </Card>
+            </CustomerFormField>
+          </CustomerFeedbackSection>
 
           {/* Phone */}
-          <Card className="rounded-2xl">
-            <CardContent className="p-5">
-              <label className="flex items-center gap-2 font-semibold mb-2">
-                <Phone className="h-4 w-4 text-emerald-500" />
-                <span>Số điện thoại</span>
-                <span className="font-normal text-xs text-muted-foreground">· tuỳ chọn</span>
-              </label>
-              <Input
+          <CustomerFeedbackSection icon={Phone} title="Số điện thoại" description="Tuỳ chọn">
+            <CustomerFormField
+              label="Số điện thoại liên hệ"
+              htmlFor="feedback-phone"
+              hint="Phản hồi hoàn toàn ẩn danh trừ khi bạn để lại SĐT"
+            >
+              <CustomerInput
+                id="feedback-phone"
                 type="tel"
                 placeholder="Để chúng tôi có thể liên hệ lại nếu cần"
                 {...register('phone')}
               />
-              <p className="mt-2 text-xs text-muted-foreground">
-                Phản hồi hoàn toàn ẩn danh trừ khi bạn để lại SĐT
-              </p>
-            </CardContent>
-          </Card>
+            </CustomerFormField>
+          </CustomerFeedbackSection>
 
           {submitStatus === 'error' && (
-            <div className="rounded-2xl p-4 text-sm text-destructive bg-destructive/10 border border-destructive/30 inline-flex items-center gap-1.5">
-              <AlertCircle className="h-4 w-4" />
+            <div className="customer-form-error customer-form-meta" role="alert">
+              <AlertCircle aria-hidden="true" />
               <span>Có lỗi xảy ra, vui lòng thử lại.</span>
             </div>
           )}
-
-          <div className="h-20" />
         </form>
       </div>
 
       {/* Sticky submit bar */}
-      <div className="fixed bottom-0 left-0 right-0 backdrop-blur z-20 bg-background/80 border-t">
-        <div className="max-w-xl mx-auto px-5 py-3 flex items-center gap-3">
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm">
+      <div className="customer-feedback-submit" ref={submitBarRef}>
+        <div className="customer-feedback-submit__inner">
+          <div>
+            <p className="customer-form-copy" role="status">
               {completionCount === totalSteps ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                <span className="customer-form-meta">
+                  <CheckCircle2 aria-hidden="true" />
                   <span>Sẵn sàng gửi</span>
                 </span>
               ) : (
@@ -413,15 +405,9 @@ const FeedbackFormPage = () => {
               )}
             </p>
           </div>
-          <Button
-            type="submit"
-            variant="gradient"
-            disabled={!canSubmit}
-            onClick={handleSubmit(onSubmit)}
-            className="px-6 py-3"
-          >
+          <CustomerButton type="submit" form="customer-feedback-form" disabled={!canSubmit}>
             {isSubmitting ? 'Đang gửi…' : 'Gửi phản hồi'}
-          </Button>
+          </CustomerButton>
         </div>
       </div>
     </div>

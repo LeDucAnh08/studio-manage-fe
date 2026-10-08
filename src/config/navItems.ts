@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 import { createElement } from 'react';
 import {
   Banknote,
+  BarChart3,
   Calendar,
   ClipboardList,
   Layers,
@@ -33,6 +34,9 @@ import SeasonPage from '@/pages/SeasonPage';
 import BookingsPage from '../pages/BookingsPage';
 import BookingWorkflowListPage from '../pages/BookingWorkflowListPage';
 import { clientPortalEnabled } from './features';
+import { clientRentalEnabled } from './features';
+import RentalListPage from '../pages/RentalListPage';
+import ReportsPage from '../pages/ReportsPage';
 
 const BookingRequests = () => createElement(BookingsPage, { admin: true });
 
@@ -51,6 +55,17 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
+  ...(clientRentalEnabled
+    ? [
+        {
+          to: '/rental-orders',
+          label: 'Đơn thuê',
+          icon: Shirt,
+          allowedRoles: [0, 1, 2, 4, 5] as UserRole[],
+          component: RentalListPage,
+        },
+      ]
+    : []),
   ...(clientPortalEnabled
     ? [
         {
@@ -63,13 +78,15 @@ export const navItems: NavItem[] = [
       ]
     : []),
   ...(clientPortalEnabled
-    ? [{
-        to: '/workflow-bookings',
-        label: 'Quy trình dịch vụ',
-        icon: ClipboardList,
-        allowedRoles: [0, 1, 3, 5] as UserRole[],
-        component: BookingWorkflowListPage,
-      }]
+    ? [
+        {
+          to: '/workflow-bookings',
+          label: 'Quy trình dịch vụ',
+          icon: ClipboardList,
+          allowedRoles: [0, 1, 3, 5] as UserRole[],
+          component: BookingWorkflowListPage,
+        },
+      ]
     : []),
   {
     to: '/',
@@ -136,6 +153,13 @@ export const adminItems: NavItem[] = [
         iconClassName: 'text-green-300',
         allowedRoles: [0, 1, 5],
         component: FinancePage,
+      },
+      {
+        to: '/reports',
+        label: 'Báo cáo dịch vụ và kho',
+        icon: BarChart3,
+        allowedRoles: [0, 1, 5],
+        component: ReportsPage,
       },
       {
         to: '/users',

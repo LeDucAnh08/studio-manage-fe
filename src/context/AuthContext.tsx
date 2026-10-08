@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, type React
 import type { User } from '../types';
 import { authService } from '../services/authService';
 import { clearBookingDraft, reconcileBookingDraftAccount } from '../services/bookingDraft';
+import { clearRentalDraft, reconcileRentalDraft } from '../services/rentalDraft';
 
 interface AuthContextValue {
   user: User | null;
@@ -39,6 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .refresh()
       .then((res) => {
         reconcileBookingDraftAccount(res.user, user);
+        reconcileRentalDraft(res.user);
         localStorage.setItem('token', res.token);
         localStorage.setItem('user', JSON.stringify(res.user));
         setToken(res.token);
@@ -58,18 +60,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = useCallback(async (username: string, password: string) => {
-    const res = await authService.login(username, password);
-    reconcileBookingDraftAccount(res.user, user);
-    localStorage.setItem('token', res.token);
-    localStorage.setItem('user', JSON.stringify(res.user));
-    setToken(res.token);
-    setUser(res.user);
-    return res.user;
-  }, [user]);
+  const login = useCallback(
+    async (username: string, password: string) => {
+      const res = await authService.login(username, password);
+      reconcileBookingDraftAccount(res.user, user);
+      reconcileRentalDraft(res.user);
+      localStorage.setItem('token', res.token);
+      localStorage.setItem('user', JSON.stringify(res.user));
+      setToken(res.token);
+      setUser(res.user);
+      return res.user;
+    },
+    [user],
+  );
 
   const logout = useCallback(() => {
     clearBookingDraft();
+    clearRentalDraft();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);

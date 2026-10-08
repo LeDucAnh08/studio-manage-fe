@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import type { ReactNode } from 'react';
 import type { UserRole } from '../types';
 import { safeBookingReturnTo } from '../utils/returnTo';
+import { loginEntryForPath } from '../utils/loginEntry';
 
 interface Props {
   children: ReactNode;
@@ -29,7 +30,7 @@ const ProtectedRoute = ({ children, requiredRole, allowedRoles }: Props) => {
   if (!isAuthenticated)
     return (
       <Navigate
-        to={location.pathname === '/' ? '/portfolio' : '/login'}
+        to={location.pathname === '/' ? '/portfolio' : loginEntryForPath(location.pathname)}
         state={{ from: safeBookingReturnTo(location.pathname + location.search) }}
         replace
       />

@@ -8,6 +8,11 @@ RUN yarn install --frozen-lockfile
 
 COPY . .
 
+ARG VITE_CLIENT_PORTAL_ENABLED=true
+ENV VITE_CLIENT_PORTAL_ENABLED=${VITE_CLIENT_PORTAL_ENABLED}
+ARG VITE_CLIENT_RENTAL_ENABLED=false
+ENV VITE_CLIENT_RENTAL_ENABLED=${VITE_CLIENT_RENTAL_ENABLED}
+
 RUN yarn build
 
 # ── Stage 2: Serve with nginx ───────────────────────────────────────────────────

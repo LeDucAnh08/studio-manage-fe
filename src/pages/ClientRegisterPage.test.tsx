@@ -100,7 +100,9 @@ describe('ClientRegisterPage', () => {
     fireEvent.change(screen.getByLabelText(/Họ tên/), { target: { value: 'Khách thử' } });
     fireEvent.change(screen.getByLabelText(/Tên đăng nhập/), { target: { value: 'client.test' } });
     fireEvent.change(screen.getByLabelText(/^Mật khẩu$/), { target: { value: 'test-pass-123' } });
-    fireEvent.change(screen.getByLabelText(/Nhập lại mật khẩu/), { target: { value: 'test-pass-123' } });
+    fireEvent.change(screen.getByLabelText(/Nhập lại mật khẩu/), {
+      target: { value: 'test-pass-123' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Đăng ký' }));
 
     await screen.findByRole('button', { name: 'Đăng nhập' });

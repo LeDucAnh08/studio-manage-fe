@@ -6,17 +6,16 @@ import { AlertCircle, CalendarCheck, CheckCircle2, Gift, Mars, School, Venus } f
 import { studentService } from '../services/studentService';
 import { scheduleService } from '../services/scheduleService';
 import type { PublicScheduleResponse } from '../types';
+import { Spinner } from '@/components/ui';
+import { CustomerButton } from '@/components/customer/CustomerButton';
+import { CustomerChoice } from '@/components/customer/CustomerChoice';
 import {
-  Button,
-  Card,
-  CardContent,
-  FormField,
-  Input,
-  Label,
-  PageLoader,
-  Textarea,
-} from '@/components/ui';
-import { cn } from '@/lib/utils';
+  CustomerFormField,
+  CustomerInput,
+  CustomerTextarea,
+} from '@/components/customer/CustomerFields';
+import { CustomerSurface } from '@/components/customer/CustomerSurface';
+import '../styles/customer-forms.css';
 
 interface FormValues {
   name: string;
@@ -100,134 +99,116 @@ const StudentFormPage = () => {
 
   if (loadError) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <Card className="max-w-sm w-full text-center">
-          <CardContent className="py-10">
-            <div className="mb-4 flex justify-center">
-              <AlertCircle className="h-12 w-12 text-amber-500" />
-            </div>
-            <p className="font-medium">Không tìm thấy lớp học</p>
-            <p className="text-sm mt-1 text-muted-foreground">Link có thể không còn hợp lệ</p>
-          </CardContent>
-        </Card>
+      <div className="customer-standalone-form">
+        <CustomerSurface className="customer-form-state customer-form-error" role="alert">
+          <AlertCircle className="customer-form-state__icon" aria-hidden="true" />
+          <h1 className="customer-page-title">Không tìm thấy lớp học</h1>
+          <p className="customer-form-copy">Link có thể không còn hợp lệ</p>
+        </CustomerSurface>
       </div>
     );
   }
 
   if (!schedule) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <PageLoader />
+      <div className="customer-standalone-form">
+        <div className="customer-form-loading" role="status" aria-label="Đang tải thông tin lớp">
+          <Spinner />
+        </div>
       </div>
     );
   }
 
   if (submitStatus === 'success') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <Card className="max-w-sm w-full text-center">
-          <CardContent className="p-8">
-            <div className="mb-4 flex justify-center">
-              <CheckCircle2 className="h-12 w-12 text-emerald-500" />
-            </div>
-            <h2 className="text-xl font-bold mb-2">Đã ghi nhận!</h2>
-            <p className="text-sm mb-6 text-muted-foreground">
-              Thông tin của bạn đã được lưu thành công.
-            </p>
-            <Button variant="gradient" className="w-full" onClick={() => setSubmitStatus('idle')}>
-              Nhập thêm học sinh khác
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="customer-standalone-form">
+        <CustomerSurface className="customer-form-state" role="status">
+          <CheckCircle2 className="customer-form-state__icon" aria-hidden="true" />
+          <h1 className="customer-page-title">Đã ghi nhận!</h1>
+          <p className="customer-form-copy">Thông tin của bạn đã được lưu thành công.</p>
+          <CustomerButton fullWidth onClick={() => setSubmitStatus('idle')}>
+            Nhập thêm học sinh khác
+          </CustomerButton>
+        </CustomerSurface>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-start justify-center py-10 px-4 bg-background">
-      <Card className="w-full max-w-md p-0 overflow-hidden">
-        <div className="px-6 py-5 border-b">
-          <p className="text-xs uppercase tracking-wider mb-1 text-muted-foreground">
-            Nhập thông tin học sinh
-          </p>
-          <h1 className="text-xl font-bold flex items-center gap-2 flex-wrap">
-            <span>{schedule.customer.className}</span>
-            {schedule.customer.school && (
-              <span className="text-sm font-light text-muted-foreground inline-flex items-center gap-1">
-                <School className="h-4 w-4 text-sky-500" />
-                <span>{schedule.customer.school}</span>
-              </span>
-            )}
-          </h1>
-
-          <div className="flex flex-col">
-            <p className="text-sm text-primary mt-1.5 font-medium inline-flex items-center gap-1.5">
-              <CalendarCheck className="h-4 w-4" />
+    <div className="customer-standalone-form">
+      <CustomerSurface className="customer-form-stack">
+        <header className="customer-form-header">
+          <p className="customer-form-kicker">Nhập thông tin học sinh</p>
+          <h1 className="customer-page-title">{schedule.customer.className}</h1>
+          {schedule.customer.school && (
+            <p className="customer-form-meta">
+              <School aria-hidden="true" />
+              <span>{schedule.customer.school}</span>
+            </p>
+          )}
+          <div className="customer-form-header">
+            <p className="customer-form-meta">
+              <CalendarCheck aria-hidden="true" />
               <span>Ngày chụp: {dayjs(schedule.shootDate).format('DD/MM/YYYY')}</span>
             </p>
             {schedule.package && (
-              <p className="text-sm text-emerald-600 mt-1.5 font-medium inline-flex items-center gap-1.5">
-                <Gift className="h-4 w-4" />
+              <p className="customer-form-meta">
+                <Gift aria-hidden="true" />
                 <span>Gói chụp: {schedule.package.name}</span>
               </p>
             )}
           </div>
-        </div>
+        </header>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-4">
-          <FormField label="Họ và tên" required htmlFor="name" error={errors.name?.message}>
-            <Input
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="customer-form-stack customer-form-divider"
+        >
+          <CustomerFormField label="Họ và tên" required htmlFor="name" error={errors.name?.message}>
+            <CustomerInput
               id="name"
               placeholder="Nguyễn Văn A"
               {...register('name', { required: 'Vui lòng nhập họ tên' })}
             />
-          </FormField>
+          </CustomerFormField>
 
-          <div className="space-y-1.5">
-            <Label>
-              Giới tính <span className="text-destructive">*</span>
-            </Label>
-            <div className="flex gap-3">
+          <fieldset className="customer-form-fieldset">
+            <legend className="customer-field__label">
+              Giới tính{' '}
+              <span className="customer-field__required" aria-hidden="true">
+                *
+              </span>
+            </legend>
+            <div className="customer-choice-options">
               {(['male', 'female'] as const).map((g) => (
-                <label
-                  key={g}
-                  className={cn(
-                    'flex-1 inline-flex items-center justify-center gap-2 rounded-md border bg-card px-3 py-2.5 cursor-pointer hover:bg-muted',
-                    gender === g && 'border-primary bg-primary/5',
-                  )}
-                >
-                  <input
-                    type="radio"
-                    value={g}
-                    {...register('gender', { required: true })}
-                    className="accent-primary"
-                  />
-                  <span className="text-sm inline-flex items-center gap-1.5">
+                <CustomerChoice key={g}>
+                  <input type="radio" value={g} {...register('gender', { required: true })} />
+                  <span className="customer-form-meta">
                     {g === 'male' ? (
                       <>
-                        <Mars className="h-4 w-4 text-sky-600" />
+                        <Mars aria-hidden="true" />
                         <span>Nam</span>
                       </>
                     ) : (
                       <>
-                        <Venus className="h-4 w-4 text-pink-500" />
+                        <Venus aria-hidden="true" />
                         <span>Nữ</span>
                       </>
                     )}
                   </span>
-                </label>
+                </CustomerChoice>
               ))}
             </div>
-          </div>
+          </fieldset>
 
-          <div className="grid grid-cols-2 gap-3">
-            <FormField
+          <div className="customer-form-grid">
+            <CustomerFormField
               label="Chiều cao (cm)"
               required
               htmlFor="height"
               error={errors.height?.message}
             >
-              <Input
+              <CustomerInput
                 id="height"
                 type="number"
                 step="0.1"
@@ -239,14 +220,14 @@ const StudentFormPage = () => {
                   validate: (v) => (v !== '' && Number(v) > 0) || 'Chiều cao không hợp lệ',
                 })}
               />
-            </FormField>
-            <FormField
+            </CustomerFormField>
+            <CustomerFormField
               label="Cân nặng (kg)"
               required
               htmlFor="weight"
               error={errors.weight?.message}
             >
-              <Input
+              <CustomerInput
                 id="weight"
                 type="number"
                 step="0.1"
@@ -258,45 +239,39 @@ const StudentFormPage = () => {
                   validate: (v) => (v !== '' && Number(v) > 0) || 'Cân nặng không hợp lệ',
                 })}
               />
-            </FormField>
+            </CustomerFormField>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Trang phục</Label>
-            <div className="flex flex-wrap gap-3">
+          <fieldset className="customer-form-fieldset">
+            <legend className="customer-field__label">Trang phục</legend>
+            <div className="customer-choice-options">
               {visibleCostumes.map((c) => (
-                <label
-                  key={c._id}
-                  className="inline-flex items-center gap-2 rounded-md border bg-card px-3 py-2 cursor-pointer hover:bg-muted text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    value={c._id}
-                    {...register('costumes')}
-                    className="accent-primary h-4 w-4"
-                  />
+                <CustomerChoice key={c._id}>
+                  <input type="checkbox" value={c._id} {...register('costumes')} />
                   <span>{c.name}</span>
-                </label>
+                </CustomerChoice>
               ))}
             </div>
-            <p className="text-xs ml-1 text-muted-foreground">
+            <p className="customer-caption">
               Đây là trang phục trong gói chụp của lớp, nếu không dùng có thể bỏ chọn.
             </p>
-          </div>
+          </fieldset>
 
-          <FormField label="Ghi chú" htmlFor="notes">
-            <Textarea id="notes" rows={2} placeholder="Tuỳ chọn…" {...register('notes')} />
-          </FormField>
+          <CustomerFormField label="Ghi chú" htmlFor="notes">
+            <CustomerTextarea id="notes" rows={2} placeholder="Tuỳ chọn…" {...register('notes')} />
+          </CustomerFormField>
 
           {submitStatus === 'error' && (
-            <p className="text-destructive text-sm">Có lỗi xảy ra, vui lòng thử lại.</p>
+            <p className="customer-form-error" role="alert">
+              Có lỗi xảy ra, vui lòng thử lại.
+            </p>
           )}
 
-          <Button type="submit" variant="gradient" disabled={isSubmitting} className="w-full py-3">
+          <CustomerButton type="submit" disabled={isSubmitting} fullWidth>
             {isSubmitting ? 'Đang gửi…' : 'Gửi thông tin'}
-          </Button>
+          </CustomerButton>
         </form>
-      </Card>
+      </CustomerSurface>
     </div>
   );
 };
