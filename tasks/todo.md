@@ -858,11 +858,31 @@ Các mục này không nằm trong base mặc định. Ngày 08/10, user yêu c�
 - [x] Form subtrees và `requestedReturnTo`/`returnTo`/`returnState`/`onSubmit` giữ nguyên qua AST; targeted 19 tests, check/build và preservation pass. Không thay auth/routing/API hoặc staff source.
 - [x] Hoàn tất visual QA và tương tác trên layout cuối; ghi rõ responsive/ảnh/focus/validation và phạm vi staff parity đã kiểm.
 
-**Verification đã chạy:** Login 13/Register 3/Media 3 = 3 files/19 tests pass (91.45s); `npm run check` pass với 0 errors/8 warnings baseline, TypeScript/Prettier pass; `npm run build` pass 4020 modules/39.28s với warnings cũ. Preservation 137/162 unchanged, 25 expected changed, 14 original images giữ nguyên. Register 320/744/1128/1440 không overflow và fields 56; staff light 1440×1024 pixel-identical. Browser links, Tab/focus, validation và invalid-login alert đã kiểm; [design-qa.md](../design-qa.md) có `final result: passed`. Login/register320/390/744/1128/1440 có native captures và không overflow ngang. Không gọi checks chọn lọc này là full suite/E2E mới.
+**Verification đã chạy:** Login 13/Register 3/Media 3 = 3 files/19 tests pass (91.45s); `npm run check` pass với 0 errors/8 warnings baseline, TypeScript/Prettier pass; `npm run build` pass 4020 modules/39.28s với warnings cũ. Preservation 137/162 unchanged, 25 expected changed, 14 original images giữ nguyên. Register 320/744/1128/1440 không overflow và fields 56; staff light 1440×1024 pixel-identical. Browser links, Tab/focus, validation và invalid-login alert đã kiểm; [auth QA](../docs/design/customer-auth-layout-qa.md) có `final result: passed`. Login/register320/390/744/1128/1440 có native captures và không overflow ngang. Không gọi checks chọn lọc này là full suite/E2E mới.
 
 **Files thực tế (4):** `src/components/customer/CustomerAuthLayout.tsx`; `src/pages/LoginPage.tsx`; `src/pages/ClientRegisterPage.tsx`; `src/styles/customer-login.css`.
 
 **Evidence:** [customer-auth-layout-checks.md](../docs/design/customer-auth-layout-checks.md). Source và rendered comparisons nằm trong artifacts `auth-ideation/`; toàn bộ evidence O01–O04 trước đây giữ nhãn lịch sử.
+
+## Booking appearance được duyệt
+
+### BOOK01: Ba bước đặt dịch vụ theo mockup 2
+
+- [x] BOOK01 hoàn tất UI và visual QA trong phạm vi Chrome local
+
+**Quyết định:** User chọn mockup2 và duyệt cả hai màn tiếp theo09/10; bỏ chi tiết dev. User chọn đổi tên/mô tả gói Demo trong API preview. **Phụ thuộc:** UI10/UI18, AUTH01. **Phạm vi:** Customer wizard public/account; staff/admin ngoài phạm vi UI.
+
+**Nghiệm thu:**
+
+- [x] Rail ảnh Portfolio thật/tiến trình; gói dạng hàng, đủ7 gói API; form/review đúng composition được duyệt và tokens.
+- [x] Không có nhãn dữ liệu minh họa, mã nội bộ hoặc copy Demo trong customer flow. Metadata2 gói/2 loại trang phục được đổi, ID/giá/thông số khác giữ; không seed/reset DB.
+- [x] Validation, draft/returnTo, timezone và submit/idempotency giữ17/17 declarations qua AST; regression guest→login→client remount→submit pass.
+- [x] 15 renders320/390/744/1128/1440 không overflow; mobile bar81px, review actions48/fullwidth. Lỗi sticky che4 nút focus desktop đã sửa và kiểm lại0 bị che.
+- [x] 20 targeted tests pass; NewBooking4 được kiểm lại sau markup cuối; check/build32.89s pass. Tab QA đóng, form bàn giao rỗng, viewport reset.
+
+**Evidence:** [design-qa.md](../design-qa.md), artifacts `booking-ideation/qa/`. Không chạy E2E tạo booking/admin review trên preview; authenticated browser, Safari/mobile keyboard thật còn ngoài checks đợt này. O05–O10 vẫn có điều kiện; BOOK01 không đóng O08 estimate bước cuối.
+
+**Files UI:** `src/App.tsx`; `src/pages/BookingWizardPage.tsx`; `src/components/customer/CustomerPackageCard.tsx`; `src/styles/customer-portfolio.css`; `src/styles/customer-booking-wizard.css`. Tests: `src/pages/NewBookingPage.test.tsx`. Metadata seed: `ops/seed-demo.cjs` ở repo gốc.
 
 ## Theo dõi quyết định và evidence
 

@@ -1,6 +1,6 @@
 # Customer auth layout: phương án 2 và kiểm chứng
 
-Ngày 2026-10-08 (Asia/Bangkok). Phạm vi: AUTH01 trong [plan](../../tasks/plan.md) và [todo](../../tasks/todo.md). User chọn **phương án 2 theo thứ tự hai mockup đã hiển thị** cho login/register. Implementation, checks và visual QA đã hoàn tất; [design-qa.md](../../design-qa.md) có `final result: passed`. Tài liệu này tách khỏi evidence lịch sử O01–O04 trong [customer-login-checks.md](customer-login-checks.md).
+Ngày 2026-10-08 (Asia/Bangkok). Phạm vi: AUTH01 trong [plan](../../tasks/plan.md) và [todo](../../tasks/todo.md). User chọn **phương án 2 theo thứ tự hai mockup đã hiển thị** cho login/register. Implementation, checks và visual QA đã hoàn tất; [auth QA](customer-auth-layout-qa.md) có `final result: passed`. Tài liệu này tách khỏi evidence lịch sử O01–O04 trong [customer-login-checks.md](customer-login-checks.md).
 
 ## Bố cục và nguồn tham chiếu
 
@@ -43,7 +43,7 @@ Full unit 73/73, booking/rental E2E 2/2, browser 35 và staff light/dark 1440×1
 
 ## Artifacts và giới hạn
 
-Artifacts ignored tại `C:/Users/Admin/studio-manage/.workflow-tools/customer-ui/auth-ideation/`: `desktop-comparison.png`, `form-comparison.png`, `login-{320,744,1128,1440}-verified.png`, `register-{320,744,1128,1440}-verified.png`, `login-mobile.png`, `register-mobile.png`, `register-mobile-errors.png`, `login-keyboard-focus.png`, `login-mobile-api-error.png`, `responsive-login.json`, `responsive-register.json`, `keyboard.json`, `console.json` và `visual-comparison.json`. Captures `*-verified.png` được chụp native sau fresh AX; không dùng fullPage `login-320.png` bị stale compositor. Chi tiết trong design-qa.md.
+Artifacts ignored tại `C:/Users/Admin/studio-manage/.workflow-tools/customer-ui/auth-ideation/`: `desktop-comparison.png`, `form-comparison.png`, `login-{320,744,1128,1440}-verified.png`, `register-{320,744,1128,1440}-verified.png`, `login-mobile.png`, `register-mobile.png`, `register-mobile-errors.png`, `login-keyboard-focus.png`, `login-mobile-api-error.png`, `responsive-login.json`, `responsive-register.json`, `keyboard.json`, `console.json` và `visual-comparison.json`. Captures `*-verified.png` được chụp native sau fresh AX; không dùng fullPage `login-320.png` bị stale compositor. Chi tiết trong customer-auth-layout-qa.md.
 
 Phạm vi hiện tại là Chrome Windows và viewport emulation. Chưa ghi nhận QA mới cho iOS/Android keyboard thật, Safari, whole-browser zoom 200%, password manager hay dark profile. Staff parity hiện tại chỉ screenshot light 1440×1024; không gọi đây là full staff regression. Những giới hạn lịch sử khác vẫn ở [QA-customer.md](QA-customer.md).
 

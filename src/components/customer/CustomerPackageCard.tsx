@@ -15,6 +15,7 @@ interface CustomerPackageCardProps {
   children?: ReactNode;
   actions: ReactNode;
   className?: string;
+  layout?: 'card' | 'row';
 }
 
 export function CustomerPackageCard({
@@ -27,6 +28,7 @@ export function CustomerPackageCard({
   children,
   actions,
   className,
+  layout = 'card',
 }: CustomerPackageCardProps) {
   return (
     <CustomerSurface
@@ -34,18 +36,21 @@ export function CustomerPackageCard({
       className={cn(
         'customer-package-card',
         selected && 'customer-package-card--selected',
+        layout === 'row' && 'customer-package-card--row',
         className,
       )}
     >
-      <div className="customer-package-card__heading">
-        <div>
-          {featured && <CustomerStatusBadge>{featuredLabel}</CustomerStatusBadge>}
-          <h3 className="customer-package-card__title">{name}</h3>
+      <div className="customer-package-card__overview">
+        <div className="customer-package-card__heading">
+          <div>
+            {featured && <CustomerStatusBadge>{featuredLabel}</CustomerStatusBadge>}
+            <h3 className="customer-package-card__title">{name}</h3>
+          </div>
+          {selected && <Check aria-label="Đang chọn" className="customer-package-card__check" />}
         </div>
-        {selected && <Check aria-label="Đang chọn" className="customer-package-card__check" />}
+        <div className="customer-package-card__price">{price}</div>
+        {note && <p className="customer-package-card__note">{note}</p>}
       </div>
-      <div className="customer-package-card__price">{price}</div>
-      {note && <p className="customer-package-card__note">{note}</p>}
       <div className="customer-package-card__features">{children}</div>
       <div className="customer-package-card__actions">{actions}</div>
     </CustomerSurface>

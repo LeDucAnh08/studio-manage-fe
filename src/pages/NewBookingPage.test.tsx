@@ -1,12 +1,23 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { packageService } from '../services/packageService';
 import { bookingService } from '../services/bookingService';
+import { BOOKING_DRAFT_KEY } from '../services/bookingDraft';
 import { NewBookingPage } from './BookingsPage';
 
+const { auth } = vi.hoisted(() => ({
+  auth: {
+    user: { _id: 'client-1', name: 'Khách thử', roles: [6] } as {
+      _id: string;
+      name: string;
+      roles: number[];
+    } | null,
+  },
+}));
+
 vi.mock('../context/AuthContext', () => ({
-  useAuth: () => ({ user: { _id: 'client-1', name: 'Khách thử', roles: [6] } }),
+  useAuth: () => auth,
 }));
 
 vi.mock('../services/packageService', () => ({
@@ -48,6 +59,16 @@ const futureWindow = (days = 30, hours = 2) => {
   };
 };
 
+function RouteDestination() {
+  const location = useLocation();
+  return (
+    <>
+      <p data-testid="destination">{location.pathname + location.search + location.hash}</p>
+      <p data-testid="destination-state">{JSON.stringify(location.state)}</p>
+    </>
+  );
+}
+
 async function choosePackage() {
   await screen.findByRole('heading', { name: 'Chọn gói chụp phù hợp' });
   fireEvent.click(screen.getAllByRole('button', { name: 'Chọn gói' })[0]);
@@ -88,6 +109,7 @@ describe('NewBookingPage', () => {
   beforeEach(() => {
     sessionStorage.clear();
     vi.clearAllMocks();
+    auth.user = { _id: 'client-1', name: 'Khách thử', roles: [6] };
     vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
     vi.mocked(packageService.listPublic).mockResolvedValue([
       { _id: 'package-1', name: 'Gói thử', pricePerMember: 500_000 },
@@ -110,7 +132,12 @@ describe('NewBookingPage', () => {
     );
 
     await screen.findByText('Concept tham khảo: Vintage');
-    const packageCards = screen.getAllByRole('article');
+    const packageStep = screen.getByRole('region', { name: 'Chọn gói chụp phù hợp' });
+    const packageCards = within(packageStep).getAllByRole('article');
+    expect(packageCards).toHaveLength(4);
+    expect(
+      within(packageCards[3]).getByRole('heading', { name: 'Gói bổ sung' }),
+    ).toBeInTheDocument();
     packageCards
       .slice(0, 3)
       .forEach((card) =>
@@ -128,10 +155,19 @@ describe('NewBookingPage', () => {
     await reviewRequest();
     expect(screen.getByText('12A1')).toBeInTheDocument();
     expect(screen.getByText('THPT Yume')).toBeInTheDocument();
+    const readableContext = 'Trang phục/phụ kiện tham khảo: Áo dài';
     expect(
-      screen.getAllByText('Trang phục/phụ kiện tham khảo: Áo dài (mã costume-1)'),
-    ).toHaveLength(2);
-    expect(screen.getByText('Bạn đang tham khảo')).toBeInTheDocument();
+      within(screen.getByRole('complementary', { name: 'Bạn đang tham khảo' })).getByText(
+        readableContext,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('region', { name: 'Kiểm tra trước khi gửi' })).getByText(
+        readableContext,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/mã costume-1/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Nguồn: Trang giới thiệu')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Sửa thông tin' }));
     expect(screen.getByLabelText('Tên lớp / nhóm')).toHaveValue('12A1');
@@ -139,10 +175,107 @@ describe('NewBookingPage', () => {
       times.start,
     );
     fireEvent.click(screen.getByRole('button', { name: /Quay lại/ }));
-    expect(screen.getByRole('heading', { name: 'So sánh gói dịch vụ' })).toBeInTheDocument();
-    expect(screen.getAllByText('Gói thử')).toHaveLength(2);
-    expect(screen.getAllByText('Gói nâng cao')).toHaveLength(2);
-    expect(screen.getAllByText('Gói trọn bộ')).toHaveLength(2);
+    const comparison = screen.getByRole('region', { name: 'So sánh gói dịch vụ' });
+    for (const name of ['Gói thử', 'Gói nâng cao', 'Gói trọn bộ']) {
+      expect(within(comparison).getByRole('heading', { name })).toBeInTheDocument();
+    }
+    expect(
+      within(comparison).queryByRole('heading', { name: 'Gói bổ sung' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole('region', { name: 'Chọn gói chụp phù hợp' })).getAllByRole('article'),
+    ).toHaveLength(4);
+  });
+
+  it('keeps the guest review draft and return target through sign-in before submitting', async () => {
+    auth.user = null;
+    const returnTo =
+      '/booking/start?source=concepts&concept=Vintage&item=costume-1&itemName=' +
+      encodeURIComponent('Áo dài') +
+      '#review';
+    const guest = render(
+      <MemoryRouter initialEntries={[returnTo]}>
+        <Routes>
+          <Route path="/booking/start" element={<NewBookingPage />} />
+          <Route path="*" element={<RouteDestination />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await choosePackage();
+    const { start, end } = fillDetails();
+    fireEvent.change(screen.getByLabelText('Điều Yume nên biết thêm'), {
+      target: { value: 'Chụp cùng cô chủ nhiệm.' },
+    });
+    await reviewRequest();
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập để gửi' }));
+
+    expect(await screen.findByTestId('destination')).toHaveTextContent('/login');
+    expect(screen.getByTestId('destination-state').textContent).toBe(
+      JSON.stringify({ from: returnTo }),
+    );
+    expect(bookingService.create).not.toHaveBeenCalled();
+    const saved = JSON.parse(sessionStorage.getItem(BOOKING_DRAFT_KEY) || 'null');
+    expect(saved).toMatchObject({
+      ownerId: null,
+      step: 3,
+      packageId: 'package-1',
+      className: '12A1',
+      school: 'THPT Yume',
+      contactName: 'Khách thử',
+      members: 30,
+      startAt: start,
+      endAt: end,
+      source: 'concepts',
+      concept: 'Vintage',
+      itemId: 'costume-1',
+      itemName: 'Áo dài',
+      note: 'Chụp cùng cô chủ nhiệm.',
+    });
+
+    guest.unmount();
+    auth.user = { _id: 'client-1', name: 'Khách thử', roles: [6] };
+    render(
+      <MemoryRouter initialEntries={[returnTo]}>
+        <Routes>
+          <Route path="/booking/start" element={<NewBookingPage />} />
+          <Route path="*" element={<RouteDestination />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await screen.findByRole('heading', { name: 'Kiểm tra trước khi gửi' });
+    const review = screen.getByRole('region', { name: 'Kiểm tra trước khi gửi' });
+    await within(review).findByText('Gói thử');
+    for (const text of ['12A1', 'THPT Yume', 'Gói thử', 'Chụp cùng cô chủ nhiệm.']) {
+      expect(within(review).getByText(text)).toBeInTheDocument();
+    }
+    expect(within(review).getByText('Trang phục/phụ kiện tham khảo: Áo dài')).toBeInTheDocument();
+    expect(screen.queryByText(/mã costume-1/)).not.toBeInTheDocument();
+    const submit = screen.getByRole('button', { name: 'Gửi yêu cầu tới Yume' });
+    await waitFor(() => expect(submit).toBeEnabled());
+    expect(bookingService.create).not.toHaveBeenCalled();
+    fireEvent.click(submit);
+
+    await waitFor(() => expect(bookingService.create).toHaveBeenCalledTimes(1));
+    const [payload, key] = vi.mocked(bookingService.create).mock.calls[0];
+    expect(key).toBe(saved.idempotencyKey);
+    expect(payload).toMatchObject({
+      packageId: 'package-1',
+      className: '12A1',
+      school: 'THPT Yume',
+      contactName: 'Khách thử',
+      members: 30,
+      startAt: new Date(`${start}:00+07:00`).toISOString(),
+      endAt: new Date(`${end}:00+07:00`).toISOString(),
+    });
+    expect(payload.note).toContain('Trang phục/phụ kiện tham khảo: Áo dài (mã costume-1)');
+    expect(payload.note).toContain('Nguồn: Concept');
+    expect(payload.note).toContain('Chụp cùng cô chủ nhiệm.');
+    expect(await screen.findByTestId('destination')).toHaveTextContent(
+      '/account/bookings/booking-1',
+    );
+    expect(sessionStorage.getItem(BOOKING_DRAFT_KEY)).toBeNull();
   });
 
   it('allows a booking 30 days ahead, sends class details, and reuses the key only for an unchanged retry', async () => {

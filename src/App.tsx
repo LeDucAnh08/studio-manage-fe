@@ -119,9 +119,7 @@ function App() {
                   path="/booking/start"
                   element={
                     clientPortalEnabled ? (
-                      <PublicSiteLayout source="portfolio">
-                        <NewBookingPage />
-                      </PublicSiteLayout>
+                      <NewBookingPage />
                     ) : (
                       <Navigate to="/consultation" replace />
                     )
