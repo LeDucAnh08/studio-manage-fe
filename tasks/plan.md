@@ -1,12 +1,14 @@
 # Plan refactor UI customer
 
-Ngày lập: 2026-10-06 (Asia/Bangkok). Cập nhật: 2026-10-09. Trạng thái: **phần cơ sở UI00–UI26, login O01–O04, appearance AUTH01 và booking BOOK01 đã nghiệm thu trong phạm vi Chrome local; O05–O10 còn có điều kiện**.
+Ngày lập: 2026-10-06 (Asia/Bangkok). Cập nhật: 2026-10-13. Trạng thái: **phần cơ sở UI00–UI26, login O01–O04, appearance AUTH01 và booking BOOK01–BOOK02 đã nghiệm thu trong phạm vi Chrome local; O05–O10 còn có điều kiện**.
 
 Nguồn: [DESIGN-customer.md](../DESIGN-customer.md), [AUDIT-customer.md](../docs/design/AUDIT-customer.md). Checklist thực hiện: [todo.md](todo.md).
 
 `DESIGN.md` đã đổi tên thành `DESIGN-customer.md`; nội dung nguồn giữ nguyên theo SHA-256 khi lập plan. Audit giữ các references lịch sử. Mã task `UI00–UI26` tách biệt với finding `C/T/K/L/R` của audit; `O01–O10` là modules có điều kiện. `AUTH01` là đợt appearance login/register đã được user chọn riêng ngày 08/10.
 
-`BOOK01` là đợt ba bước đặt dịch vụ theo mockup2 và hai màn tiếp theo được user duyệt09/10. Dùng ảnh/tiến trình ở rail, danh sách gói dạng hàng, form phẳng và review/details/estimate; giữ API, draft, quyền, timezone và idempotency. User đã chọn đổi tên/mô tả hai gói Demo trong preview; chỉ metadata được sửa, giữ đủ7 gói và toàn bộ ID/giá/quyền lợi. Không coi thanh chọn gói bước1 là hoàn thành toàn bộ O08 sticky estimate. [QA booking](../design-qa.md) ghi phạm vi checks và giới hạn E2E; [QA auth lịch sử](../docs/design/customer-auth-layout-qa.md) giữ evidence AUTH01.
+`BOOK01` là đợt ba bước đặt dịch vụ theo mockup2 và hai màn tiếp theo được user duyệt09/10. Dùng ảnh/tiến trình ở rail, danh sách gói dạng hàng, form phẳng và review/details/estimate; giữ API, draft, quyền, timezone và idempotency. User đã chọn đổi tên/mô tả hai gói Demo trong preview; chỉ metadata được sửa, giữ đủ7 gói và toàn bộ ID/giá/quyền lợi. Không coi thanh chọn gói bước1 là hoàn thành toàn bộ O08 sticky estimate. [QA wizard lịch sử](../docs/design/customer-booking-wizard-qa.md) ghi phạm vi checks và giới hạn E2E; [QA auth lịch sử](../docs/design/customer-auth-layout-qa.md) giữ evidence AUTH01.
+
+`BOOK02` là màn hồ sơ sau khi gửi theo phương án 3 đã chỉnh, được user chọn ngày 12/10 và nghiệm thu 13/10. Chỉ áp cho customer ở `pending/intake` chưa có báo giá: một liên kết quay lại danh sách, một nút tải lại, tiến trình phía trên thông tin phẳng và ảnh Yume thật. Giữ thông báo thời gian đề xuất chưa giữ lịch, sự kiện thật và các nhánh báo giá/thanh toán/staff hiện có. [QA BOOK02](../design-qa.md) ghi các checks chọn lọc và runtime Chrome local; không coi đây là hoàn tất O09 hoặc kiểm chứng giao dịch thực.
 
 ## 1. Kết quả mong muốn và phạm vi cơ sở
 
@@ -193,7 +195,18 @@ O10 là discovery/spec và tạo task breakdown cho data implementation sau khi 
 | ------ | ---------------------------------------------------------- | ----------------------------------------- | ------------------- |
 | AUTH01 | Shared layout login/register, story và ảnh Yume responsive | User chọn phương án 2 hiển thị ngày 08/10 | UI15, UI24, O01–O04 |
 
-AUTH01 chỉ thay presentation ở bốn source files; form JSX và các biểu thức/handler `requestedReturnTo`, `returnTo`, `returnState`, `onSubmit` giữ nguyên qua đối chiếu AST. Không thêm credential field, API, social login, dữ liệu ảnh sản phẩm hoặc search/calendar. Source mockup và các sai khác có chủ đích theo DESIGN được ghi trong evidence riêng. Đã nghiệm thu visual/tương tác trên IAB Chrome local; [design-qa.md](../design-qa.md) có `final result: passed`.
+AUTH01 chỉ thay presentation ở bốn source files; form JSX và các biểu thức/handler `requestedReturnTo`, `returnTo`, `returnState`, `onSubmit` giữ nguyên qua đối chiếu AST. Không thêm credential field, API, social login, dữ liệu ảnh sản phẩm hoặc search/calendar. Source mockup và các sai khác có chủ đích theo DESIGN được ghi trong evidence riêng. Đã nghiệm thu visual/tương tác trên IAB Chrome local; [QA auth lịch sử](../docs/design/customer-auth-layout-qa.md) có `final result: passed`.
+
+### Booking appearance đã được chọn
+
+| Task   | Kết quả                                                      | Quyết định                                    | Phụ thuộc         |
+| ------ | ------------------------------------------------------------ | --------------------------------------------- | ----------------- |
+| BOOK01 | Ba bước đặt dịch vụ: chọn gói, thông tin và kiểm tra yêu cầu | Mockup 2 và hai màn tiếp theo được duyệt09/10 | UI10/UI18, AUTH01 |
+| BOOK02 | Hồ sơ mới gửi: tiến trình, thông tin phẳng và lịch sử thật   | Phương án 3 đã chỉnh được chọn12/10           | BOOK01, UI19/UI20 |
+
+BOOK02 giới hạn bằng appearance customer, role client, trạng thái `pending`, lifecycle `intake` và chưa có quote. Khi tải lại có báo giá, trang trở về nhánh quote hiện có; consent/version/action gates và staff giữ nguyên. Title28/section22, ảnh bo14, palette/spacing theo DESIGN; không dùng cỡ chữ phóng đại của ảnh sinh làm token mới. Các trường thiếu, ngày qua ngày, nội dung dài và timeline trống có fallback; không thêm giá, cọc hay lịch được giữ vào yêu cầu mới tiếp nhận.
+
+Nghiệm thu BOOK02: targeted **32 tests** (CustomerOrders17, NewBooking4, CustomerScope11); CustomerOrders17 pass lại sau chỉnh markup cuối. `npm run check` pass với 0 errors/8 warnings baseline; build pass4023 modules/1m7s. Runtime Chrome local tại320/390/744/1128/1440 không tràn ngang, một `main`, nút48; desktop1487 đối chiếu nguồn cũng được kiểm. Các case thiếu trường, qua ngày, nội dung dài320/744/1487, chuyển sang quote, lỗi/tải lại, quay lại và focus đều pass. QA dùng fixtures trong bộ nhớ ở4016, không ghi DB; preview4013/backend5002 đã kiểm health200 và khôi phục, không seed/reset. Đây không phải full suite/E2E, Safari, bàn phím mobile thật hoặc xác minh giao dịch thực. Xem [QA BOOK02](../design-qa.md); O05–O10 vẫn có điều kiện.
 
 ## 6. Verification và prerequisites
 

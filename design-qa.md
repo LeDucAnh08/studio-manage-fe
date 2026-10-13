@@ -1,58 +1,75 @@
-# Design QA: customer booking, mockup 2
+# Design QA: customer booking intake, phương án 3
 
-Ngày 09/10/2026 (Asia/Bangkok). BOOK01 gồm ba bước wizard customer. User chọn mockup 2, duyệt hai màn tiếp theo, yêu cầu bỏ chi tiết dev và chọn đổi tên/mô tả hai gói Demo. QA auth trước đây được giữ tại [customer-auth-layout-qa.md](docs/design/customer-auth-layout-qa.md).
+Hoàn tất ngày 13/10/2026, Asia/Bangkok. BOOK02 triển khai phương án 3 đã chỉnh ngày 12/10: tiến trình ở trên, hồ sơ phẳng, đúng một link quay lại ở đầu trang. Evidence BOOK01 giữ tại [customer-booking-wizard-qa.md](docs/design/customer-booking-wizard-qa.md); auth giữ tại [customer-auth-layout-qa.md](docs/design/customer-auth-layout-qa.md).
 
-## Nguồn và evidence
+## Phạm vi và visual truth
 
-Visual truth nằm tại `C:/Users/Admin/.codex/generated_images/01a10f5c-9fa0-7e63-9b54-9b7028d55721/`:
+Source được chọn theo thứ tự ảnh đã hiển thị của bộ mockup mới nhất:
+C:/Users/Admin/.codex/generated_images/01a10f5c-9fa0-7e63-9b54-9b7028d55721/exec-b0ad70cf-3756-407c-9c22-50345269a912.png.
 
-- Bước1: `exec-12fbe032-9456-41a3-96af-643d27bac347.png`.
-- Bước2: `exec-d18e0bbb-efe8-4ac8-96cd-9b76783ff104.png`.
-- Bước3 guest: `exec-6267fe02-8edf-47d7-beca-973fafcfc707.png`.
+Route ứng dụng: /account/bookings/:id. Branch mới chỉ chạy khi customer appearance, vai trò khách, booking pending, lifecycle intake và chưa có quote. Admin/staff và các lifecycle khác giữ nhánh hiện có. Loading/error customer dùng section trong main của ClientLayout.
 
-Artifacts: `C:/Users/Admin/studio-manage/.workflow-tools/customer-ui/booking-ideation/qa/`. Đã mở `step{1,2,3}-comparison.png`, mỗi ảnh đặt source trái/render phải trong cùng canvas2880×1024; đã mở `step2-focused.png` và `step3-focused.png` để kiểm fields, labels và review. Source1487×1058 được fit giữ tỷ lệ/pad tới1440×1024; không sửa ảnh nguồn hoặc kéo giãn render. Desktop CSS viewport1440×1024/DPR1, native raster1434×1020 được đặt nguyên kích thước vào canvas. Không gọi sai khác capture ở rìa là pixel match toàn bộ.
+Preview so sánh dùng cùng source frontend tại http://127.0.0.1:4016/account/bookings/000000000000000000000016, với API fixture trong bộ nhớ, không kết nối DB. Dữ liệu khớp mockup: lớp 12A1, gói Thanh xuân Ngoại cảnh, 42 thành viên, gửi 09/10/2026 · 14:30, đề xuất 17/10/2026 · 08:00–16:00 UTC+7. Không thêm giá/cọc, thao tác hủy/đổi lịch hoặc sự kiện studio đã xử lý vào state này.
 
-`step{1,2,3}-{320,390,744,1128,1440}.png` và `final-responsive.json` ghi15 renders cuối, fresh AX trước capture. Mobile/tablet height844, desktop1024. `step3-320-actions.png` và `step3-keyboard-focus.png` kiểm thao tác cuối trang.
+## Capture và phép đối chiếu
 
-## Findings và disposition
+Artifacts: C:/Users/Admin/studio-manage/.workflow-tools/customer-ui/booking-detail-ideation/qa/.
 
-Không còn finding P0/P1/P2 cần sửa trong phạm vi đã kiểm. Qua đối chiếu đã sửa copy/brand theo source, check trùng, border thông báo, gói đã chọn, nút mobile thiếu chiều rộng và crop ảnh cắt mặt. Thanh chọn gói mobile còn81px tại320; link tài khoản ở cạnh logo để giảm khoảng trống.
+- Source raster 1487×1058. CSS viewport 1487×1058, DPR1; capture native 1481×1054. Không kéo giãn source/render: đặt nguyên ảnh cạnh nhau và bù mép trắng 6×4px. Combined canvas 2974×1058, source trái/render phải.
+- Đã mở initial-desktop-comparison.png và final-desktop-comparison.png để đối chiếu cùng state/view; đã mở final-desktop-progress-comparison.png để đọc rõ status, connector, biểu tượng và copy. compare.py giữ ảnh gốc và ghi cách chuẩn hóa.
+- final-desktop.png là render sau chỉnh; pending-{320,390,744,1128,1440}.png là 5 captures responsive. Mobile/tablet cao 844px, desktop 1024px, full-page capture để kiểm toàn bộ nội dung. responsive.json ghi số đo DOM.
+- Đã mở trực tiếp captures 390/744; reviewer độc lập xem thêm 320/1128 và source/render combined. long-{320,744,1487}.png, missing.png, multiday.png, load-error.png, quote-transition.png lưu các state riêng, không dùng thay so sánh pending.
 
-Kiểm Tab desktop tái hiện4 nút bị sticky bar che. CSS cho thanh về cuối danh sách khi package/comparison có `:focus-visible`; kiểm lại14 vị trí focus cho kết quả0 bị che, thao tác chuột khôi phục sticky. `focus-clearance-desktop.json`, `focus-clearance-after.json` và `step1-keyboard-clearance.png` lưu evidence. Mobile trước sửa đã không che12 vị trí kiểm; chiều rộng các nút review sau sửa đều282px/height48 tại320.
+## Findings và lịch sử sửa
 
-| Surface           | Kết quả                                                                                                                                                                                                                                                  |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Color             | Story#f7f7f7, canvas trắng, ink/muted/hairline từ tokens, Rausch cho CTA chính; không thêm palette/gradient.                                                                                                                                             |
-| Typography        | Inter Customer self-host đã loaded; story28/700 desktop,20/600 mobile; heading22/500, body14–16. Font phóng lớn trong ảnh sinh không thay thế DESIGN.                                                                                                    |
-| Component         | Package variant row, chọn/so sánh neutral; Portfolio giữ card mặc định. Fields56/r8, CTA48/r8, ảnh14. Form hai cột desktop; package full width rồi details/estimate; mobile xếp dọc.                                                                     |
-| Layout/Responsive | Cả15 renders không overflow ngang; nhãn ba bước còn đầy đủ tại320. Catalog giữ đủ7 gói API thay vì3 mẫu của mockup, cuộn tự nhiên; mobile bar giữ đơn giá/đơn vị tham khảo.                                                                              |
-| Image             | Ảnh Portfolio thật may01381/WebP640; crop8:7 desktop,144px mobile với object-position10% giữ mặt. Eager/high priority, reserved frame/placeholder/error qua CustomerImage; ảnh gốc giữ nguyên.                                                           |
-| Copy/Data         | Không có “Dữ liệu minh họa”, tên Demo, “Gói mẫu đồ án” trong renders cuối. Không hardcode lớp/người liên hệ/ngày giờ từ mockup. Dữ liệu QA được nhập bằng UI; form mới để trống. Context customer bỏ mã nội bộ/nguồn điều hướng; payload giữ context cũ. |
+Không còn P0/P1/P2 cần xử lý trong phạm vi đã kiểm.
 
-## Interaction và preservation
+| Finding ban đầu                                                    | Sửa                                                                           | Evidence sau sửa                                               |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| P2: ảnh crop giữa cắt sát đầu nhân vật bên trái                    | Giữ ảnh Portfolio thật, đổi object-position thành center 10%                  | final-desktop-comparison, pending390/744; ảnh đủ các khuôn mặt |
+| P2: nhãn/value metadata thiếu căn cột và phân nhóm                 | Hai nhóm dl; nhãn căn đều, divider lịch/metadata; nhóm stack ở kích thước hẹp | final-desktop-comparison, responsive captures, overflow0       |
+| P2: tiến trình và lịch sử thiếu liên kết/phân cách như bố cục chọn | Thêm separator; history một hàng desktop, stack mobile; UTC+7 cùng dòng       | focused progress comparison, final desktop, pending390/744     |
 
-- Browser: chọn gói thật, đủ7 gói; so sánh3/chặn gói thứ4; sửa/quay lại giữ lớp, thành viên, lịch và note. Form trống hiện lỗi/focus `className`. Xóa lựa chọn so sánh cũng xóa cảnh báo cũ.
-- Review tính380.000×42=15.960.000 từ API và nhập liệu, có nhãn tham khảo/UTC+7. Guest chuyển login khi gửi; Back phục hồi bước3. Không tạo booking thật trong preview.
-- Tab từ Sửa thông tin sang Tạo tài khoản có outline solid2px/ink. Console không có error; chỉ warnings React Router cũ.
-- AST17/17 declarations của validation, draft, timezone, loadPackages, handlers, submit, payload context và returnTo giống bản trước (`behavior-preservation.json`). Chỉ handler JSX clear comparison bổ sung xóa cảnh báo UI.
-- `/booking/start` có shell wizard riêng, giữ feature flag/redirect. Account wizard dùng section trong main của ClientLayout. Không sửa UI staff/admin; CSS scoped customer-ui. Account được review source/test client; không coi đó là authenticated browser journey đầy đủ.
-- Theo lựa chọn user, preview chỉ đổi name/description của2 packages và name của2 CostumeType đi kèm. API vẫn7 gói, toàn bộ ID/giá/thông số khác giữ. Seed đổi tên hiển thị, giữ deterministic ID; không chạy seed/reset. `catalog-copy.json` có bản trước/sau để phục hồi.
+Source có chữ lớn hơn token DESIGN. Implementation chủ động giữ Inter Customer self-hosted và scale 28/22/20/16/14: h1/h2 theo DESIGN-customer.md, giá trị lịch 20/600. Giữ hierarchy/layout của phương án chọn. Đây là điều chỉnh có chủ đích theo design system, không gọi là pixel match. Header/footer dùng ClientLayout hiện có; footer có thể hiện sớm hơn trong viewport vì scale chữ thực nhỏ hơn mockup.
 
-## Verification
+## Năm bề mặt fidelity
 
-- NewBooking4 + Login13 + returnTo3:3files/20tests PASS,20.42s. Sau markup cuối, NewBooking4/4 PASS,21.97s; kiểm guest→login target→remount client→submit đúng payload/key, retry idempotency và giới hạn7 ngày.
-- `npm run check`: PASS, ESLint0errors/8warnings baseline; TypeScript/Prettier pass. CSS keyboard bổ sung được Prettier kiểm lại và build lại.
-- `npm run build`: PASS,4021modules,32.89s ở lượt cuối sau CSS keyboard. Warnings Browserslist/circular vendor cũ.
-- Seed: syntax/Prettier pass. Root/frontend diff check sạch trước tài liệu cuối.
-- Unit cần retry local do esbuild không đọc config trong sandbox; auto-review chấp thuận, không có rejection.
+| Bề mặt          | Kết quả                                                                                                                                                                                                                                                   |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Font/typography | Inter Customer có tiếng Việt; h1 28/700, h2 22/500, lịch 20/600, body 14–16; wrap nội dung dài, không cắt field                                                                                                                                           |
+| Spacing/layout  | White base, soft progress strip, thông tin/ảnh rồi history; rhythm token, không card lồng card hoặc shadow; desktop hai cột, mobile tiến trình/details xếp dọc                                                                                            |
+| Color/tokens    | Ink/body/muted/hairline từ customer tokens; Rausch cho marker hiện tại và chấm status, nền pill tint 8%; staff không nhận CSS mới                                                                                                                         |
+| Ảnh/assets      | Logo thật từ shell; may01381-640.webp thật qua CustomerImage, crop 640/448, radius14, object-position10%; lazy, async decode, placeholder dùng chung; icon từ thư viện đã cài                                                                             |
+| Copy/content    | Dữ liệu API thật khi chạy ứng dụng; timezone VN, giữ ngày kết thúc khác ngày bắt đầu; thiếu thông tin ghi Chưa cập nhật. Bỏ version/mã nội bộ; chỉ một back/refresh. Caption studio đổi thành sẽ kiểm tra và phản hồi vì pending chưa chứng minh đã xử lý |
 
-## Checklist và giới hạn
+Timeline dùng event thật, sort mới nhất trước. Riêng thông báo nhận yêu cầu tách tiêu đề đã nhận và phần nội dung còn lại để tránh lặp; không dựng sự kiện tương lai. Trường school/note/reviewNote tùy chọn được giữ khi có dữ liệu.
 
-- [x] Ba bước được duyệt dùng tokens/API, bỏ copy dev và giữ đủ catalog.
-- [x] Full-view/focused comparison,15 responsive renders, keyboard/focus/validation/draft đã kiểm.
-- [x] Relevant unit/check, preservation và production build cuối pass.
-- [x] Tab QA có dữ liệu kiểm đã đóng, viewport reset; preview bàn giao có form mới rỗng, giữ default1 thành viên và gói API đã chọn. `step2-desktop-clean.png` xác nhận form sạch; preview service hiện có vẫn chạy.
+## Kiểm tra hành vi và responsive
 
-Không chạy full E2E tạo booking/admin review trên preview. Guest/client submit được kiểm bằng unit mocked API; chưa kiểm toàn hành trình authenticated browser. Chưa kiểm Safari, bàn phím điện thoại thật, zoom200%, DPR2/3, pending mạng chậm hoặc staff light/dark matrix. O05–O07 calendar và O08 sticky estimate bước cuối vẫn là phạm vi riêng; thanh chọn gói bước1 không đóng toàn bộ O08.
+- 320/390/744/1128/1440: overflow ngang0, một main ở intake, một back link, một refresh button, cả hai cao48px. Dữ liệu dài ở320/744/1487 cũng overflow0, giữ2 event và ghi chú.
+- Refresh thực sự gọi GET workflow và legacy; counter tăng2→3→4→5→6 qua các state. request-counts.json:9 workflow GET,8 legacy GET (một workflow503 chủ động không gọi legacy), business writes0. Login/refresh auth chỉ là phiên fixture local.
+- Missing:6 placeholders, history trống đúng copy, không Invalid Date/undefined/NaN. Multiday giữ17/10 bắt đầu và18/10 kết thúc.
+- Quote transition: refresh rời intake view, hiện table báo giá của nhánh cũ. Không click đồng ý báo giá; consent/idempotency được kiểm bằng unit mocks.
+- Lỗi tải503 chủ động: alert, một back và một Thử lại; main1. Thử lại phục hồi intake, alert0. Back mở đúng /account/bookings, link từ list trở lại đúng detail.
+- Keyboard: Tab từ back sang refresh, Shift+Tab trở lại; outline solid2px, controls48px, top112px desktop, không bị header80px che. keyboard-back.png, interactions.json lưu evidence.
+- Browser console error check trước/sau: không có JavaScript error được ghi nhận. API503 là case lỗi chủ động dựng, không coi đó là lỗi ứng dụng chưa sửa.
+
+## Checks và giới hạn
+
+Targeted32 tests pass: CustomerOrders17, NewBooking4, CustomerScope11. Sau chỉnh markup cuối đã chạy lại CustomerOrders17/17 pass. Một test timestamp ban đầu cần scope vùng details để tránh hai time hợp lệ; option exact của Testing Library được bỏ để TypeScript pass.
+
+npm run check pass:0 errors,8 warnings baseline. npm run build pass:4023 modules,1m7s; Browserslist/circular chunk warning từ cấu hình hiện có. Không thêm dependency.
+
+Ứng dụng4013, backend5002 và GET public packages đều200 sau mở lại; dùng đúng Mongo preview data path hiện có, không seed/reset hoặc sửa hồ sơ. QA browser dùng API memory riêng. Không chạy E2E tạo booking, nhận báo giá, đặt cọc hay giao dịch trên DB; Safari, keyboard mobile thật và screen reader thực còn ngoài phạm vi này.
+
+P3 có thể chỉnh tiếp: tỷ lệ/chiều dài connector và hình học icon khác nhẹ raster mock; scale token làm mật độ chữ khác mock. Không còn lỗi ảnh crop, tràn nội dung hoặc điều hướng lặp.
+
+## Checklist bàn giao
+
+- [x] Phương án3 đúng bộ ảnh sửa mới nhất; duy nhất một back link ở đầu.
+- [x] Customer intake có dữ liệu/ảnh/tiến trình và các state phụ hoạt động.
+- [x] Các gate nghiệp vụ, API, timezone và staff giữ contract.
+- [x] So sánh source/render cùng input; P2 đã sửa và có capture sau sửa.
+- [x] Responsive, focus, targeted tests, check/build pass; preview giữ chạy local.
 
 final result: passed

@@ -1,8 +1,10 @@
 # Checklist refactor UI customer
 
-Ngày lập: 2026-10-06. Cập nhật: 2026-10-08. Plan: [plan.md](plan.md). Nguồn: [DESIGN](../DESIGN-customer.md), [audit](../docs/design/AUDIT-customer.md).
+Ngày lập: 2026-10-06. Cập nhật: 2026-10-13. Plan: [plan.md](plan.md). Nguồn: [DESIGN](../DESIGN-customer.md), [audit](../docs/design/AUDIT-customer.md).
 
 Mã task `UI00–UI26` tách biệt với finding `C/T/K/L/R` của audit; `O01–O10` là modules có điều kiện.
+
+**Trạng thái hiện tại:** UI00–UI26, O01–O04, AUTH01 và BOOK01–BOOK02 đã nghiệm thu trong phạm vi Chrome local. O05–O10 còn có điều kiện. BOOK02 hoàn tất13/10 theo phương án 3 đã chỉnh được chọn12/10; [QA hồ sơ mới gửi](../design-qa.md) là evidence hiện tại, [QA wizard](../docs/design/customer-booking-wizard-qa.md) và [QA auth](../docs/design/customer-auth-layout-qa.md) giữ lịch sử các đợt trước.
 
 Ngày 08/10, user chọn **phương án 2 theo thứ tự mockup hiển thị** cho login/register. Đợt appearance này là `AUTH01`: đã triển khai và qua targeted unit/check/build/preservation; visual QA cuối đã pass. Full suite/E2E/browser35 của O01–O04 bên dưới là evidence lịch sử trước layout mới. Xem [customer-auth-layout-checks.md](../docs/design/customer-auth-layout-checks.md).
 
@@ -880,15 +882,39 @@ Các mục này không nằm trong base mặc định. Ngày 08/10, user yêu c�
 - [x] 15 renders320/390/744/1128/1440 không overflow; mobile bar81px, review actions48/fullwidth. Lỗi sticky che4 nút focus desktop đã sửa và kiểm lại0 bị che.
 - [x] 20 targeted tests pass; NewBooking4 được kiểm lại sau markup cuối; check/build32.89s pass. Tab QA đóng, form bàn giao rỗng, viewport reset.
 
-**Evidence:** [design-qa.md](../design-qa.md), artifacts `booking-ideation/qa/`. Không chạy E2E tạo booking/admin review trên preview; authenticated browser, Safari/mobile keyboard thật còn ngoài checks đợt này. O05–O10 vẫn có điều kiện; BOOK01 không đóng O08 estimate bước cuối.
+**Evidence:** [QA wizard lịch sử](../docs/design/customer-booking-wizard-qa.md), artifacts `booking-ideation/qa/`. Không chạy E2E tạo booking/admin review trên preview; authenticated browser, Safari/mobile keyboard thật còn ngoài checks đợt này. O05–O10 vẫn có điều kiện; BOOK01 không đóng O08 estimate bước cuối.
 
 **Files UI:** `src/App.tsx`; `src/pages/BookingWizardPage.tsx`; `src/components/customer/CustomerPackageCard.tsx`; `src/styles/customer-portfolio.css`; `src/styles/customer-booking-wizard.css`. Tests: `src/pages/NewBookingPage.test.tsx`. Metadata seed: `ops/seed-demo.cjs` ở repo gốc.
+
+### BOOK02: Hồ sơ mới gửi theo phương án 3 đã chỉnh
+
+- [x] BOOK02 hoàn tất UI và visual QA ngày13/10/2026 trong phạm vi Chrome local
+
+**Quyết định:** User chọn phương án 3 đã bỏ liên kết quay lại trùng ngày12/10. **Phụ thuộc:** BOOK01, UI19/UI20. **Rủi ro:** Vừa. **Scope:** M. **Phạm vi:** `/account/bookings/:id` của customer ở `pending/intake` chưa có báo giá; các trạng thái khác và admin/staff giữ presentation/behavior hiện có.
+
+**Nghiệm thu:**
+
+- [x] Đúng một liên kết quay lại danh sách và một nút tải lại hồ sơ; tiến trình phía trên thông tin phẳng và ảnh Yume thật, có lịch sử từ sự kiện API. Không có nhãn dev, giá/cọc giả hoặc CTA giao dịch ở intake.
+- [x] Inter title28/section22, ảnh bo14 và tokens DESIGN được giữ; mobile tiến trình xếp dọc, thông tin wrap/stack, ảnh giữ khuôn mặt.
+- [x] Có fallback cho trường thiếu và timeline trống; lịch UTC+7 đúng khi cùng ngày hoặc qua ngày. Nội dung dài không tràn ngang tại320/744/1487.
+- [x] Sau tải lại có quote, trang rời nhánh intake và giữ consent/version/payload/action hiện có. Admin pending vẫn có approval form và feedback gate; không dùng appearance để cấp quyền.
+- [x] Targeted32 tests pass: CustomerOrders17, NewBooking4, CustomerScope11; CustomerOrders17 được chạy lại và pass sau markup cuối. `npm run check` pass với0 errors/8 warnings baseline; build4023 modules/1m7s pass.
+- [x] Runtime320/390/744/1128/1440: overflow0, một `main`, controls48; đối chiếu desktop1487 với mockup đã chọn. Thiếu trường, qua ngày, nội dung dài, quote transition, error/retry, back và keyboard focus đã kiểm.
+- [x] QA dùng fixtures bộ nhớ ở4016, không ghi DB. Preview4013/backend5002 có health200 và được khôi phục; không seed/reset dữ liệu.
+
+**Verification:** Checks chọn lọc và runtime Chrome local; không chạy full suite/E2E, Safari, bàn phím mobile thật hoặc giao dịch thật. Read-only review cuối không có P0/P1/P2 cần sửa trong diff và captures đã kiểm.
+
+**Files UI (3):** `src/pages/BookingWorkflowDetailPage.tsx`; `src/components/customer/CustomerBookingIntake.tsx`; `src/styles/customer-booking-intake.css`. **Tests:** `src/pages/CustomerOrders.test.tsx`.
+
+**Evidence:** [QA BOOK02](../design-qa.md), artifacts `booking-detail-ideation/qa/` và selection manifest. O05–O10 vẫn có điều kiện; BOOK02 không mở custom calendar hoặc sticky quote action O09.
 
 ## Theo dõi quyết định và evidence
 
 - [ ] Q1: ghi lựa chọn phạm vi thực tế của user, cập nhật module in/out
 - [x] Q2: ghi yêu cầu login 08/10 và mặc định `/login` customer, `/staff/login` legacy; user chưa chọn URL cụ thể trong câu hỏi trước đó
 - [x] AUTH01: ghi lựa chọn phương án 2 cho appearance login/register; không coi lựa chọn mockup là thay đổi entry contract Q2
+- [x] BOOK01: ba bước đặt dịch vụ đã duyệt09/10; evidence lịch sử được giữ trong QA wizard
+- [x] BOOK02: phương án 3 đã chỉnh được chọn12/10, nghiệm thu13/10 cho hồ sơ pending/intake chưa có báo giá; giữ các trạng thái khác
 - [ ] Q3: ghi nguồn/mapping ảnh được cung cấp, hoặc data dependency còn mở
 - [x] QA-customer.md: ảnh/route/state/viewport + kết quả checks + staff diff
 - [x] Disposition 48 findings: closed/partial/deferred/exception và gaps ảnh

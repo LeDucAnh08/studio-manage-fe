@@ -1,0 +1,535 @@
+.customer-ui .customer-booking-intake {
+  min-width: 0;
+  width: 100%;
+  max-width: var(--customer-editorial-width);
+  margin-inline: auto;
+  color: var(--customer-ink);
+  font: 400 var(--customer-body-small-size)/var(--customer-body-small-line) var(--customer-font);
+}
+
+.customer-ui .customer-booking-intake__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--customer-space-12) var(--customer-space-24);
+  min-width: 0;
+  margin-bottom: var(--customer-space-32);
+}
+
+.customer-ui .customer-booking-intake__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--customer-space-8);
+  min-height: 48px;
+  max-width: 100%;
+  padding-block: var(--customer-space-8);
+  color: var(--customer-body);
+  font-size: var(--customer-body-small-size);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+
+.customer-ui .customer-booking-intake__back svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.customer-ui .customer-booking-intake__back:hover {
+  color: var(--customer-ink);
+  text-decoration: underline;
+}
+
+.customer-ui .customer-booking-intake__back:focus-visible {
+  outline: 2px solid var(--customer-ink);
+  outline-offset: 4px;
+  border-radius: var(--customer-radius-control);
+}
+
+.customer-ui .customer-booking-intake__reload {
+  max-width: 100%;
+  margin-inline-start: auto;
+}
+
+.customer-ui .customer-booking-intake__heading {
+  display: grid;
+  gap: var(--customer-space-12);
+  min-width: 0;
+}
+
+.customer-ui .customer-booking-intake__eyebrow {
+  margin: 0;
+  color: var(--customer-muted);
+  font: var(--customer-caption-weight) var(--customer-caption-size)/var(--customer-caption-line)
+    var(--customer-font);
+}
+
+.customer-ui .customer-booking-intake__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--customer-space-12) var(--customer-space-16);
+  min-width: 0;
+}
+
+.customer-ui .customer-booking-intake__title {
+  min-width: 0;
+  margin: 0;
+  color: var(--customer-ink);
+  font-size: var(--customer-display-xl-size);
+  font-weight: var(--customer-display-xl-weight);
+  line-height: var(--customer-display-xl-line);
+  overflow-wrap: anywhere;
+}
+
+.customer-ui .customer-booking-intake__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--customer-space-8);
+  max-width: 100%;
+  padding: var(--customer-space-8) var(--customer-space-12);
+  border-radius: var(--customer-radius-pill);
+  background: var(--customer-surface-soft);
+  background: color-mix(in srgb, var(--customer-primary) 8%, var(--customer-canvas));
+  color: var(--customer-ink);
+  font: 500 var(--customer-body-small-size)/var(--customer-body-small-line) var(--customer-font);
+  overflow-wrap: anywhere;
+}
+
+.customer-ui .customer-booking-intake__status svg {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  color: var(--customer-primary);
+  fill: currentColor;
+}
+
+.customer-ui .customer-booking-intake__subtitle {
+  margin: 0;
+  color: var(--customer-body);
+  font: 400 var(--customer-body-size)/var(--customer-body-line) var(--customer-font);
+  overflow-wrap: anywhere;
+}
+
+.customer-ui .customer-booking-intake__progress {
+  min-width: 0;
+  margin-top: var(--customer-space-32);
+  padding: var(--customer-space-24) var(--customer-space-32);
+  border-radius: var(--customer-radius-card);
+  background: var(--customer-surface-soft);
+}
+
+.customer-ui .customer-booking-intake__steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--customer-space-32);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.customer-ui .customer-booking-intake__step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--customer-space-16);
+  min-width: 0;
+}
+
+.customer-ui .customer-booking-intake__step:not(:last-child)::after {
+  position: absolute;
+  top: 50%;
+  right: calc(-1 * var(--customer-space-32));
+  width: var(--customer-space-24);
+  border-top: 1px solid var(--customer-hairline);
+  content: '';
+}
+
+.customer-ui .customer-booking-intake__step-icon {
+  display: block;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  color: var(--customer-ink);
+}
+
+.customer-ui .customer-booking-intake__step-icon--complete circle {
+  fill: var(--customer-ink);
+  stroke: var(--customer-ink);
+}
+
+.customer-ui .customer-booking-intake__step-icon--complete path {
+  stroke: var(--customer-canvas);
+}
+
+.customer-ui .customer-booking-intake__step-icon--current {
+  color: var(--customer-primary);
+}
+
+.customer-ui .customer-booking-intake__step-icon--future {
+  color: var(--customer-border-strong);
+}
+
+.customer-ui .customer-booking-intake__step-copy {
+  display: grid;
+  gap: var(--customer-space-4);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.customer-ui .customer-booking-intake__step-label {
+  margin: 0;
+  color: var(--customer-ink);
+  font: var(--customer-title-weight) var(--customer-title-size)/var(--customer-title-line)
+    var(--customer-font);
+}
+
+.customer-ui .customer-booking-intake__step-caption {
+  margin: 0;
+  color: var(--customer-muted);
+  font: 400 var(--customer-body-small-size)/var(--customer-body-small-line) var(--customer-font);
+}
+
+.customer-ui .customer-booking-intake__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--customer-space-12);
+  min-width: 0;
+  margin-top: var(--customer-space-24);
+  padding-top: var(--customer-space-16);
+  border-top: 1px solid var(--customer-hairline);
+  color: var(--customer-body);
+}
+
+.customer-ui .customer-booking-intake__notice svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: var(--customer-space-2);
+  color: var(--customer-muted);
+}
+
+.customer-ui .customer-booking-intake__notice p {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.customer-ui .customer-booking-intake__details {
+  min-width: 0;
+  margin-top: var(--customer-space-32);
+}
+
+.customer-ui .customer-booking-intake__section-title {
+  margin: 0;
+  color: var(--customer-ink);
+  font-size: var(--customer-display-lg-size);
+  font-weight: var(--customer-display-lg-weight);
+  line-height: var(--customer-display-lg-line);
+  letter-spacing: var(--customer-display-lg-tracking);
+  overflow-wrap: anywhere;
+}
+
+.customer-ui .customer-booking-intake__details-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 0.3fr);
+  align-items: start;
+  gap: var(--customer-space-48);
+  min-width: 0;
+  margin-top: var(--customer-space-24);
+}
+
+.customer-ui .customer-booking-intake__request-data {
+  display: grid;
+  gap: var(--customer-space-24);
+  min-width: 0;
+}
+
+.customer-ui .customer-booking-intake__schedule {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--customer-space-24);
+  min-width: 0;
+  margin: 0;
+  padding-bottom: var(--customer-space-24);
+  border-bottom: 1px solid var(--customer-hairline-soft);
+}
+
+.customer-ui .customer-booking-intake__schedule > div + div {
+  padding-left: var(--customer-space-24);
+  border-left: 1px solid var(--customer-hairline-soft);
+}
+
+.customer-ui .customer-booking-intake__schedule > div {
+  display: grid;
+  align-content: start;
+  gap: var(--customer-space-8);
+  min-width: 0;
+}
+
+.customer-ui .customer-booking-intake__schedule dt {
+  color: var(--customer-muted);
+  font-weight: 400;
+}
+
+.customer-ui .customer-booking-intake__schedule dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--customer-ink);
+  font: var(--customer-display-sm-weight) var(--customer-display-sm-size)/var(--customer-body-line)
+    var(--customer-font);
+  overflow-wrap: anywhere;
+}
+
+.customer-ui .customer-booking-intake__timezone {
+  display: inline;
+  color: var(--customer-muted);
+  font: 400 var(--customer-caption-small-size)/var(--customer-caption-small-line)
+    var(--customer-font);
+}
+
+.customer-ui .customer-booking-intake__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--customer-space-16) var(--customer-space-32);
+  min-width: 0;
+  margin: 0;
+}
+
+.customer-ui .customer-booking-intake__fields > dl {
+  display: grid;
+  align-content: start;
+  gap: var(--customer-space-16);
+  min-width: 0;
+  margin: 0;
+}
+
+.customer-ui .customer-booking-intake__fields > dl + dl {
+  padding-left: var(--customer-space-24);
+  border-left: 1px solid var(--customer-hairline-soft);
+}
+
+.customer-ui .customer-booking-intake__fields > dl > div {
+  display: flex;
+  align-items: baseline;
+  gap: var(--customer-space-4) var(--customer-space-8);
+  min-width: 0;
+}
+
+.customer-ui .customer-booking-intake__fields dt {
+  flex-shrink: 0;
+  width: 128px;
+  max-width: 50%;
+  color: var(--customer-muted);
+  overflow-wrap: anywhere;
+}
+
+.customer-ui .customer-booking-intake__fields dd {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--customer-ink);
+  overflow-wrap: anywhere;
+}
+
+.customer-ui .customer-booking-intake__note {
+  display: grid;
+  gap: var(--customer-space-8);
+  min-width: 0;
+  margin-top: var(--customer-space-24);
+  color: var(--customer-body);
+  overflow-wrap: anywhere;
+}
+
+.customer-ui .customer-booking-intake__note h3 {
+  margin: 0;
+  color: var(--customer-ink);
+  font: var(--customer-title-weight) var(--customer-title-size)/var(--customer-title-line)
+    var(--customer-font);
+}
+
+.customer-ui .customer-booking-intake__note p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.customer-ui .customer-booking-intake__photo {
+  width: 100%;
+  min-width: 0;
+  border-radius: var(--customer-radius-card);
+}
+
+.customer-ui .customer-booking-intake__photo img {
+  object-position: center 10%;
+}
+
+.customer-ui .customer-booking-intake__history {
+  min-width: 0;
+  margin-top: var(--customer-space-32);
+  padding-top: var(--customer-space-32);
+  border-top: 1px solid var(--customer-hairline-soft);
+}
+
+.customer-ui .customer-booking-intake__timeline {
+  display: grid;
+  gap: var(--customer-space-24);
+  min-width: 0;
+  margin: var(--customer-space-24) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.customer-ui .customer-booking-intake__event {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--customer-space-16);
+  min-width: 0;
+}
+
+.customer-ui .customer-booking-intake__event > svg {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  color: var(--customer-ink);
+  fill: currentColor;
+}
+
+.customer-ui .customer-booking-intake__event-title {
+  color: var(--customer-ink);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.customer-ui .customer-booking-intake__event-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--customer-space-4) var(--customer-space-12);
+  min-width: 0;
+}
+
+.customer-ui .customer-booking-intake__event-time {
+  display: inline-block;
+  color: var(--customer-muted);
+  font-size: var(--customer-body-small-size);
+  overflow-wrap: anywhere;
+}
+
+.customer-ui .customer-booking-intake__event-message {
+  margin: var(--customer-space-8) 0 0;
+  color: var(--customer-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.customer-ui .customer-booking-intake__empty {
+  margin: var(--customer-space-16) 0 0;
+  color: var(--customer-muted);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 1128px) {
+  .customer-ui .customer-booking-intake__event > div {
+    display: grid;
+    grid-template-columns: minmax(300px, auto) minmax(0, 1fr);
+    align-items: baseline;
+    gap: var(--customer-space-24);
+    min-width: 0;
+  }
+
+  .customer-ui .customer-booking-intake__event-message {
+    margin: 0;
+    padding-left: var(--customer-space-24);
+    border-left: 1px solid var(--customer-hairline-soft);
+  }
+}
+
+@media (max-width: 1127px) {
+  .customer-ui .customer-booking-intake__progress {
+    padding-inline: var(--customer-space-24);
+  }
+
+  .customer-ui .customer-booking-intake__steps {
+    gap: var(--customer-space-24);
+  }
+
+  .customer-ui .customer-booking-intake__step {
+    align-items: flex-start;
+    gap: var(--customer-space-12);
+  }
+
+  .customer-ui .customer-booking-intake__step-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .customer-ui .customer-booking-intake__step:not(:last-child)::after {
+    top: 20px;
+    right: calc(-1 * var(--customer-space-24));
+    width: var(--customer-space-16);
+  }
+
+  .customer-ui .customer-booking-intake__details-grid {
+    grid-template-columns: minmax(0, 0.65fr) minmax(0, 0.35fr);
+    gap: var(--customer-space-24);
+  }
+
+  .customer-ui .customer-booking-intake__fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--customer-space-16) var(--customer-space-24);
+  }
+
+  .customer-ui .customer-booking-intake__fields > dl + dl {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+@media (max-width: 743px) {
+  .customer-ui .customer-booking-intake__toolbar {
+    margin-bottom: var(--customer-space-24);
+  }
+
+  .customer-ui .customer-booking-intake__progress {
+    margin-top: var(--customer-space-24);
+    padding: var(--customer-space-24) var(--customer-space-16);
+  }
+
+  .customer-ui .customer-booking-intake__steps,
+  .customer-ui .customer-booking-intake__details-grid,
+  .customer-ui .customer-booking-intake__schedule,
+  .customer-ui .customer-booking-intake__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .customer-ui .customer-booking-intake__step {
+    align-items: center;
+    gap: var(--customer-space-16);
+  }
+
+  .customer-ui .customer-booking-intake__step:not(:last-child)::after {
+    display: none;
+  }
+
+  .customer-ui .customer-booking-intake__schedule > div + div {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .customer-ui .customer-booking-intake__details,
+  .customer-ui .customer-booking-intake__history {
+    margin-top: var(--customer-space-32);
+  }
+
+  .customer-ui .customer-booking-intake__photo {
+    max-width: 480px;
+  }
+
+  .customer-ui .customer-booking-intake__event-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

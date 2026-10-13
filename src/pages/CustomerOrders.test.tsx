@@ -110,6 +110,20 @@ function bookingFixture(accepted = true): BookingWorkflowDto {
   };
 }
 
+function intakeFixture(): BookingWorkflowDto {
+  const record = bookingFixture(false);
+  record.booking.status = 'pending';
+  record.booking.className = '12A1';
+  record.booking.startAt = '2026-10-17T01:00:00.000Z';
+  record.booking.endAt = '2026-10-17T09:00:00.000Z';
+  record.workflow.lifecycle = 'intake';
+  record.workflow.quote = null;
+  record.workflow.payments = null;
+  record.workflow.paymentInstructions = null;
+  record.workflow.paymentReady = false;
+  return record;
+}
+
 function rentalFixture(status = 'confirmed'): RentalOrder {
   return {
     _id: 'rental-1',
@@ -168,6 +182,7 @@ function renderPage(page: ReactNode, path: string, route: string, customer = tru
           <Routes>
             <Route path={route} element={page} />
             <Route path="/login" element={<Location />} />
+            <Route path="/account/bookings" element={<Location />} />
             <Route path="/account/rentals/:id" element={<Location />} />
           </Routes>
         </MemoryRouter>
@@ -201,6 +216,130 @@ describe('Customer order presentation preserves workflow contracts', () => {
       { _id: 'costume-1', name: 'Áo dài', sizes: ['M', 'L'], rentalPrice: 100000 },
     ]);
     mocks.rentalCreate.mockResolvedValue({ _id: 'created-rental' });
+  });
+
+  it('keeps an intake request informational with one back link and no quote or payment actions', async () => {
+    const record = intakeFixture();
+    record.booking.endAt = '2026-10-18T03:00:00.000Z';
+    record.booking.pricePerMember = 750000;
+    mocks.workflowGet.mockResolvedValue(record);
+    const { container } = renderBooking();
+    await screen.findByRole('heading', { name: 'Yêu cầu của lớp 12A1' });
+    expect(container.querySelector('.customer-booking-intake')).toHaveTextContent('18/10/2026');
+    expect(
+      screen.getByText('Yêu cầu đang chờ studio xem xét. Thời gian đề xuất chưa giữ lịch.'),
+    ).toBeInTheDocument();
+    const back = screen.getByRole('link', { name: /Quay lại danh sách/ });
+    expect(screen.getAllByRole('link', { name: /Quay lại danh sách/ })).toHaveLength(1);
+    expect(back).toHaveAttribute('href', '/account/bookings');
+    expect(screen.getAllByRole('button', { name: 'Tải lại hồ sơ' })).toHaveLength(1);
+    expect(screen.queryByText(/Phiên bản hồ sơ|₫/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: 'Chi tiết báo giá' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Thanh toán và đối soát' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: /Tôi đồng ý báo giá|Ghi nhận giao dịch|Gửi yêu cầu cho studio|Hủy/,
+      }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Loại yêu cầu')).not.toBeInTheDocument();
+    fireEvent.click(back);
+    expect(await screen.findByTestId('destination')).toHaveTextContent('/account/bookings');
+    expect(mocks.workflowAct).not.toHaveBeenCalled();
+  });
+
+  it('handles missing intake fields and timestamps, then shows only real merged events in Vietnam time', async () => {
+    const empty = intakeFixture();
+    delete empty.booking.className;
+    delete empty.booking.school;
+    delete empty.booking.contactName;
+    delete empty.booking.phone;
+    delete empty.booking.note;
+    const updated = intakeFixture();
+    updated.workflow.createdAt = '2026-10-12T02:00:00.000Z';
+    updated.workflow.events = [
+      {
+        action: 'intake.updated',
+        message: 'Studio đã nhận thông tin bổ sung của lớp.',
+        at: '2026-10-12T09:30:00.000Z',
+      },
+    ];
+    mocks.workflowGet.mockResolvedValueOnce(empty).mockResolvedValue(updated);
+    mocks.legacyGet
+      .mockRejectedValueOnce(apiFailure('Không tải được hồ sơ ban đầu'))
+      .mockResolvedValue({
+        ...updated.booking,
+        createdAt: '2026-10-12T01:30:00.000Z',
+        events: [{ message: 'Lớp đã gửi yêu cầu chụp.', at: '2026-10-12T08:00:00.000Z' }],
+      });
+    renderBooking();
+    await screen.findByText('Yêu cầu đang chờ studio xem xét. Thời gian đề xuất chưa giữ lịch.');
+    expect(screen.getAllByText('Chưa cập nhật').length).toBeGreaterThan(0);
+    expect(screen.getByText('Chưa có cập nhật trong quy trình.')).toBeInTheDocument();
+    expect(screen.queryByText(/Invalid Date|undefined|NaN/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Tải lại hồ sơ' }));
+    const latest = await screen.findByText('Studio đã nhận thông tin bổ sung của lớp.');
+    const earlier = screen.getByText('Lớp đã gửi yêu cầu chụp.');
+    expect(latest.compareDocumentPosition(earlier) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(latest.closest('li')).toHaveTextContent(/12\/10\/2026\s*·\s*16:30/);
+    expect(earlier.closest('li')).toHaveTextContent(/12\/10\/2026\s*·\s*15:00/);
+    expect(
+      within(screen.getByRole('region', { name: 'Thông tin yêu cầu' })).getByText(
+        /12\/10\/2026\s*·\s*08:30/,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Chưa có cập nhật trong quy trình.')).not.toBeInTheDocument();
+    expect(mocks.workflowAct).not.toHaveBeenCalled();
+  });
+
+  it('leaves intake presentation after refresh and keeps the existing active quote consent contract', async () => {
+    const fresh = bookingFixture(false);
+    fresh.workflow.version = 8;
+    fresh.workflow.quote!.version = 3;
+    mocks.workflowGet.mockResolvedValueOnce(intakeFixture()).mockResolvedValue(fresh);
+    const accepted = bookingFixture();
+    accepted.workflow.version = 9;
+    accepted.workflow.quote!.version = 3;
+    mocks.workflowAct.mockResolvedValue(accepted);
+    const { container } = renderBooking();
+    await screen.findByRole('heading', { name: 'Yêu cầu của lớp 12A1' });
+    fireEvent.click(screen.getByRole('button', { name: 'Tải lại hồ sơ' }));
+    const consent = await screen.findByRole('button', { name: 'Tôi đồng ý báo giá phiên bản 3' });
+    expect(container.querySelector('.customer-booking-intake')).toBeNull();
+    expect(screen.getByRole('table', { name: 'Chi tiết báo giá' })).toBeInTheDocument();
+    expect(mocks.workflowGet).toHaveBeenCalledTimes(2);
+    expect(mocks.workflowAct).not.toHaveBeenCalled();
+    fireEvent.click(consent);
+    await waitFor(() =>
+      expect(mocks.workflowAct).toHaveBeenCalledWith(
+        'booking-1',
+        8,
+        'quote.accept',
+        {},
+        'action-1',
+      ),
+    );
+  });
+
+  it('keeps pending admin requests on the legacy approval form and its required feedback gate', async () => {
+    mocks.auth.user = { _id: 'admin-1', name: 'Admin', roles: [0] };
+    mocks.workflowGet.mockResolvedValue(intakeFixture());
+    const { container } = renderBooking(false);
+    await screen.findByRole('heading', { name: 'Xét duyệt yêu cầu ban đầu' });
+    expect(container.querySelector('.customer-booking-intake')).toBeNull();
+    expect(container.querySelector('main')).toHaveClass('max-w-6xl');
+    const feedback = screen.getByLabelText('Phản hồi cho khách');
+    expect(feedback.tagName).toBe('TEXTAREA');
+    expect(feedback).not.toHaveClass('customer-control');
+    const approve = screen.getByRole('button', { name: 'Duyệt yêu cầu' });
+    const reject = screen.getByRole('button', { name: 'Từ chối' });
+    expect(approve).toBeDisabled();
+    expect(reject).toBeDisabled();
+    fireEvent.change(feedback, { target: { value: 'Studio đã nhận yêu cầu của lớp.' } });
+    expect(approve).toBeEnabled();
+    expect(reject).toBeEnabled();
+    expect(mocks.workflowAct).not.toHaveBeenCalled();
   });
 
   it('keeps quote quantity/unit/total and payment data readable in the customer table', async () => {

@@ -20,6 +20,7 @@ import {
 import { useCustomerAppearance } from '../components/customer/CustomerAppearance';
 import { CustomerPrice } from '../components/customer/CustomerPrice';
 import { CustomerPriceBreakdown } from '../components/customer/CustomerPriceBreakdown';
+import { CustomerBookingIntake } from '../components/customer/CustomerBookingIntake';
 import '../styles/customer-orders.css';
 import { useAuth } from '../context/AuthContext';
 import { bookingService, type Booking } from '../services/bookingService';
@@ -151,6 +152,20 @@ const formatDateOnly = (value?: string | Date) => {
   return Number.isFinite(date.getTime())
     ? date.toLocaleDateString('vi-VN', { dateStyle: 'medium', timeZone: VN_TIME_ZONE })
     : 'Chưa chốt';
+};
+const formatIntakeDateTime = (value?: string | Date) => {
+  if (!value) return 'Chưa cập nhật';
+  const parts = formatParts(value, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+  return parts.year
+    ? `${parts.day}/${parts.month}/${parts.year} · ${parts.hour}:${parts.minute}`
+    : 'Chưa cập nhật';
 };
 const defaultMemberInput = (member?: WorkflowMember): MemberInput => ({
   ...(member?._id ? { _id: member._id } : {}),
@@ -816,18 +831,19 @@ export default function BookingWorkflowDetailPage() {
     [legacyBooking?.events, workflow?.events],
   );
 
+  const DetailContainer = customer ? 'section' : 'main';
   if (loading)
     return (
-      <main
+      <DetailContainer
         className={customer ? 'customer-orders customer-orders--detail' : 'mx-auto max-w-5xl p-6'}
         role="status"
       >
         Đang tải hồ sơ dịch vụ…
-      </main>
+      </DetailContainer>
     );
   if (!record || !booking || !workflow)
     return (
-      <main
+      <DetailContainer
         className={
           customer ? 'customer-orders customer-orders--detail' : 'mx-auto max-w-5xl space-y-4 p-6'
         }
@@ -848,7 +864,7 @@ export default function BookingWorkflowDetailPage() {
         <Button variant="outline" onClick={() => void load()}>
           Thử lại
         </Button>
-      </main>
+      </DetailContainer>
     );
 
   const quoteAccepted = !!workflow.quote?.acceptedAt;
@@ -876,6 +892,36 @@ export default function BookingWorkflowDetailPage() {
   const quoteLinesExist = quoteLines.length > 0;
   const scheduleReleased = workflow.lifecycle === 'cancelled';
   const proposedChangeSchedule = workflow.changeRequest?.proposed?.schedule;
+
+  if (
+    customer &&
+    isClient &&
+    booking.status === 'pending' &&
+    workflow.lifecycle === 'intake' &&
+    !workflow.quote
+  ) {
+    const sameDay =
+      vnDateInput(booking.startAt) && vnDateInput(booking.startAt) === vnDateInput(booking.endAt);
+    const requestedTime = sameDay
+      ? `${formatIntakeDateTime(booking.startAt)}–${vnTimeInput(booking.endAt)}`
+      : `${formatIntakeDateTime(booking.startAt)} – ${formatIntakeDateTime(booking.endAt)}`;
+    return (
+      <CustomerBookingIntake
+        booking={booking}
+        title={title}
+        sentAt={legacyBooking?.createdAt || workflow.createdAt}
+        requestedTime={requestedTime}
+        note={booking.note || legacyBooking?.note}
+        reviewNote={booking.reviewNote || legacyBooking?.reviewNote}
+        timeline={timeline}
+        formatDateTime={formatIntakeDateTime}
+        backPath={backPath}
+        error={error}
+        busy={busy !== ''}
+        onReload={() => void load()}
+      />
+    );
+  }
 
   return (
     <main
