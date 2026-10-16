@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { Textarea } from '@/components/ui';
 import { OrderButton as Button, OrderSelect } from '../components/customer/CustomerOrderControls';
 import { useCustomerAppearance } from '../components/customer/CustomerAppearance';
+import { CustomerAccountTabs } from '../components/customer/CustomerAccountTabs';
 import { CustomerOrderCard } from '../components/customer/CustomerOrderCard';
 import { CustomerStatusBadge } from '../components/customer/CustomerStatusBadge';
 import '../styles/customer-orders.css';
@@ -141,28 +142,26 @@ export default function BookingsPage({ admin = false }: { admin?: boolean }) {
       >
         <div>
           <h1 className={customer ? 'customer-page-title' : 'text-2xl font-bold'}>
-            {admin ? 'Yêu cầu đặt dịch vụ' : 'Booking của tôi'}
+            {admin ? 'Yêu cầu đặt dịch vụ' : customer ? 'Dịch vụ của tôi' : 'Booking của tôi'}
           </h1>
           <p className="text-muted-foreground mt-1">
             {admin
               ? 'Kiểm tra yêu cầu và phản hồi cho khách hàng.'
-              : 'Theo dõi yêu cầu và phản hồi từ Yume Studio.'}
+              : customer
+                ? 'Theo dõi yêu cầu và lịch chụp của bạn.'
+                : 'Theo dõi yêu cầu và phản hồi từ Yume Studio.'}
           </p>
         </div>
-        {!admin &&
-          (customer ? (
-            <Button asChild>
-              <Link to="/account/bookings/new">Đặt dịch vụ</Link>
-            </Button>
-          ) : (
-            <Link
-              to="/account/bookings/new"
-              className="rounded-lg bg-primary text-primary-foreground px-4 py-3 self-start"
-            >
-              Đặt dịch vụ
-            </Link>
-          ))}
+        {!admin && !customer && (
+          <Link
+            to="/account/bookings/new"
+            className="rounded-lg bg-primary text-primary-foreground px-4 py-3 self-start"
+          >
+            Đặt dịch vụ
+          </Link>
+        )}
       </div>
+      {customer && !admin && <CustomerAccountTabs />}
       <BookingNotifications base={base} />
       <div className={customer ? 'customer-orders__toolbar' : 'flex flex-wrap gap-3 items-center'}>
         <label htmlFor="status">Trạng thái</label>

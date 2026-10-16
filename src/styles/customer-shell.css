@@ -1,3 +1,7 @@
+html:has(.customer-ui) {
+  scrollbar-gutter: stable;
+}
+
 .customer-container {
   width: 100%;
   margin-inline: auto;
@@ -31,7 +35,7 @@
   position: sticky;
   top: 0;
   z-index: 40;
-  height: 80px;
+  height: 72px;
   background: var(--customer-canvas);
   border-bottom: 1px solid var(--customer-hairline);
 }
@@ -61,14 +65,17 @@
   display: block;
 }
 .customer-brand__name {
+  display: none;
   white-space: nowrap;
 }
 .customer-header__nav {
   display: none;
-  align-items: stretch;
+  align-items: center;
   justify-content: center;
-  gap: var(--customer-space-16);
-  height: 100%;
+  gap: var(--customer-space-4);
+  padding: var(--customer-space-4);
+  border-radius: var(--customer-radius-pill);
+  background: var(--customer-surface-soft);
   min-width: 0;
 }
 .customer-nav-link {
@@ -86,26 +93,148 @@
   color: var(--customer-ink);
 }
 .customer-header__utilities {
-  display: none;
+  display: flex;
   align-items: center;
   gap: var(--customer-space-8);
   min-width: 0;
 }
-.customer-header__account {
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.customer-header__username {
+.customer-header__account-control {
   display: none;
-  max-width: 144px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .customer-header__booking {
-  display: none;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.customer-header__nav .customer-nav-link {
+  position: relative;
+  justify-content: center;
+  padding: var(--customer-space-12) var(--customer-space-24);
+  border: 0;
+  border-radius: var(--customer-radius-pill);
+  white-space: nowrap;
+  line-height: var(--customer-title-line);
+}
+.customer-header__nav .customer-nav-link[aria-current] {
+  background: var(--customer-canvas);
+}
+.customer-header__nav .customer-nav-link[aria-current]::after {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 64px;
+  height: 2px;
+  background: var(--customer-primary);
+  content: '';
+  transform: translateX(-50%);
+}
+.customer-header__nav .customer-nav-link:hover {
+  color: var(--customer-ink);
+}
+.customer-header__login,
+.customer-account-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  gap: var(--customer-space-8);
+  border-radius: var(--customer-radius-control);
+  color: var(--customer-ink);
+  font-size: var(--customer-body-small-size);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.customer-header__login {
+  padding-inline: var(--customer-space-8);
+}
+.customer-account-trigger {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.customer-account-trigger__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--customer-radius-pill);
+  background: color-mix(in srgb, var(--customer-primary) 12%, var(--customer-canvas));
+  font-size: var(--customer-body-size);
+}
+.customer-account-trigger > svg {
+  width: 16px;
+  height: 16px;
+}
+.customer-account-trigger:focus-visible {
+  outline: 2px solid var(--customer-ink);
+  outline-offset: 3px;
+}
+.customer-account-menu {
+  z-index: 70;
+  width: 192px;
+  max-width: calc(100vw - 32px);
+  padding: var(--customer-space-8);
+  border: 1px solid var(--customer-hairline-soft);
+  border-radius: var(--customer-radius-card);
+  background: var(--customer-canvas);
+  color: var(--customer-ink);
+  box-shadow: var(--customer-shadow);
+}
+.customer-account-menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--customer-space-12);
+  min-height: 48px;
+  padding: var(--customer-space-12);
+  border-radius: var(--customer-radius-control);
+  color: var(--customer-ink);
+  font-size: var(--customer-body-size);
+  line-height: var(--customer-body-line);
+  text-decoration: none;
+  cursor: pointer;
+  outline: none;
+}
+.customer-account-menu__item svg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+.customer-account-menu__item[data-highlighted],
+.customer-account-menu__item:hover {
+  background: var(--customer-surface-soft);
+}
+.customer-account-menu__item:focus-visible {
+  outline: 2px solid var(--customer-ink);
+  outline-offset: -2px;
+}
+.customer-account-menu__separator {
+  height: 1px;
+  margin: var(--customer-space-4) var(--customer-space-12);
+  background: var(--customer-hairline-soft);
+}
+.customer-menu__account {
+  padding-top: var(--customer-space-16);
+  border-top: 1px solid var(--customer-hairline-soft);
+}
+.customer-menu__account .customer-menu__username {
+  padding-inline: var(--customer-space-12);
+}
+.customer-account-tabs {
+  display: flex;
+  gap: var(--customer-space-24);
+  border-bottom: 1px solid var(--customer-hairline);
+}
+.customer-account-tabs .customer-nav-link {
+  padding: var(--customer-space-12) var(--customer-space-8);
+}
+.customer-account-tabs .customer-nav-link[aria-current] {
+  border-bottom-color: var(--customer-primary);
+}
+.customer-account-tabs a:focus-visible {
+  outline: 2px solid var(--customer-ink);
+  outline-offset: -3px;
+  border-radius: var(--customer-radius-control);
 }
 .customer-header a:focus-visible,
 .customer-footer a:focus-visible,
@@ -197,16 +326,14 @@
   margin: 0;
   padding: 0;
 }
+@media (min-width: 390px) {
+  .customer-brand__name {
+    display: inline;
+  }
+}
 @media (min-width: 744px) {
   .customer-container {
     padding-inline: var(--customer-space-24);
-  }
-  .customer-header__nav,
-  .customer-header__utilities {
-    display: flex;
-  }
-  .customer-brand__name {
-    display: none;
   }
   .customer-footer__groups {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -216,14 +343,14 @@
   .customer-container {
     padding-inline: var(--customer-space-32);
   }
-  .customer-header__nav {
-    gap: var(--customer-space-24);
+  .customer-header {
+    height: 88px;
   }
-  .customer-brand__name,
-  .customer-header__username {
-    display: inline;
+  .customer-header__nav,
+  .customer-header__account-control {
+    display: flex;
   }
-  .customer-header__booking {
-    display: inline-flex;
+  .customer-header__utilities {
+    gap: var(--customer-space-16);
   }
 }

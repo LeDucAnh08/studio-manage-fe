@@ -213,7 +213,15 @@ describe('Customer order presentation preserves workflow contracts', () => {
     mocks.photographers.mockResolvedValue([]);
     mocks.rentalGet.mockResolvedValue(rentalFixture());
     mocks.catalog.mockResolvedValue([
-      { _id: 'costume-1', name: 'Áo dài', sizes: ['M', 'L'], rentalPrice: 100000 },
+      {
+        _id: 'costume-1',
+        name: 'Áo dài',
+        sizes: ['M', 'L'],
+        rentalPrice: 100000,
+        rentalDailyPrice: 100000,
+        availableBySize: { M: 4, L: 2 },
+        rentalDays: 1,
+      },
     ]);
     mocks.rentalCreate.mockResolvedValue({ _id: 'created-rental' });
   });
@@ -700,15 +708,15 @@ describe('Customer order presentation preserves workflow contracts', () => {
   it('keeps new rental drafts through a guest login redirect and reuses a failed submission key', async () => {
     mocks.auth.user = null;
     const first = renderPage(<NewRentalPage />, '/rental/start?item=costume-1', '/rental/start');
-    await screen.findByLabelText('Mẫu thuê 1');
-    fireEvent.change(screen.getByLabelText('Kích cỡ 1'), { target: { value: 'M' } });
-    fireEvent.change(screen.getByLabelText('Số lượng 1'), { target: { value: '2' } });
     fireEvent.change(screen.getByLabelText('Ngày nhận mong muốn'), {
       target: { value: futureDate() },
     });
     fireEvent.change(screen.getByLabelText('Ngày trả mong muốn'), {
       target: { value: futureDate() },
     });
+    await screen.findByLabelText('Mẫu thuê 1');
+    fireEvent.change(screen.getByLabelText('Kích cỡ 1'), { target: { value: 'M' } });
+    fireEvent.change(screen.getByLabelText('Số lượng 1'), { target: { value: '2' } });
     fireEvent.change(screen.getByLabelText('Người liên hệ'), {
       target: { value: '  Khách thuê  ' },
     });
@@ -716,7 +724,10 @@ describe('Customer order presentation preserves workflow contracts', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' }));
     fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập để gửi yêu cầu thuê' }));
     expect(await screen.findByTestId('destination')).toHaveTextContent(
-      '/login?returnTo=%2Frental%2Fstart%3Fitem%3Dcostume-1',
+      '/login?returnTo=' +
+        encodeURIComponent(
+          `/rental/start?item=costume-1&receiveDate=${futureDate()}&returnDate=${futureDate()}`,
+        ),
     );
     expect(JSON.parse(sessionStorage.getItem(RENTAL_DRAFT_KEY)!)).toMatchObject({
       preview: true,

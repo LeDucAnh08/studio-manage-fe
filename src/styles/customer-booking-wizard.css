@@ -800,7 +800,7 @@
     .customer-wizard
     .customer-package-card--row
     .customer-package-card__actions
-    > .customer-button--secondary {
+    > .customer-button:not(.customer-button--text) {
     width: 100%;
   }
 

@@ -52,6 +52,7 @@ export interface Costume {
   itemKind?: 'clothing' | 'accessory';
   isRentalItem?: boolean;
   rentalPrice?: number;
+  rentalDailyPrice?: number | null;
   inventory?: CostumeInventory[];
   createdAt?: string;
 }
@@ -71,10 +72,15 @@ export interface RentalCatalogItem {
   categoryId?: string | null;
   category?: string | null;
   rentalPrice: number;
+  rentalDailyPrice?: number | null;
+  availableBySize?: Record<string, number>;
+  rentalDays?: number;
   sizes: string[];
 }
 
 export interface RentalCatalogFilters {
+  receiveDate?: string;
+  returnDate?: string;
   itemKind?: 'clothing' | 'accessory';
   categoryId?: string;
   size?: string;

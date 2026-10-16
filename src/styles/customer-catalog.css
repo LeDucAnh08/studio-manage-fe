@@ -26,6 +26,15 @@
   margin-top: var(--customer-space-12);
   max-width: 640px;
 }
+.customer-catalog__period {
+  display: grid;
+  gap: var(--customer-space-16);
+  margin-top: var(--customer-space-24);
+}
+.customer-catalog__period-fields {
+  display: grid;
+  gap: var(--customer-space-16);
+}
 .customer-catalog__filters {
   margin-top: var(--customer-space-24);
   border: 1px solid var(--customer-hairline);
@@ -214,6 +223,9 @@
   border-radius: var(--customer-radius-control);
 }
 @media (min-width: 744px) {
+  .customer-catalog__period-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .customer-catalog__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

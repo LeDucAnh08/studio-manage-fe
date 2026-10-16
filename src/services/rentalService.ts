@@ -10,6 +10,8 @@ export interface RentalLine {
 }
 export interface RentalQuote {
   version: number;
+  pricingMode?: 'daily' | 'period';
+  rentalDays?: number;
   lines: RentalLine[];
   receiveDate: string;
   returnDate: string;
@@ -39,6 +41,8 @@ export interface RentalOrder {
   _id: string;
   version: number;
   status: string;
+  pricingMode?: 'daily' | 'period';
+  reservationIssue?: string | null;
   contactName: string;
   phone?: string;
   note: string;

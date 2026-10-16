@@ -46,9 +46,11 @@ function flattenNavItems(items: NavItem[], parentPath = ''): FlatRoute[] {
 const EXTRA_ROUTES: FlatRoute[] = [
   { path: '/register', label: 'Đăng ký khách hàng' },
   { path: '/staff-register', label: 'Yêu cầu tài khoản nhân sự' },
-  { path: '/account/bookings', label: 'Booking của tôi' },
+  { path: '/account/bookings', label: 'Dịch vụ của tôi' },
   { path: '/account/bookings/new', label: 'Đặt dịch vụ' },
-  { path: '/account/bookings/:id', label: 'Chi tiết booking' },
+  { path: '/account/bookings/:id', label: 'Chi tiết dịch vụ' },
+  { path: '/account/rentals', label: 'Dịch vụ của tôi' },
+  { path: '/account/rentals/:id', label: 'Chi tiết đơn thuê' },
   { path: '/account/profile', label: 'Hồ sơ cá nhân' },
   { path: '/booking-requests/:id', label: 'Xét duyệt booking' },
   { path: '/login', label: 'Đăng nhập' },

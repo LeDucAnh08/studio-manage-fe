@@ -30,6 +30,7 @@ import {
 } from '../services/rentalService';
 import { createWorkflowRequestId } from '../services/bookingWorkflowService';
 import { vietnamCalendarDate } from '../utils/vietnamCalendarDate';
+import { rentalDayCount, validateRentalPeriod } from '../utils/rentalPeriod';
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   const customer = useCustomerAppearance();
@@ -115,7 +116,12 @@ export default function RentalDetailPage() {
       rows.map((row) => ({
         ...row,
         quantity: String(row.quantity),
-        unitPrice: String(row.unitPrice ?? 0),
+        unitPrice:
+          row.unitPrice !== undefined
+            ? String(row.unitPrice)
+            : order.pricingMode === 'daily'
+              ? ''
+              : '0',
       })),
     );
     setReceiveDate(vietnamCalendarDate(order.quote?.receiveDate ?? order.requestedReceiveDate));
@@ -189,8 +195,55 @@ export default function RentalDetailPage() {
         : ['balance']
       : [];
   const selectedKind = kinds.includes(paymentKind) ? paymentKind : (kinds[0] ?? 'balance');
-  const submitQuote = () =>
-    act('quote.propose', {
+  const dailyOrder = order.pricingMode === 'daily';
+  const dailyQuote = quote?.pricingMode === 'daily';
+  const dailyEditor = quote ? dailyQuote : dailyOrder;
+  const quoteDays = quote
+    ? (quote.rentalDays ??
+      rentalDayCount(vietnamCalendarDate(quote.receiveDate), vietnamCalendarDate(quote.returnDate)))
+    : null;
+  const editorDays = rentalDayCount(receiveDate, returnDate);
+  const editorMultiplier = dailyEditor ? editorDays : 1;
+  const editorFee =
+    editorMultiplier === null
+      ? null
+      : quoteRows.reduce((sum, row) => sum + Number(row.quantity) * Number(row.unitPrice), 0) *
+        editorMultiplier;
+  const dailyExtension = dailyQuote && order.change?.kind === 'extend';
+  const extendedDays =
+    quote && order.change?.returnDate
+      ? rentalDayCount(
+          vietnamCalendarDate(quote.receiveDate),
+          vietnamCalendarDate(order.change.returnDate),
+        )
+      : null;
+  const extensionFee =
+    quote && extendedDays
+      ? quote.lines.reduce((sum, row) => sum + row.quantity * (row.unitPrice ?? 0), 0) *
+        extendedDays
+      : null;
+  const submitQuote = () => {
+    const validation = validateRentalPeriod(receiveDate, returnDate);
+    if (validation) {
+      setError(validation);
+      return;
+    }
+    if (
+      quoteRows.some(
+        (row) =>
+          !row.unitPrice.trim() ||
+          !Number.isSafeInteger(Number(row.unitPrice)) ||
+          Number(row.unitPrice) < (dailyEditor ? 1 : 0),
+      )
+    ) {
+      setError(
+        dailyEditor
+          ? 'Nhập giá/ngày là số nguyên dương cho từng món thuê.'
+          : 'Kiểm tra lại đơn giá kỳ thuê.',
+      );
+      return;
+    }
+    return act('quote.propose', {
       lines: quoteRows.map((row) => ({
         costumeId: row.costumeId,
         size: row.size,
@@ -205,6 +258,7 @@ export default function RentalDetailPage() {
         .map((value) => value.trim())
         .filter(Boolean),
     });
+  };
   return (
     <main className={customer ? 'customer-orders customer-orders--detail' : 'space-y-6'}>
       <div className="flex flex-wrap justify-between gap-3">
@@ -249,9 +303,28 @@ export default function RentalDetailPage() {
           ))}
         </ul>
         <p className="text-sm text-muted-foreground">
-          Yêu cầu và báo giá chưa giữ hàng. Hàng chỉ được giữ sau khi studio xác nhận đủ điều kiện.
+          {dailyOrder
+            ? 'Yêu cầu và báo giá chưa giữ hàng. Hàng được giữ sau khi bạn đồng ý báo giá và studio ghi nhận đủ cọc bảo đảm, nếu còn trống trong toàn bộ kỳ thuê.'
+            : 'Yêu cầu và báo giá chưa giữ hàng. Hàng chỉ được giữ sau khi studio xác nhận đủ điều kiện.'}
         </p>
       </header>
+      {order.reservationIssue && (
+        <section
+          role="alert"
+          className={
+            customer
+              ? 'customer-order-notice'
+              : 'rounded-xl border border-amber-400 bg-amber-50 p-4 text-amber-900'
+          }
+        >
+          <p className="font-semibold">Đã ghi nhận cọc, chưa giữ được hàng</p>
+          <p>{order.reservationIssue}</p>
+          <p>
+            Studio cần kiểm tra tồn kho và thống nhất cách xử lý với khách. Khoản tiền đã nhận vẫn
+            được ghi nhận; chưa có giao dịch hoàn tiền tự động.
+          </p>
+        </section>
+      )}
       {client && ['requested', 'quoting'].includes(order.status) && (
         <section className={customer ? 'customer-order-surface' : sectionClass}>
           <p>Chưa đồng ý báo giá và chưa giữ hàng, bạn có thể rút yêu cầu thuê.</p>
@@ -279,6 +352,7 @@ export default function RentalDetailPage() {
           </h2>
           <p>
             {date(quote.receiveDate)} – {date(quote.returnDate)}
+            {dailyQuote && quoteDays && ` · ${quoteDays} ngày (tính cả ngày nhận và trả)`}
           </p>
           <ul className="space-y-2">
             {quote.lines.map((row) => (
@@ -289,8 +363,9 @@ export default function RentalDetailPage() {
                 {row.name} · cỡ {row.size} · {row.quantity} món
                 {row.unitPrice !== undefined && (
                   <span className="block text-sm text-muted-foreground">
-                    Đơn giá kỳ thuê ban đầu:{' '}
+                    {dailyQuote ? 'Đơn giá/ngày:' : 'Đơn giá kỳ thuê ban đầu:'}{' '}
                     {customer ? <CustomerPrice amount={row.unitPrice} /> : money(row.unitPrice)}
+                    {dailyQuote && quoteDays && ` × ${row.quantity} món × ${quoteDays} ngày`}
                   </span>
                 )}
               </li>
@@ -317,7 +392,8 @@ export default function RentalDetailPage() {
                 </p>
               </div>
             ))}
-          {quote.fee !== undefined &&
+          {!dailyQuote &&
+            quote.fee !== undefined &&
             quote.fee >
               quote.lines.reduce((sum, row) => sum + row.quantity * (row.unitPrice ?? 0), 0) && (
               <p>
@@ -379,7 +455,9 @@ export default function RentalDetailPage() {
             Lập báo giá thuê
           </h2>
           <p className="text-sm text-muted-foreground">
-            Đơn giá áp dụng cho cả kỳ thuê đã ghi; nhập điều khoản về cọc, gia hạn và phát sinh.
+            {dailyEditor
+              ? 'Đơn giá áp dụng theo ngày; phí thuê = giá/ngày × số lượng × số ngày, tính cả ngày nhận và ngày trả. Cọc được tính riêng.'
+              : 'Đơn giá áp dụng cho cả kỳ thuê đã ghi; nhập điều khoản về cọc, gia hạn và phát sinh.'}
           </p>
           {quoteRows.map((row, index) => (
             <fieldset
@@ -410,11 +488,11 @@ export default function RentalDetailPage() {
                   }
                 />
               </Field>
-              <Field label={`Đơn giá kỳ thuê ${index + 1} (đ)`}>
+              <Field label={`${dailyEditor ? 'Đơn giá/ngày' : 'Đơn giá kỳ thuê'} ${index + 1} (đ)`}>
                 <Input
                   required
                   type="number"
-                  min={0}
+                  min={dailyEditor ? 1 : 0}
                   step={1}
                   value={row.unitPrice}
                   onChange={(event) =>
@@ -459,21 +537,15 @@ export default function RentalDetailPage() {
           </div>
           <p>
             Tổng phí thuê:{' '}
-            {customer ? (
-              <CustomerPrice
-                amount={quoteRows.reduce(
-                  (sum, row) => sum + Number(row.quantity) * Number(row.unitPrice),
-                  0,
-                )}
-              />
+            {editorFee === null ||
+            (dailyEditor && quoteRows.some((row) => !row.unitPrice.trim())) ? (
+              'Nhập đủ ngày và đơn giá/ngày'
+            ) : customer ? (
+              <CustomerPrice amount={editorFee} />
             ) : (
-              money(
-                quoteRows.reduce(
-                  (sum, row) => sum + Number(row.quantity) * Number(row.unitPrice),
-                  0,
-                ),
-              )
+              money(editorFee)
             )}
+            {dailyEditor && editorDays && ` · ${editorDays} ngày`}
           </p>
           <Field label="Điều khoản thuê, mỗi dòng một điều khoản">
             <Textarea
@@ -948,7 +1020,7 @@ export default function RentalDetailPage() {
               onSubmit={(event) => {
                 event.preventDefault();
                 void act('change.propose', {
-                  finalFee: Number(finalFee),
+                  ...(dailyExtension ? {} : { finalFee: Number(finalFee) }),
                   terms: changeTerms
                     .split('\n')
                     .map((value) => value.trim())
@@ -956,16 +1028,25 @@ export default function RentalDetailPage() {
                 });
               }}
             >
-              <Field label="Phí thuê cuối sau thay đổi (đ)">
-                <Input
-                  required
-                  min={0}
-                  type="number"
-                  step={1}
-                  value={finalFee}
-                  onChange={(event) => setFinalFee(event.target.value)}
-                />
-              </Field>
+              {dailyExtension ? (
+                <p>
+                  Phí thuê cuối theo ngày:{' '}
+                  {extensionFee === null ? 'Chưa xác định được kỳ gia hạn' : money(extensionFee)}
+                  {extendedDays &&
+                    ` · ${extendedDays} ngày. Hệ thống tính theo đơn giá/ngày đã đồng ý; cọc giữ riêng.`}
+                </p>
+              ) : (
+                <Field label="Phí thuê cuối sau thay đổi (đ)">
+                  <Input
+                    required
+                    min={0}
+                    type="number"
+                    step={1}
+                    value={finalFee}
+                    onChange={(event) => setFinalFee(event.target.value)}
+                  />
+                </Field>
+              )}
               <Field label="Điều khoản thay đổi đơn thuê">
                 <Textarea
                   required
@@ -1098,6 +1179,9 @@ export default function RentalDetailPage() {
               </h3>
               <p>
                 {date(history.receiveDate)} – {date(history.returnDate)}
+                {history.pricingMode === 'daily' &&
+                  history.rentalDays &&
+                  ` · ${history.rentalDays} ngày`}
                 {history.fee !== undefined ? (
                   customer ? (
                     <>
@@ -1125,10 +1209,16 @@ export default function RentalDetailPage() {
                       customer ? (
                         <>
                           {' '}
-                          · <CustomerPrice amount={row.unitPrice} unit="/món cho kỳ thuê" />
+                          ·{' '}
+                          <CustomerPrice
+                            amount={row.unitPrice}
+                            unit={
+                              history.pricingMode === 'daily' ? '/món/ngày' : '/món cho kỳ thuê'
+                            }
+                          />
                         </>
                       ) : (
-                        ` · ${money(row.unitPrice)}/món cho kỳ thuê`
+                        ` · ${money(row.unitPrice)}${history.pricingMode === 'daily' ? '/món/ngày' : '/món cho kỳ thuê'}`
                       )
                     ) : (
                       ''

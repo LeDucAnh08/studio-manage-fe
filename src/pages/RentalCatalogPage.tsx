@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import { ChevronDown, RotateCw, SlidersHorizontal } from 'lucide-react';
 import { CustomerButton } from '@/components/customer/CustomerButton';
@@ -16,6 +16,7 @@ import { CustomerCatalogCard } from '@/components/customer/CustomerCatalogCard';
 import { costumeService } from '../services/costumeService';
 import PublicSiteLayout from '../components/Layout/PublicSiteLayout';
 import type { CostumeType, RentalCatalogFilters, RentalCatalogItem } from '../types';
+import { rentalDayCount, validateRentalPeriod, vietnamToday } from '../utils/rentalPeriod';
 
 const SIZES = [
   'XS',
@@ -30,7 +31,18 @@ const SIZES = [
 ];
 
 export default function RentalCatalogPage() {
-  const [items, setItems] = useState<RentalCatalogItem[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const receiveDate = searchParams.get('receiveDate') || '';
+  const returnDate = searchParams.get('returnDate') || '';
+  const periodError = validateRentalPeriod(receiveDate, returnDate);
+  const periodValid = !periodError;
+  const days = rentalDayCount(receiveDate, returnDate);
+  const [catalog, setCatalog] = useState({
+    key: '',
+    items: [] as RentalCatalogItem[],
+    error: '',
+  });
+  const requestId = useRef(0);
   const [categories, setCategories] = useState<CostumeType[]>([]);
   const [categoryError, setCategoryError] = useState('');
   const [itemKind, setItemKind] = useState('');
@@ -39,27 +51,37 @@ export default function RentalCatalogPage() {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [appliedFilters, setAppliedFilters] = useState<RentalCatalogFilters>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(min-width: 744px)').matches,
   );
   const appliedFilterCount = Object.keys(appliedFilters).length;
+  const requestFilters = { ...appliedFilters, receiveDate, returnDate };
+  const requestKey = JSON.stringify(requestFilters);
+  const loading = periodValid && catalog.key !== requestKey;
+  const items = periodValid && catalog.key === requestKey ? catalog.items : [];
+  const error = catalog.key === requestKey ? catalog.error : '';
 
-  const loadCatalog = useCallback(async (filters: RentalCatalogFilters) => {
-    setLoading(true);
-    setError('');
-    try {
-      setItems(await costumeService.getPublicCatalog(filters));
-    } catch (requestError) {
-      const message = isAxiosError<{ message?: string }>(requestError)
-        ? requestError.response?.data?.message
-        : undefined;
-      setError(message || 'Không tải được danh mục. Vui lòng thử lại sau.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const loadCatalog = useCallback(
+    async (filters: RentalCatalogFilters, key: string) => {
+      const currentRequest = ++requestId.current;
+      setCatalog({ key: '', items: [], error: '' });
+      try {
+        const nextItems = await costumeService.getPublicCatalog(filters);
+        if (currentRequest === requestId.current) setCatalog({ key, items: nextItems, error: '' });
+      } catch (requestError) {
+        const message = isAxiosError<{ message?: string }>(requestError)
+          ? requestError.response?.data?.message
+          : undefined;
+        if (currentRequest === requestId.current)
+          setCatalog({
+            key,
+            items: [],
+            error: message || 'Không tải được danh mục. Vui lòng thử lại sau.',
+          });
+      }
+    },
+    [setCatalog],
+  );
 
   const loadCategories = useCallback(async () => {
     setCategoryError('');
@@ -70,12 +92,28 @@ export default function RentalCatalogPage() {
         'Không tải được danh mục loại hàng. Bạn vẫn có thể lọc theo loại, kích cỡ hoặc giá.',
       );
     }
-  }, []);
+  }, [setCategories, setCategoryError]);
 
   useEffect(() => {
-    void loadCatalog({});
     void loadCategories();
-  }, [loadCatalog, loadCategories]);
+  }, [loadCategories]);
+
+  useEffect(() => {
+    if (periodValid) void loadCatalog({ ...appliedFilters, receiveDate, returnDate }, requestKey);
+    return () => {
+      requestId.current += 1;
+    };
+  }, [appliedFilters, receiveDate, returnDate, periodValid, requestKey, loadCatalog]);
+
+  const changeDate = (name: 'receiveDate' | 'returnDate', value: string) => {
+    requestId.current += 1;
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous);
+      if (value) next.set(name, value);
+      else next.delete(name);
+      return next;
+    });
+  };
 
   const currentFilters = (): RentalCatalogFilters => {
     const filters: RentalCatalogFilters = {};
@@ -91,7 +129,6 @@ export default function RentalCatalogPage() {
     event.preventDefault();
     const filters = currentFilters();
     setAppliedFilters(filters);
-    void loadCatalog(filters);
   };
 
   const clearFilters = () => {
@@ -101,7 +138,6 @@ export default function RentalCatalogPage() {
     setMinPrice('');
     setMaxPrice('');
     setAppliedFilters({});
-    void loadCatalog({});
   };
 
   return (
@@ -122,7 +158,42 @@ export default function RentalCatalogPage() {
           <CustomerStatusBadge>Dịch vụ cho thuê</CustomerStatusBadge>
           <h1>Trang phục & phụ kiện</h1>
           <p className="customer-copy">
-            Tìm và so sánh theo danh mục, kích cỡ và giá thuê để chọn món phù hợp cho buổi chụp.
+            Thuê trang phục và phụ kiện theo ngày, không cần đặt lịch chụp.
+          </p>
+        </CustomerSurface>
+        <CustomerSurface className="customer-catalog__period">
+          <h2 className="customer-section-title">Bạn muốn thuê khi nào?</h2>
+          <p className="customer-copy">Chọn ngày nhận và trả để xem mặt hàng còn trống.</p>
+          <div className="customer-catalog__period-fields">
+            <CustomerFormField label="Ngày nhận" htmlFor="catalog-receive-date" required>
+              <CustomerInput
+                id="catalog-receive-date"
+                type="date"
+                min={vietnamToday()}
+                required
+                value={receiveDate}
+                onChange={(event) => changeDate('receiveDate', event.target.value)}
+              />
+            </CustomerFormField>
+            <CustomerFormField label="Ngày trả" htmlFor="catalog-return-date" required>
+              <CustomerInput
+                id="catalog-return-date"
+                type="date"
+                min={receiveDate || vietnamToday()}
+                required
+                value={returnDate}
+                onChange={(event) => changeDate('returnDate', event.target.value)}
+              />
+            </CustomerFormField>
+          </div>
+          <p
+            className={
+              periodError && receiveDate && returnDate ? 'customer-error' : 'customer-caption'
+            }
+            role="status"
+            aria-live="polite"
+          >
+            {periodError || `${days} ngày thuê, tính cả ngày nhận và ngày trả.`}
           </p>
         </CustomerSurface>
         <details
@@ -188,7 +259,7 @@ export default function RentalCatalogPage() {
                 ))}
               </CustomerSelect>
             </CustomerFormField>
-            <CustomerFormField label="Giá thuê từ (đ)" htmlFor="catalog-min-price">
+            <CustomerFormField label="Giá/ngày từ (đ)" htmlFor="catalog-min-price">
               <CustomerInput
                 id="catalog-min-price"
                 type="number"
@@ -198,7 +269,7 @@ export default function RentalCatalogPage() {
                 onChange={(event) => setMinPrice(event.target.value)}
               />
             </CustomerFormField>
-            <CustomerFormField label="Giá thuê đến (đ)" htmlFor="catalog-max-price">
+            <CustomerFormField label="Giá/ngày đến (đ)" htmlFor="catalog-max-price">
               <CustomerInput
                 id="catalog-max-price"
                 type="number"
@@ -209,7 +280,7 @@ export default function RentalCatalogPage() {
               />
             </CustomerFormField>
             <div className="customer-catalog__actions">
-              <CustomerButton type="submit" disabled={loading}>
+              <CustomerButton type="submit" disabled={loading || !periodValid}>
                 Tìm sản phẩm
               </CustomerButton>
               <CustomerButton type="button" variant="secondary" onClick={clearFilters}>
@@ -219,11 +290,17 @@ export default function RentalCatalogPage() {
           </form>
         </details>
         <p className="customer-caption customer-catalog__note">
-          Danh mục để tham khảo; kích cỡ chưa được giữ cho ngày thuê. Studio sẽ xác nhận tình trạng
-          sản phẩm trước khi chốt.
+          Hàng được giữ sau khi bạn xác nhận thuê và studio ghi nhận đủ tiền cọc.
         </p>
         <div className="customer-catalog__results">
-          {error ? (
+          {!periodValid ? (
+            <CustomerSurface className="customer-catalog__empty">
+              <h2 className="customer-section-title">Chọn thời gian thuê để bắt đầu</h2>
+              <p className="customer-copy">
+                Danh mục sẽ hiển thị các mẫu và kích cỡ còn trống trong khoảng ngày bạn chọn.
+              </p>
+            </CustomerSurface>
+          ) : error ? (
             <CustomerSurface role="alert" className="customer-catalog__error">
               <h2 className="customer-section-title customer-error">Không thể tải danh mục</h2>
               <p className="customer-copy">{error}</p>
@@ -231,7 +308,7 @@ export default function RentalCatalogPage() {
                 <CustomerButton
                   type="button"
                   variant="secondary"
-                  onClick={() => void loadCatalog(appliedFilters)}
+                  onClick={() => void loadCatalog(requestFilters, requestKey)}
                 >
                   <RotateCw aria-hidden="true" /> Thử lại
                 </CustomerButton>
@@ -264,12 +341,12 @@ export default function RentalCatalogPage() {
               <h2 className="customer-section-title">
                 {appliedFilterCount
                   ? 'Chưa tìm thấy mặt hàng phù hợp'
-                  : 'Danh mục đang được cập nhật'}
+                  : 'Chưa có mặt hàng còn trống trong thời gian này'}
               </h2>
               <p className="customer-copy">
                 {appliedFilterCount
                   ? 'Hãy xoá bớt điều kiện lọc hoặc liên hệ studio để được tư vấn lựa chọn khác.'
-                  : 'Bạn có thể liên hệ studio để hỏi về trang phục và phụ kiện đang có.'}
+                  : 'Hãy chọn khoảng ngày khác hoặc liên hệ studio để được tư vấn.'}
               </p>
               {appliedFilterCount > 0 ? (
                 <CustomerButton type="button" variant="secondary" onClick={clearFilters}>
@@ -284,11 +361,16 @@ export default function RentalCatalogPage() {
           ) : (
             <>
               <p className="customer-catalog__count" role="status" aria-live="polite">
-                {items.length} mặt hàng trong danh mục
+                {items.length} mặt hàng còn trống trong khoảng thuê đã chọn
               </p>
               <div className="customer-catalog__grid">
                 {items.map((item) => (
-                  <CustomerCatalogCard key={item._id} item={item} />
+                  <CustomerCatalogCard
+                    key={item._id}
+                    item={item}
+                    receiveDate={receiveDate}
+                    returnDate={returnDate}
+                  />
                 ))}
               </div>
             </>

@@ -906,7 +906,7 @@ Các mục này không nằm trong base mặc định. Ngày 08/10, user yêu c�
 
 **Files UI (3):** `src/pages/BookingWorkflowDetailPage.tsx`; `src/components/customer/CustomerBookingIntake.tsx`; `src/styles/customer-booking-intake.css`. **Tests:** `src/pages/CustomerOrders.test.tsx`.
 
-**Evidence:** [QA BOOK02](../design-qa.md), artifacts `booking-detail-ideation/qa/` và selection manifest. O05–O10 vẫn có điều kiện; BOOK02 không mở custom calendar hoặc sticky quote action O09.
+**Evidence:** [QA BOOK02](../docs/design/customer-booking-intake-qa.md), artifacts `booking-detail-ideation/qa/` và selection manifest. O05–O10 vẫn có điều kiện; BOOK02 không mở custom calendar hoặc sticky quote action O09.
 
 ## Theo dõi quyết định và evidence
 
@@ -922,3 +922,12 @@ Các mục này không nằm trong base mặc định. Ngày 08/10, user yêu c�
 Evidence task base: [QA-customer.md](../docs/design/QA-customer.md), [forms](../docs/design/customer-forms-checks.md), [orders](../docs/design/customer-orders-checks.md) và [images](../docs/design/customer-images-checks.md). Login entry O01–O04 có [evidence riêng](../docs/design/customer-login-checks.md); appearance hiện tại AUTH01 có [auth layout checks](../docs/design/customer-auth-layout-checks.md). UI08 dùng browser focus/escape/resize assertions cùng Radix, không thêm unit phản chiếu primitive. UI17 dùng shared CustomerOrderCard/OrderControls và toolbar classes, không tạo CustomerListToolbar chưa cần. UI25 paths thực: src/assets/images/customer-portfolio/ và src/assets/images/portfolio-images.ts. Source styles tách theo consumer; final polish chia batch4files rồi1prop.
 
 Không tick task khi mới chỉ sửa code mà chưa kiểm chứng runtime cần thiết. Không gọi screenshots 360px hiện có là visual regression suite. Không chạy E2E trên DB demo cần giữ; xem prerequisites trong plan.
+
+### NAV01: Navbar chung theo phương án 1 — 16/10/2026
+
+- [x] Dùng CustomerHeader chung cho public/account, rail tab xám và active trắng/gạch hồng.
+- [x] Avatar có Hồ sơ/Đăng xuất; local tabs Chụp ảnh/Đơn thuê dưới tiêu đề danh sách; browser title thống nhất.
+- [x] Mobile giữ cùng thứ tự, đóng khi navigation/logout cùng-path/resize; desktop breakpoint1128.
+- [x] Guest return destination, staff profile, rental flag và role6/portal-off được kiểm; không đổi API/permission/admin.
+- [x] 52 tests riêng biệt qua các lượt đạt; tsc/lint/format/build đạt, 8 lint warnings baseline.
+- [x] Visual QA source/render, responsive320–1440, no-overflow và one-main đạt; xem ../design-qa.md. BOOK02 archive: ../docs/design/customer-booking-intake-qa.md.

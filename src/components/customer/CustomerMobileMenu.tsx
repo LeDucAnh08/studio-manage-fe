@@ -10,7 +10,7 @@ export function CustomerMobileMenu({ children }: { children: ReactNode }) {
   const { pathname, search, hash } = useLocation();
   useEffect(() => setOpen(false), [pathname, search, hash]);
   useEffect(() => {
-    const desktop = window.matchMedia('(min-width: 744px)');
+    const desktop = window.matchMedia('(min-width: 1128px)');
     const closeOnResize = () => {
       if (desktop.matches) setOpen(false);
     };
@@ -34,7 +34,7 @@ export function CustomerMobileMenu({ children }: { children: ReactNode }) {
           className="customer-menu customer-tokens"
           aria-describedby={undefined}
           onClick={(event) => {
-            if ((event.target as HTMLElement).closest('a[href]')) setOpen(false);
+            if ((event.target as HTMLElement).closest('a[href], button')) setOpen(false);
           }}
         >
           <div className="customer-menu__heading">

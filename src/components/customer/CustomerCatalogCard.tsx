@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Shirt, Sparkles } from 'lucide-react';
 import type { RentalCatalogItem } from '../../types';
 import { clientRentalEnabled } from '../../config/features';
+import { rentalDayCount } from '../../utils/rentalPeriod';
 import { CustomerButton } from './CustomerButton';
 import { CustomerPrice } from './CustomerPrice';
 import { CustomerStatusBadge } from './CustomerStatusBadge';
@@ -10,7 +11,30 @@ import '../../styles/customer-catalog.css';
 const genderLabel = { male: 'Nam', female: 'Nữ', unisex: 'Nam / Nữ' };
 const itemKindLabel = { clothing: 'Trang phục', accessory: 'Phụ kiện' };
 
-export function CustomerCatalogCard({ item }: { item: RentalCatalogItem }) {
+export function CustomerCatalogCard({
+  item,
+  receiveDate,
+  returnDate,
+}: {
+  item: RentalCatalogItem;
+  receiveDate: string;
+  returnDate: string;
+}) {
+  const days = rentalDayCount(receiveDate, returnDate);
+  const dailyPrice = item.rentalDailyPrice;
+  const hasDailyPrice =
+    typeof dailyPrice === 'number' && Number.isFinite(dailyPrice) && dailyPrice >= 0;
+  const sizes = item.sizes.filter(
+    (size) => !item.availableBySize || item.availableBySize[size] > 0,
+  );
+  const rentalParams = new URLSearchParams({ item: item._id, receiveDate, returnDate });
+  const bookingParams = new URLSearchParams({
+    source: 'costumes',
+    item: item._id,
+    itemName: item.name,
+    receiveDate,
+    returnDate,
+  });
   return (
     <article className="customer-catalog-card">
       <div className="customer-catalog-card__illustration">
@@ -20,7 +44,6 @@ export function CustomerCatalogCard({ item }: { item: RentalCatalogItem }) {
           <Shirt aria-hidden="true" strokeWidth={1.5} />
         )}
         <span className="customer-catalog-card__kind">{itemKindLabel[item.itemKind]}</span>
-        <span className="customer-catalog-card__caption">Minh hoạ nhóm hàng</span>
       </div>
       <div className="customer-catalog-card__meta">
         <p className="customer-caption">{item.category || itemKindLabel[item.itemKind]}</p>
@@ -30,29 +53,39 @@ export function CustomerCatalogCard({ item }: { item: RentalCatalogItem }) {
           <p className="customer-catalog-card__description">{item.description}</p>
         )}
         <div>
-          <p className="customer-catalog-card__sizes-label">Kích cỡ sẵn sàng</p>
+          <p className="customer-catalog-card__sizes-label">Còn trống trong khoảng thuê</p>
           <div className="customer-catalog-card__sizes">
-            {item.sizes.length ? (
-              item.sizes.map((size) => <CustomerStatusBadge key={size}>{size}</CustomerStatusBadge>)
+            {sizes.length ? (
+              sizes.map((size) => (
+                <CustomerStatusBadge key={size}>
+                  {size}
+                  {item.availableBySize ? ` · còn ${item.availableBySize[size]}` : ''}
+                </CustomerStatusBadge>
+              ))
             ) : (
               <p>Chưa có kích cỡ sẵn sàng; vui lòng liên hệ studio.</p>
             )}
           </div>
         </div>
         <div className="customer-catalog-card__price">
-          <p className="customer-caption">Giá thuê tham khảo</p>
-          {item.rentalPrice > 0 ? (
-            <CustomerPrice amount={item.rentalPrice} />
+          <p className="customer-caption">Giá thuê theo ngày</p>
+          {hasDailyPrice ? (
+            <CustomerPrice amount={dailyPrice} unit="/ ngày" />
           ) : (
             <p>Liên hệ báo giá</p>
           )}
         </div>
+        {hasDailyPrice && days && (
+          <p className="customer-caption">
+            Tạm tính {days} ngày / 1 sản phẩm: <CustomerPrice amount={dailyPrice * days} />
+          </p>
+        )}
         <CustomerButton asChild fullWidth>
           <Link
             to={
               clientRentalEnabled
-                ? `/rental/start?item=${encodeURIComponent(item._id)}`
-                : `/booking/start?source=costumes&item=${encodeURIComponent(item._id)}&itemName=${encodeURIComponent(item.name)}`
+                ? `/rental/start?${rentalParams}`
+                : `/booking/start?${bookingParams}`
             }
           >
             {clientRentalEnabled ? 'Yêu cầu thuê mẫu này' : 'Thêm vào yêu cầu'}

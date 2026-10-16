@@ -357,3 +357,7 @@ Mỗi task/slice tạo diff nhỏ và checkpoint riêng để rollback presentat
 3. Audit 48 findings và ảnh có trạng thái thực: closed/partial/deferred/exception kèm lý do; không dùng task discovery hoặc assumptions để ghi feature đã hoàn tất.
 4. [todo.md](todo.md) và QA evidence được cập nhật; decisions Q1–Q3 và mọi ngoại lệ DESIGN được ghi theo câu trả lời user.
 5. Merge/deploy là bước riêng theo yêu cầu của user. Plan/checklist đã được lưu; implementation nghiệm thu theo từng đợt. Chỉ đánh dấu phần cơ sở hoàn tất sau khi UI26 đạt nghiệm thu.
+
+## NAV01 — Navbar customer thống nhất, 16/10/2026
+
+User chọn phương án1 theo thứ tự ảnh hiển thị: nhóm3tab nền xám. Một CustomerHeader dùng chung PublicSiteLayout/ClientLayout; giữ đúng vị trí và thứ tự khi đổi khu vực, đưa Hồ sơ/Đăng xuất vào avatar, Chụp ảnh/Đơn thuê thành local tabs. Breakpoint1128 tránh nhét rail trên tablet. Giữ header wizard riêng, admin/staff và business routes/API. Guest/staff/flag gates được kiểm. Hoàn tất và QA passed tại ../design-qa.md; BOOK02 trước lưu ở ../docs/design/customer-booking-intake-qa.md. Không tự push/deploy thay đổi này.

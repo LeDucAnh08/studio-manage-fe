@@ -473,7 +473,7 @@ export default function BookingWizardPage() {
                           <>
                             <Button
                               type="button"
-                              variant="secondary"
+                              variant={selected ? 'primary' : 'secondary'}
                               aria-pressed={selected}
                               onClick={() => {
                                 updateDraft({ packageId: item._id });
@@ -577,7 +577,8 @@ export default function BookingWizardPage() {
                           </p>
                           <Button
                             type="button"
-                            variant="secondary"
+                            variant={draft.packageId === item._id ? 'primary' : 'secondary'}
+                            aria-pressed={draft.packageId === item._id}
                             onClick={() => updateDraft({ packageId: item._id })}
                           >
                             {draft.packageId === item._id ? 'Gói đang chọn' : 'Chọn gói này'}

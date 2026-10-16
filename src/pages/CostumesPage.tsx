@@ -34,6 +34,7 @@ interface CostumeFormValues {
   itemKind: 'clothing' | 'accessory';
   isRentalItem: boolean;
   rentalPrice: number;
+  rentalDailyPrice: number | null;
   inventory: CostumeInventory[];
 }
 
@@ -123,6 +124,7 @@ const CostumesPage = () => {
       itemKind: 'clothing',
       isRentalItem: false,
       rentalPrice: 0,
+      rentalDailyPrice: null,
       inventory: [],
     });
     setModalOpen(true);
@@ -139,6 +141,7 @@ const CostumesPage = () => {
       itemKind: costume.itemKind ?? 'clothing',
       isRentalItem: costume.isRentalItem ?? false,
       rentalPrice: costume.rentalPrice ?? 0,
+      rentalDailyPrice: costume.rentalDailyPrice ?? null,
       inventory: costume.inventory ?? [],
     });
     setModalOpen(true);
@@ -150,6 +153,10 @@ const CostumesPage = () => {
       ...data,
       rentalPrice:
         Number.isSafeInteger(data.rentalPrice) && data.rentalPrice >= 0 ? data.rentalPrice : 0,
+      rentalDailyPrice:
+        data.rentalDailyPrice === undefined
+          ? (editing?.rentalDailyPrice ?? null)
+          : data.rentalDailyPrice,
     };
     try {
       if (editing) {
@@ -208,7 +215,11 @@ const CostumesPage = () => {
             {c.isRentalItem ? 'Đang mở' : 'Nội bộ'}
           </Badge>
           <p className="text-xs font-medium">
-            {c.isRentalItem ? (c.rentalPrice ? formatVnd(c.rentalPrice) : 'Chưa báo giá') : '—'}
+            {c.isRentalItem
+              ? c.rentalDailyPrice
+                ? `${formatVnd(c.rentalDailyPrice)}/ngày`
+                : 'Chưa có giá/ngày'
+              : '—'}
           </p>
         </div>
       ),
@@ -324,7 +335,8 @@ const CostumesPage = () => {
                 </div>
                 {c.isRentalItem && (
                   <p className="text-sm font-medium">
-                    Giá thuê: {c.rentalPrice ? formatVnd(c.rentalPrice) : 'Liên hệ báo giá'}
+                    Giá thuê/ngày:{' '}
+                    {c.rentalDailyPrice ? formatVnd(c.rentalDailyPrice) : 'Chờ báo giá theo ngày'}
                   </p>
                 )}
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -505,9 +517,9 @@ const CostumesPage = () => {
               )}
             />
             <FormField
-              label="Giá thuê (đồng)"
+              label="Giá thuê kỳ cũ (đồng)"
               htmlFor="rentalPrice"
-              hint={isRentalEnabled ? undefined : 'Bật cho thuê để nhập giá.'}
+              hint="Giữ giá kỳ cũ cho dữ liệu cũ; không dùng làm giá/ngày."
               error={errors.rentalPrice?.message}
             >
               <Input
@@ -522,6 +534,28 @@ const CostumesPage = () => {
                     !isRentalEnabled ||
                     (Number.isSafeInteger(value) && value >= 0) ||
                     'Nhập giá thuê là số nguyên không âm.',
+                })}
+              />
+            </FormField>
+            <FormField
+              label="Giá thuê/ngày (đồng)"
+              htmlFor="rentalDailyPrice"
+              hint="Áp dụng cho đơn mới. Để trống nếu studio cần báo giá theo ngày."
+              error={errors.rentalDailyPrice?.message}
+            >
+              <Input
+                id="rentalDailyPrice"
+                type="number"
+                min="1"
+                step="1"
+                disabled={!isRentalEnabled}
+                {...register('rentalDailyPrice', {
+                  setValueAs: (value) => (value === '' || value === null ? null : Number(value)),
+                  validate: (value) =>
+                    !isRentalEnabled ||
+                    value === null ||
+                    (Number.isSafeInteger(value) && value > 0) ||
+                    'Nhập giá/ngày là số nguyên dương hoặc để trống.',
                 })}
               />
             </FormField>
