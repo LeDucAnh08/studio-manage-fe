@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CustomerAppearanceContext } from '../components/customer/CustomerAppearance';
@@ -9,6 +9,7 @@ import RentalDetailPage from './RentalDetailPage';
 import CostumesPage from './CostumesPage';
 
 const mocks = vi.hoisted(() => ({
+  rentalEnabled: true,
   catalog: vi.fn(),
   get: vi.fn(),
   create: vi.fn(),
@@ -16,6 +17,11 @@ const mocks = vi.hoisted(() => ({
   costumes: vi.fn(),
   updateCostume: vi.fn(),
   auth: { user: { _id: 'customer-1', roles: [6] } as { _id: string; roles: number[] } | null },
+}));
+vi.mock('../config/features', () => ({
+  get clientRentalEnabled() {
+    return mocks.rentalEnabled;
+  },
 }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => mocks.auth }));
 vi.mock('../services/costumeService', () => ({
@@ -72,6 +78,21 @@ async function choose(quantity = '2') {
   fireEvent.change(screen.getByLabelText('Người liên hệ'), { target: { value: 'Khách thuê' } });
   fireEvent.change(screen.getByLabelText('Số điện thoại'), { target: { value: '0901234567' } });
 }
+function storePreviewDraft() {
+  sessionStorage.setItem(
+    RENTAL_DRAFT_KEY,
+    JSON.stringify({
+      ownerId: null,
+      contactName: 'Khách thuê',
+      phone: '0901234567',
+      note: '',
+      receiveDate: receive,
+      returnDate: returned,
+      lines: [{ costumeId: item._id, size: 'M', quantity: '2' }],
+      preview: true,
+    }),
+  );
+}
 function orderFixture(): RentalOrder {
   return {
     _id: 'rental-1',
@@ -117,23 +138,112 @@ function renderDetail(order: RentalOrder) {
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.rentalEnabled = true;
   sessionStorage.clear();
   mocks.auth.user = { _id: 'customer-1', roles: [6] };
   mocks.catalog.mockResolvedValue([item]);
 });
 
 describe('date-first daily rental form', () => {
-  it('does not load or show products until both dates are valid', async () => {
-    renderNew();
-    expect(screen.getByLabelText('Ngày nhận mong muốn')).toHaveValue('');
+  it.each([true, false])(
+    'keeps the form and draft available without sending or login redirects when paused (authenticated=%s)',
+    async (authenticated) => {
+      mocks.rentalEnabled = false;
+      mocks.auth.user = authenticated ? { _id: 'customer-1', roles: [6] } : null;
+      renderNew(`${path}&item=${item._id}`);
+      await choose();
+      expect(screen.getByLabelText('Mẫu thuê 1')).toHaveValue(item._id);
+      const period = screen.getByRole('region', { name: 'Kỳ thuê đã chọn' });
+      expect(period.querySelector(`time[datetime="${receive}"]`)).toHaveTextContent('10/10/2099');
+      expect(period.querySelector(`time[datetime="${returned}"]`)).toHaveTextContent('12/10/2099');
+      expect(document.querySelector('input[type="date"]')).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' }));
+      await screen.findByRole('heading', { name: 'Kiểm tra yêu cầu thuê' });
+      const send = screen.getByRole('button', {
+        name: authenticated ? 'Gửi yêu cầu thuê' : 'Đăng nhập để gửi yêu cầu thuê',
+      });
+      expect(send).toBeDisabled();
+      fireEvent.click(send);
+      expect(mocks.create).not.toHaveBeenCalled();
+      expect(screen.getByTestId('location')).toHaveTextContent('/rental/start?');
+      expect(screen.getByTestId('location')).not.toHaveTextContent('/login');
+      expect(JSON.parse(sessionStorage.getItem(RENTAL_DRAFT_KEY)!)).toMatchObject({
+        contactName: 'Khách thuê',
+        phone: '0901234567',
+        receiveDate: receive,
+        returnDate: returned,
+      });
+    },
+  );
+
+  it('asks for a catalog period rather than date re-entry and shows the selected dates as a summary', async () => {
+    const first = renderNew();
+    expect(screen.getByRole('heading', { name: 'Thông tin thuê riêng' })).toHaveFocus();
+    expect(document.querySelector('input[type="date"]')).toBeNull();
+    expect(screen.getByRole('alert')).toHaveTextContent('Chọn đủ ngày nhận và ngày trả');
+    expect(screen.getByRole('link', { name: '← Chọn thời gian và mẫu thuê' })).toHaveAttribute(
+      'href',
+      '/costumes',
+    );
     expect(screen.queryByLabelText('Mẫu thuê 1')).not.toBeInTheDocument();
     expect(mocks.catalog).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByLabelText('Ngày nhận mong muốn'), { target: { value: receive } });
-    expect(mocks.catalog).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByLabelText('Ngày trả mong muốn'), { target: { value: returned } });
+    first.unmount();
+    renderNew(path);
     await screen.findByLabelText('Mẫu thuê 1');
+    const period = screen.getByRole('region', { name: 'Kỳ thuê đã chọn' });
+    expect(within(period).getByRole('heading', { name: 'Kỳ thuê đã chọn' })).toBeInTheDocument();
+    expect(period.querySelector(`time[datetime="${receive}"]`)).toHaveTextContent('10/10/2099');
+    expect(period.querySelector(`time[datetime="${returned}"]`)).toHaveTextContent('12/10/2099');
+    expect(period).toHaveTextContent('3 ngày thuê');
+    expect(document.querySelector('input[type="date"]')).toBeNull();
+    const changePeriod = screen.getByRole('link', { name: '← Đổi thời gian hoặc chọn mẫu' });
+    expect(changePeriod).toHaveAttribute(
+      'href',
+      `/costumes?receiveDate=${receive}&returnDate=${returned}`,
+    );
     expect(mocks.catalog).toHaveBeenCalledWith({ receiveDate: receive, returnDate: returned });
   });
+
+  it.each([
+    { query: `receiveDate=${receive}`, receiveDate: receive, returnDate: '', error: 'Chọn đủ' },
+    { query: `returnDate=${returned}`, receiveDate: '', returnDate: returned, error: 'Chọn đủ' },
+    { query: 'receiveDate=&returnDate=', receiveDate: '', returnDate: '', error: 'Chọn đủ' },
+    {
+      query: 'receiveDate=2099-02-30&returnDate=2099-03-01',
+      receiveDate: '2099-02-30',
+      returnDate: '2099-03-01',
+      error: 'không hợp lệ',
+    },
+    {
+      query: 'receiveDate=2000-01-01&returnDate=2000-01-02',
+      receiveDate: '2000-01-01',
+      returnDate: '2000-01-02',
+      error: 'hôm nay',
+    },
+  ])(
+    'does not mix a supplied invalid or incomplete period with the saved pair: $query',
+    async (entry) => {
+      storePreviewDraft();
+      renderNew(`/rental/start?${entry.query}`);
+      expect(await screen.findByRole('alert')).toHaveTextContent(entry.error);
+      expect(document.querySelector('input[type="date"]')).toBeNull();
+      expect(screen.queryByLabelText('Mẫu thuê 1')).not.toBeInTheDocument();
+      expect(mocks.catalog).not.toHaveBeenCalled();
+      expect(mocks.create).not.toHaveBeenCalled();
+      expect(JSON.parse(sessionStorage.getItem(RENTAL_DRAFT_KEY)!)).toMatchObject({
+        receiveDate: entry.receiveDate,
+        returnDate: entry.returnDate,
+        preview: false,
+      });
+      const changePeriod = new URL(
+        screen.getByRole('link', { name: '← Chọn thời gian và mẫu thuê' }).getAttribute('href')!,
+        'http://localhost',
+      );
+      expect(changePeriod.pathname).toBe('/costumes');
+      expect(changePeriod.searchParams.get('receiveDate')).toBe(entry.receiveDate || null);
+      expect(changePeriod.searchParams.get('returnDate')).toBe(entry.returnDate || null);
+    },
+  );
 
   it('uses daily rate times quantity times inclusive days and preserves dates in preview payload', async () => {
     mocks.create.mockResolvedValue({ _id: 'rental-1' });
@@ -143,6 +253,7 @@ describe('date-first daily rental form', () => {
     expect(screen.getByText(/Tiền thuê dự kiến:/)).not.toHaveTextContent('9.999.999');
     fireEvent.click(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' }));
     expect(screen.getByRole('heading', { name: 'Kiểm tra yêu cầu thuê' })).toBeInTheDocument();
+    expect(document.querySelector('input[type="date"]')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu thuê' }));
     await waitFor(() =>
       expect(mocks.create).toHaveBeenCalledWith(
@@ -151,6 +262,78 @@ describe('date-first daily rental form', () => {
           returnDate: returned,
           lines: [{ costumeId: item._id, size: 'M', quantity: 2 }],
         }),
+        'request-1',
+      ),
+    );
+  });
+
+  it('keeps item totals, quantity bounds and the submitted request in sync while editing multiple items', async () => {
+    const accessory = {
+      ...item,
+      _id: 'accessory-1',
+      name: 'Nón lá Huế quai lụa',
+      rentalDailyPrice: 15000,
+      sizes: ['FREE'],
+      availableBySize: { FREE: 2 },
+    };
+    mocks.catalog.mockResolvedValue([{ ...item, rentalDailyPrice: 125000 }, accessory]);
+    mocks.create.mockResolvedValue({ _id: 'rental-1' });
+    renderNew(path);
+    await choose();
+
+    const firstQuantity = screen.getByLabelText('Số lượng 1');
+    fireEvent.click(screen.getByRole('button', { name: 'Tăng số lượng 1' }));
+    expect(firstQuantity).toHaveValue(3);
+    expect(screen.getByRole('button', { name: 'Tăng số lượng 1' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Giảm số lượng 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Giảm số lượng 1' }));
+    expect(firstQuantity).toHaveValue(1);
+    expect(screen.getByRole('button', { name: 'Giảm số lượng 1' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Tăng số lượng 1' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm món thuê' }));
+    fireEvent.change(screen.getByLabelText('Mẫu thuê 2'), {
+      target: { value: accessory._id },
+    });
+    fireEvent.change(screen.getByLabelText('Kích cỡ 2'), { target: { value: 'FREE' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Tăng số lượng 2' }));
+    expect(screen.getByLabelText('Số lượng 2')).toHaveValue(2);
+    expect(screen.getByRole('button', { name: 'Tăng số lượng 2' })).toBeDisabled();
+    expect(
+      within(screen.getByRole('group', { name: 'Món thuê 1' })).getByText(/750\.000/),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('group', { name: 'Món thuê 2' })).getByText(/90\.000/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Tiền thuê dự kiến:/)).toHaveTextContent('840.000');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm món thuê' }));
+    expect(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Bỏ món 3' }));
+    expect(screen.queryByLabelText('Mẫu thuê 3')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Mẫu thuê 1')).toHaveValue(item._id);
+    expect(screen.getByLabelText('Mẫu thuê 2')).toHaveValue(accessory._id);
+    expect(screen.getByText(/Tiền thuê dự kiến:/)).toHaveTextContent('840.000');
+    fireEvent.change(screen.getByLabelText('Ghi chú thuê'), {
+      target: { value: '  Nhận tại studio  ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' }));
+    expect(screen.getByRole('heading', { name: 'Kiểm tra yêu cầu thuê' })).toBeInTheDocument();
+    expect(screen.getByText(/Tiền thuê dự kiến:/)).toHaveTextContent('840.000');
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu thuê' }));
+    await waitFor(() =>
+      expect(mocks.create).toHaveBeenCalledWith(
+        {
+          contactName: 'Khách thuê',
+          phone: '0901234567',
+          note: 'Nhận tại studio',
+          receiveDate: receive,
+          returnDate: returned,
+          lines: [
+            { costumeId: item._id, size: 'M', quantity: 2 },
+            { costumeId: accessory._id, size: 'FREE', quantity: 2 },
+          ],
+        },
         'request-1',
       ),
     );
@@ -166,14 +349,26 @@ describe('date-first daily rental form', () => {
   });
 
   it('preserves chosen rows and disables preview if a new range has insufficient stock', async () => {
-    renderNew(path);
+    const first = renderNew(path);
     await choose();
+    fireEvent.click(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' }));
+    expect(screen.getByRole('heading', { name: 'Kiểm tra yêu cầu thuê' })).toBeInTheDocument();
+    first.unmount();
     mocks.catalog.mockResolvedValue([{ ...item, availableBySize: { M: 1 } }]);
-    fireEvent.change(screen.getByLabelText('Ngày trả mong muốn'), {
-      target: { value: '2099-10-13' },
-    });
+    renderNew(`/rental/start?receiveDate=${receive}&returnDate=2099-10-13`);
     await screen.findByText(/Lựa chọn này không đủ hàng/);
+    expect(mocks.catalog).toHaveBeenLastCalledWith({
+      receiveDate: receive,
+      returnDate: '2099-10-13',
+    });
+    expect(
+      screen.queryByRole('heading', { name: 'Kiểm tra yêu cầu thuê' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Mẫu thuê 1')).toHaveValue(item._id);
+    expect(screen.getByLabelText('Kích cỡ 1')).toHaveValue('M');
     expect(screen.getByLabelText('Số lượng 1')).toHaveValue(2);
+    expect(screen.getByLabelText('Người liên hệ')).toHaveValue('Khách thuê');
+    expect(screen.getByLabelText('Số điện thoại')).toHaveValue('0901234567');
     expect(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' })).toBeDisabled();
     expect(screen.getByLabelText('Số lượng 1')).toHaveAttribute('max', '1');
   });
@@ -186,12 +381,11 @@ describe('date-first daily rental form', () => {
           resolveOld = resolve;
         }),
     );
-    renderNew(path);
+    const first = renderNew(path);
     await waitFor(() => expect(mocks.catalog).toHaveBeenCalledTimes(1));
+    first.unmount();
     mocks.catalog.mockResolvedValue([{ ...item, name: 'Mẫu kỳ mới' }]);
-    fireEvent.change(screen.getByLabelText('Ngày trả mong muốn'), {
-      target: { value: '2099-10-13' },
-    });
+    renderNew(`/rental/start?receiveDate=${receive}&returnDate=2099-10-13`);
     await screen.findByRole('option', { name: 'Mẫu kỳ mới' });
     await act(async () => resolveOld([item]));
     expect(screen.queryByRole('option', { name: 'Áo dài' })).not.toBeInTheDocument();
@@ -199,32 +393,19 @@ describe('date-first daily rental form', () => {
   });
 
   it('restores the draft across login and rechecks the same date range before showing preview', async () => {
-    sessionStorage.setItem(
-      RENTAL_DRAFT_KEY,
-      JSON.stringify({
-        ownerId: null,
-        contactName: 'Khách thuê',
-        phone: '0901234567',
-        note: '',
-        receiveDate: receive,
-        returnDate: returned,
-        lines: [{ costumeId: item._id, size: 'M', quantity: '2' }],
-        preview: true,
-      }),
-    );
+    storePreviewDraft();
     renderNew();
     await screen.findByRole('heading', { name: 'Kiểm tra yêu cầu thuê' });
     expect(mocks.catalog).toHaveBeenCalledWith({ receiveDate: receive, returnDate: returned });
     expect(screen.getByText(/Tiền thuê dự kiến:/)).toHaveTextContent('300.000');
   });
 
-  it('keeps edited dates in the URL and login return path rather than restoring the original range', async () => {
+  it('keeps the period chosen outside the form through login rather than restoring the old draft dates', async () => {
     mocks.auth.user = null;
-    renderNew(path);
+    const first = renderNew(`${path}&item=${item._id}`);
     await choose();
-    fireEvent.change(screen.getByLabelText('Ngày trả mong muốn'), {
-      target: { value: '2099-10-13' },
-    });
+    first.unmount();
+    renderNew(`/rental/start?receiveDate=${receive}&returnDate=2099-10-13&item=${item._id}`);
     await waitFor(() =>
       expect(mocks.catalog).toHaveBeenLastCalledWith({
         receiveDate: receive,
@@ -235,9 +416,13 @@ describe('date-first daily rental form', () => {
     await screen.findByRole('button', { name: 'Xem lại yêu cầu thuê' });
     fireEvent.click(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' }));
     fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập để gửi yêu cầu thuê' }));
-    expect(decodeURIComponent(screen.getByTestId('location').textContent!)).toContain(
-      '/login?returnTo=/rental/start?receiveDate=2099-10-10&returnDate=2099-10-13',
-    );
+    const loginUrl = new URL(screen.getByTestId('location').textContent!, 'http://localhost');
+    expect(loginUrl.pathname).toBe('/login');
+    const returnTo = new URL(loginUrl.searchParams.get('returnTo')!, 'http://localhost');
+    expect(returnTo.pathname).toBe('/rental/start');
+    expect(returnTo.searchParams.get('receiveDate')).toBe(receive);
+    expect(returnTo.searchParams.get('returnDate')).toBe('2099-10-13');
+    expect(returnTo.searchParams.get('item')).toBe(item._id);
     expect(JSON.parse(sessionStorage.getItem(RENTAL_DRAFT_KEY)!)).toMatchObject({
       receiveDate: receive,
       returnDate: '2099-10-13',

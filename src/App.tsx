@@ -147,16 +147,14 @@ function App() {
                 )}
                 <Route path="/portfolio" element={<PortfolioPage />} />
                 <Route path="/costumes" element={<RentalCatalogPage />} />
-                {clientRentalEnabled && (
-                  <Route
-                    path="/rental/start"
-                    element={
-                      <PublicSiteLayout source="costumes">
-                        <NewRentalPage />
-                      </PublicSiteLayout>
-                    }
-                  />
-                )}
+                <Route
+                  path="/rental/start"
+                  element={
+                    <PublicSiteLayout source="costumes">
+                      <NewRentalPage />
+                    </PublicSiteLayout>
+                  }
+                />
                 <Route
                   path="/rental-catalog"
                   element={<SearchPreservingRedirect pathname="/costumes" />}

@@ -181,6 +181,21 @@ describe('Customer route appearance', () => {
   );
 
   it.each([
+    { portal: true, rental: false },
+    { portal: false, rental: false },
+  ])('uses customer toasts on the public rental form with flags %s', async (flags) => {
+    mocks.flags.portal = flags.portal;
+    mocks.flags.rental = flags.rental;
+    renderToastSurface('/rental/start');
+    fireEvent.click(screen.getByRole('button', { name: 'Notify' }));
+    const renderedToast = (await screen.findByText('Notification at /rental/start')).closest(
+      '.Toastify__toast',
+    );
+    expect(renderedToast).toHaveClass('customer-toast', 'customer-tokens');
+    expect(renderedToast).toHaveAttribute('role', 'alert');
+  });
+
+  it.each([
     ['/account/bookings?source=portfolio', 'Customer login destination'],
     ['/profile', 'Staff login destination'],
     ['/', 'Public portfolio destination'],

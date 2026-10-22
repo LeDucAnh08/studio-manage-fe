@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../context/AuthContext', () => ({ useAuth: () => mocks.auth }));
+vi.mock('../config/features', () => ({ clientRentalEnabled: true }));
 vi.mock('../services/bookingWorkflowService', () => ({
   bookingWorkflowService: { get: mocks.workflowGet, act: mocks.workflowAct },
   createWorkflowRequestId: mocks.requestId,
@@ -707,13 +708,9 @@ describe('Customer order presentation preserves workflow contracts', () => {
 
   it('keeps new rental drafts through a guest login redirect and reuses a failed submission key', async () => {
     mocks.auth.user = null;
-    const first = renderPage(<NewRentalPage />, '/rental/start?item=costume-1', '/rental/start');
-    fireEvent.change(screen.getByLabelText('Ngày nhận mong muốn'), {
-      target: { value: futureDate() },
-    });
-    fireEvent.change(screen.getByLabelText('Ngày trả mong muốn'), {
-      target: { value: futureDate() },
-    });
+    const rentalPath = `/rental/start?item=costume-1&receiveDate=${futureDate()}&returnDate=${futureDate()}`;
+    const first = renderPage(<NewRentalPage />, rentalPath, '/rental/start');
+    expect(document.querySelector('input[type="date"]')).toBeNull();
     await screen.findByLabelText('Mẫu thuê 1');
     fireEvent.change(screen.getByLabelText('Kích cỡ 1'), { target: { value: 'M' } });
     fireEvent.change(screen.getByLabelText('Số lượng 1'), { target: { value: '2' } });
@@ -739,7 +736,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
     mocks.rentalCreate
       .mockReturnValueOnce(pending.promise)
       .mockResolvedValue({ _id: 'created-rental' });
-    renderPage(<NewRentalPage />, '/rental/start?item=costume-1', '/rental/start');
+    renderPage(<NewRentalPage />, rentalPath, '/rental/start');
     const send = await screen.findByRole('button', { name: 'Gửi yêu cầu thuê' });
     fireEvent.click(send);
     fireEvent.click(send);

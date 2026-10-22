@@ -930,4 +930,29 @@ Không tick task khi mới chỉ sửa code mà chưa kiểm chứng runtime c�
 - [x] Mobile giữ cùng thứ tự, đóng khi navigation/logout cùng-path/resize; desktop breakpoint1128.
 - [x] Guest return destination, staff profile, rental flag và role6/portal-off được kiểm; không đổi API/permission/admin.
 - [x] 52 tests riêng biệt qua các lượt đạt; tsc/lint/format/build đạt, 8 lint warnings baseline.
-- [x] Visual QA source/render, responsive320–1440, no-overflow và one-main đạt; xem ../design-qa.md. BOOK02 archive: ../docs/design/customer-booking-intake-qa.md.
+- [x] Visual QA source/render, responsive320–1440, no-overflow và one-main đạt; xem ../docs/design/customer-navbar-qa-2026-10-16.md. BOOK02 archive: ../docs/design/customer-booking-intake-qa.md.
+
+### CAT01: Chọn nhóm hàng và chia danh mục — 20/10/2026
+
+- [x] Nút Tất cả/Trang phục/Phụ kiện và danh mục con có số mẫu khả dụng, lọc ngay và giữ URL/ngày thuê.
+- [x] Kết quả hai tầng, gộp tên Unicode/khoảng trắng/hoa thường trong cùng loại hàng; fallback và empty/reset rõ ràng.
+- [x] Giữ date-first, bộ lọc size/giá, CTA và chống stale response; 11/11 test catalog và TypeScript đạt.
+- [x] ESLint/Prettier/diff check và Vite build đạt; bằng chứng tại ../docs/design/customer-catalog-category-qa.md.
+- [ ] Kiểm trực tiếp visual/keyboard/mobile trong browser: Computer Use chưa được cấp quyền Chrome trước timeout.
+
+### RENT02: Làm rõ lối vào thuê riêng — 20/10/2026
+
+- [x] Có CTA tạo yêu cầu thuê riêng ngay dưới ngày thuê, CTA từng mẫu giữ sản phẩm/ngày; không tự chuyển thuê sang đặt chụp khi cờ thuê tắt.
+- [x] Header ghi rõ “Đặt lịch chụp”, giữ navbar chung; route và quyền thuê vẫn theo feature gate.
+- [x] Kiểm thử danh mục 12, daily rental 13, login 13, header 18 đạt; TypeScript/ESLint đạt. Browser đã mở form thuê độc lập từ cả thẻ sản phẩm và CTA mới; không tạo đơn DB trong lúc kiểm.
+- [x] Bằng chứng và giới hạn kiểm tra: ../docs/design/customer-standalone-rental-entry-qa.md.
+- [x] Theo phản hồi tiếp theo: “Liên hệ thuê riêng” cũng mở form công khai, không mở Portfolio; giữ gate gửi đơn/tài khoản. 57 kiểm thử và TypeScript/lint/format đạt; browser nhánh liên hệ trên preview tạm 4015 mở đúng form thông tin thuê.
+- [x] Giữ kỳ thuê chọn ngoài danh mục: form hiển thị ngày nhận/trả và số ngày, không nhập lại. Đổi kỳ bằng backlink duy nhất; giữ ngày qua bản nháp/đăng nhập/gửi, chặn kỳ thiếu/sai. 37 kiểm thử, TypeScript/lint/format đạt.
+
+### RENT03: Form thuê riêng theo mockup 2 — 20/10/2026
+
+- [x] User chọn ảnh thứ hai, “Danh sách gọn”: items theo hàng, contact bên dưới và tổng tiền/CTA cuối form; giữ navbar chung và một backlink.
+- [x] Kỳ thuê chỉ đọc; tăng/giảm số lượng theo hàng còn trống, phí từng dòng và tổng tiền dùng giá/ngày thật; không thêm ảnh hoặc tiền cọc giả.
+- [x] Giữ draft, returnTo, availability, paused gate, review và request key; bổ sung test nhiều món, giới hạn số lượng và payload.
+- [x] 38/38 tests, TypeScript, ESLint, Prettier và production build đạt. Browser kiểm validation → xem lại → chỉnh sửa, desktop/mobile320–1440 không tràn ngang; không gửi đơn DB.
+- [x] Visual comparison full/focused đạt; evidence ../docs/design/customer-rental-form-qa.md và ../design-qa.md. Chỉ sửa customer presentation, không push/deploy trong đợt này.

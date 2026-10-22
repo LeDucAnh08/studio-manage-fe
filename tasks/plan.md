@@ -360,4 +360,12 @@ Mỗi task/slice tạo diff nhỏ và checkpoint riêng để rollback presentat
 
 ## NAV01 — Navbar customer thống nhất, 16/10/2026
 
-User chọn phương án1 theo thứ tự ảnh hiển thị: nhóm3tab nền xám. Một CustomerHeader dùng chung PublicSiteLayout/ClientLayout; giữ đúng vị trí và thứ tự khi đổi khu vực, đưa Hồ sơ/Đăng xuất vào avatar, Chụp ảnh/Đơn thuê thành local tabs. Breakpoint1128 tránh nhét rail trên tablet. Giữ header wizard riêng, admin/staff và business routes/API. Guest/staff/flag gates được kiểm. Hoàn tất và QA passed tại ../design-qa.md; BOOK02 trước lưu ở ../docs/design/customer-booking-intake-qa.md. Không tự push/deploy thay đổi này.
+User chọn phương án1 theo thứ tự ảnh hiển thị: nhóm3tab nền xám. Một CustomerHeader dùng chung PublicSiteLayout/ClientLayout; giữ đúng vị trí và thứ tự khi đổi khu vực, đưa Hồ sơ/Đăng xuất vào avatar, Chụp ảnh/Đơn thuê thành local tabs. Breakpoint1128 tránh nhét rail trên tablet. Giữ header wizard riêng, admin/staff và business routes/API. Guest/staff/flag gates được kiểm. Hoàn tất và QA passed tại ../docs/design/customer-navbar-qa-2026-10-16.md; BOOK02 trước lưu ở ../docs/design/customer-booking-intake-qa.md. Không tự push/deploy thay đổi này.
+
+## CAT01 — Chọn nhóm hàng và chia danh mục, 20/10/2026
+
+User yêu cầu chia trang phục/phụ kiện theo category và chọn nhóm thuận tiện hơn. Dùng dữ liệu khả dụng hiện có sau kỳ thuê: nút nhóm → nút danh mục → kết quả theo hai tầng. Lọc local, giữ lựa chọn trong URL, gộp tên danh mục tương đương trong từng loại hàng, fallback cho mẫu chưa có danh mục; không đổi API/kho. Kiểm bằng regression catalog, typecheck/lint/build và browser nếu quyền điều khiển khả dụng. Evidence: ../docs/design/customer-catalog-category-qa.md.
+
+## RENT03 — Form thuê riêng, phương án 2, 20/10/2026
+
+Lựa chọn là ảnh thứ hai trong bộ mockup mới nhất: “Danh sách gọn”. Triển khai trực tiếp trong NewRentalPage với CSS riêng có scope customer; danh sách món sáu cột desktop, xếp hàng có nhãn trên mobile, contact phía dưới, tổng tiền và review CTA tĩnh ở cuối. Giữ ngày thuê từ danh mục, thông tin hàng khả dụng và toàn bộ draft/auth/API/giữ hàng hiện có. Dùng primitives và Lucide sẵn có, không thêm dependency hoặc schema ảnh. Nghiệm thu bằng 38 tests, checks/build và visual comparison cùng state hai món/3 ngày, responsive320–1440. Kết quả passed tại ../docs/design/customer-rental-form-qa.md; latest QA ở ../design-qa.md. Không tạo đơn DB, push hoặc deploy trong đợt này.

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { CalendarDays, CirclePlus, Minus, Plus, Trash2 } from 'lucide-react';
 import {
   OrderButton as Button,
   OrderInput as Input,
@@ -9,6 +10,7 @@ import {
 import { useCustomerAppearance } from '../components/customer/CustomerAppearance';
 import { CustomerPrice } from '../components/customer/CustomerPrice';
 import '../styles/customer-orders.css';
+import '../styles/customer-rental-form.css';
 import { useAuth } from '../context/AuthContext';
 import { costumeService } from '../services/costumeService';
 import {
@@ -20,7 +22,11 @@ import {
 import { RENTAL_DRAFT_KEY, clearRentalDraft } from '../services/rentalDraft';
 import { createWorkflowRequestId } from '../services/bookingWorkflowService';
 import type { RentalCatalogItem } from '../types';
-import { rentalDayCount, validateRentalPeriod, vietnamToday } from '../utils/rentalPeriod';
+import { rentalDayCount, validateRentalPeriod } from '../utils/rentalPeriod';
+import { clientRentalEnabled } from '../config/features';
+
+const requestsPaused =
+  'Studio tạm ngưng nhận yêu cầu thuê trực tuyến. Thông tin bạn nhập vẫn được lưu trong phiên hiện tại.';
 
 type Draft = Omit<RentalRequest, 'lines'> & {
   lines: Array<{ costumeId: string; size: string; quantity: string }>;
@@ -40,31 +46,38 @@ const empty = (ownerId: string | null): Draft => ({
   preview: false,
 });
 export default function NewRentalPage() {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => headingRef.current?.focus(), []);
   const customer = useCustomerAppearance();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
   const [draft, setDraft] = useState<Draft>(() => {
+    const incomingPeriod = {
+      receiveDate: params.get('receiveDate') ?? '',
+      returnDate: params.get('returnDate') ?? '',
+    };
     try {
       const saved = JSON.parse(sessionStorage.getItem(RENTAL_DRAFT_KEY) || 'null') as Draft | null;
-      if (saved && (!saved.ownerId || saved.ownerId === user?._id) && Array.isArray(saved.lines))
+      if (saved && (!saved.ownerId || saved.ownerId === user?._id) && Array.isArray(saved.lines)) {
+        const period =
+          params.has('receiveDate') || params.has('returnDate') ? incomingPeriod : saved;
         return {
           ...saved,
-          receiveDate: params.get('receiveDate') ?? saved.receiveDate,
-          returnDate: params.get('returnDate') ?? saved.returnDate,
+          receiveDate: period.receiveDate,
+          returnDate: period.returnDate,
           preview:
-            (params.has('receiveDate') && params.get('receiveDate') !== saved.receiveDate) ||
-            (params.has('returnDate') && params.get('returnDate') !== saved.returnDate)
+            period.receiveDate !== saved.receiveDate || period.returnDate !== saved.returnDate
               ? false
               : saved.preview,
         };
+      }
     } catch {
       clearRentalDraft();
     }
     return {
       ...empty(user?._id ?? null),
-      receiveDate: params.get('receiveDate') ?? '',
-      returnDate: params.get('returnDate') ?? '',
+      ...incomingPeriod,
       lines: [{ costumeId: params.get('item') ?? '', size: '', quantity: '1' }],
     };
   });
@@ -76,6 +89,10 @@ export default function NewRentalPage() {
   const [busy, setBusy] = useState(false);
   const [retry, setRetry] = useState(0);
   const periodError = validateRentalPeriod(draft.receiveDate, draft.returnDate);
+  const catalogParams = new URLSearchParams();
+  if (draft.receiveDate) catalogParams.set('receiveDate', draft.receiveDate);
+  if (draft.returnDate) catalogParams.set('returnDate', draft.returnDate);
+  const catalogPath = '/costumes' + (catalogParams.size ? `?${catalogParams}` : '');
   const days = rentalDayCount(draft.receiveDate, draft.returnDate);
   const range = `${draft.receiveDate}:${draft.returnDate}`;
   const catalogReady = !periodError && catalogRange === range && !loading && !catalogError;
@@ -123,22 +140,7 @@ export default function NewRentalPage() {
   }, [catalog, params]);
   const patch = (value: Partial<Draft>) => {
     setError('');
-    if (value.receiveDate !== undefined || value.returnDate !== undefined) {
-      const next = new URLSearchParams(params);
-      for (const key of ['receiveDate', 'returnDate'] as const) {
-        const date = value[key] ?? draft[key];
-        if (date) next.set(key, date);
-        else next.delete(key);
-      }
-      setParams(next, { replace: true });
-    }
-    setDraft((current) => ({
-      ...current,
-      ...value,
-      ...(value.receiveDate !== undefined || value.returnDate !== undefined
-        ? { preview: false }
-        : {}),
-    }));
+    setDraft((current) => ({ ...current, ...value }));
   };
   const rowPatch = (index: number, value: Partial<Draft['lines'][number]>) =>
     patch({
@@ -187,7 +189,7 @@ export default function NewRentalPage() {
         )
       : null;
   const estimateContent = (
-    <p>
+    <p className={customer ? 'customer-rental-form__estimate' : undefined}>
       Tiền thuê dự kiến:{' '}
       {estimate === null ? (
         'Studio sẽ báo giá theo ngày cho các mẫu chưa có giá.'
@@ -197,7 +199,7 @@ export default function NewRentalPage() {
         rentalMoney(estimate)
       )}
       {estimate !== null && (
-        <span className="block text-sm text-muted-foreground">
+        <span className={customer ? 'sr-only' : 'block text-sm text-muted-foreground'}>
           Giá/ngày × số lượng × {days} ngày. Chưa bao gồm cọc và phát sinh.
         </span>
       )}
@@ -216,14 +218,19 @@ export default function NewRentalPage() {
     })),
   });
   const submit = async () => {
+    if (!clientRentalEnabled) {
+      setError(requestsPaused);
+      return;
+    }
     if (selectionError) {
       setError(selectionError);
       return;
     }
     if (!user) {
-      navigate(
-        `/login?returnTo=${encodeURIComponent('/rental/start' + (params.toString() ? '?' + params.toString() : ''))}`,
-      );
+      const returnParams = new URLSearchParams(params);
+      returnParams.set('receiveDate', draft.receiveDate);
+      returnParams.set('returnDate', draft.returnDate);
+      navigate(`/login?returnTo=${encodeURIComponent(`/rental/start?${returnParams}`)}`);
       return;
     }
     if (!user.roles.includes(6)) {
@@ -249,32 +256,29 @@ export default function NewRentalPage() {
     }
   };
   return (
-    <main
+    <section
       className={
         customer
-          ? 'customer-orders customer-orders--rental-form'
+          ? 'customer-orders customer-orders--rental-form customer-rental-form'
           : 'mx-auto max-w-3xl space-y-6 px-4 py-8'
       }
     >
-      <header>
-        <Link
-          className={customer ? 'customer-link' : 'text-sm text-primary'}
-          to={
-            draft.receiveDate && draft.returnDate
-              ? `/costumes?${new URLSearchParams({ receiveDate: draft.receiveDate, returnDate: draft.returnDate })}`
-              : '/costumes'
-          }
-        >
-          ← Chọn trang phục & phụ kiện
+      <header className={customer ? 'customer-rental-form__header' : undefined}>
+        <Link className={customer ? 'customer-link' : 'text-sm text-primary'} to={catalogPath}>
+          {periodError ? '← Chọn thời gian và mẫu thuê' : '← Đổi thời gian hoặc chọn mẫu'}
         </Link>
-        <h1 className={customer ? 'customer-page-title mt-4' : 'mt-4 text-3xl font-bold'}>
-          Yêu cầu thuê
+        <h1
+          ref={headingRef}
+          tabIndex={-1}
+          className={customer ? 'customer-page-title mt-4' : 'mt-4 text-3xl font-bold'}
+        >
+          Thông tin thuê riêng
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Chọn ngày nhận và trả để xem trang phục, phụ kiện còn trống. Bạn có thể thuê riêng, không
-          cần đặt lịch chụp. Gửi yêu cầu chưa giữ hàng.
+          Chọn mẫu và để lại thông tin để Yume tiếp nhận yêu cầu.
         </p>
       </header>
+      {!clientRentalEnabled && <p role="status">{requestsPaused}</p>}
       {error && (
         <p
           role="alert"
@@ -288,52 +292,67 @@ export default function NewRentalPage() {
         </p>
       )}
       <section
+        aria-label={periodError ? 'Kỳ thuê' : 'Kỳ thuê đã chọn'}
         className={
           customer
-            ? 'customer-order-surface customer-order-field__group'
+            ? 'customer-rental-form__period'
             : 'grid gap-4 rounded-2xl border bg-card p-5 sm:grid-cols-2'
         }
       >
-        <h2
-          className={
-            customer
-              ? 'customer-section-title customer-order-span-full'
-              : 'text-lg font-semibold sm:col-span-2'
-          }
-        >
-          Chọn kỳ thuê
-        </h2>
-        <label className={customer ? 'customer-order-field' : undefined}>
-          Ngày nhận mong muốn
-          <Input
-            required
-            type="date"
-            min={vietnamToday()}
-            disabled={busy}
-            value={draft.receiveDate}
-            onChange={(event) => patch({ receiveDate: event.target.value })}
-          />
-        </label>
-        <label className={customer ? 'customer-order-field' : undefined}>
-          Ngày trả mong muốn
-          <Input
-            required
-            type="date"
-            min={draft.receiveDate || vietnamToday()}
-            disabled={busy}
-            value={draft.returnDate}
-            onChange={(event) => patch({ returnDate: event.target.value })}
-          />
-        </label>
-        <p
-          className={
-            customer
-              ? 'customer-order-span-full text-sm text-muted-foreground'
-              : 'text-sm text-muted-foreground sm:col-span-2'
-          }
-        >
-          {periodError || `${days} ngày thuê; tính cả ngày nhận và ngày trả.`}
-        </p>
+        <div className={customer ? 'customer-rental-form__period-title' : 'sm:col-span-2'}>
+          <CalendarDays aria-hidden="true" size={24} />
+          <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
+            {periodError ? 'Chưa chọn kỳ thuê hợp lệ' : 'Kỳ thuê đã chọn'}
+          </h2>
+        </div>
+        {periodError ? (
+          <p
+            role="alert"
+            className={
+              customer
+                ? 'customer-order-span-full customer-error'
+                : 'sm:col-span-2 text-destructive'
+            }
+          >
+            {periodError}
+          </p>
+        ) : (
+          <>
+            <dl
+              className={
+                customer
+                  ? 'customer-rental-form__period-dates'
+                  : 'grid gap-4 sm:col-span-2 sm:grid-cols-2'
+              }
+            >
+              <div>
+                <dt className="text-sm text-muted-foreground">Ngày nhận</dt>
+                <dd>
+                  <time dateTime={draft.receiveDate}>
+                    {draft.receiveDate.split('-').reverse().join('/')}
+                  </time>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground">Ngày trả</dt>
+                <dd>
+                  <time dateTime={draft.returnDate}>
+                    {draft.returnDate.split('-').reverse().join('/')}
+                  </time>
+                </dd>
+              </div>
+            </dl>
+            <p
+              className={
+                customer
+                  ? 'customer-rental-form__period-count'
+                  : 'sm:col-span-2 text-sm text-muted-foreground'
+              }
+            >
+              {days} ngày thuê; tính cả ngày nhận và ngày trả.
+            </p>
+          </>
+        )}
       </section>
       {periodError ? null : loading || (!catalogReady && !catalogError) ? (
         <p role="status">Đang kiểm tra mẫu còn trống…</p>
@@ -386,14 +405,17 @@ export default function NewRentalPage() {
             <Button variant="outline" disabled={busy} onClick={() => patch({ preview: false })}>
               Chỉnh sửa yêu cầu
             </Button>
-            <Button disabled={busy || !!selectionError} onClick={() => void submit()}>
+            <Button
+              disabled={busy || !!selectionError || !clientRentalEnabled}
+              onClick={() => void submit()}
+            >
               {busy ? 'Đang gửi…' : user ? 'Gửi yêu cầu thuê' : 'Đăng nhập để gửi yêu cầu thuê'}
             </Button>
           </div>
         </section>
       ) : (
         <form
-          className={customer ? 'customer-orders' : 'space-y-6'}
+          className={customer ? 'customer-rental-form__body' : 'space-y-6'}
           onSubmit={(event) => {
             event.preventDefault();
             if (selectionError) {
@@ -405,27 +427,62 @@ export default function NewRentalPage() {
         >
           <section
             className={
-              customer ? 'customer-order-surface' : 'space-y-4 rounded-2xl border bg-card p-5'
+              customer ? 'customer-rental-form__items' : 'space-y-4 rounded-2xl border bg-card p-5'
             }
           >
-            <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
-              Mẫu và kích cỡ
+            <h2
+              className={
+                customer
+                  ? 'customer-section-title customer-rental-form__section-title'
+                  : 'text-lg font-semibold'
+              }
+            >
+              Danh sách món thuê
             </h2>
+            {customer && (
+              <div className="customer-rental-form__column-headings" aria-hidden="true">
+                <span>Mẫu thuê</span>
+                <span>Kích cỡ</span>
+                <span>Số lượng</span>
+                <span>Giá thuê/ngày</span>
+                <span>Tiền thuê</span>
+                <span />
+              </div>
+            )}
             {draft.lines.map((row, index) => {
               const item = catalog.find((value) => value._id === row.costumeId);
               const remaining = rowAvailability(row, index);
+              const quantity = Number(row.quantity);
+              const dailyRate = item?.rentalDailyPrice;
+              const lineTotal =
+                typeof dailyRate === 'number' &&
+                dailyRate > 0 &&
+                Number.isSafeInteger(quantity) &&
+                quantity > 0 &&
+                days
+                  ? dailyRate * quantity * days
+                  : null;
               return (
                 <fieldset
                   key={index}
                   className={
                     customer
-                      ? 'customer-order-field__group customer-order-inset'
+                      ? 'customer-rental-form__row'
                       : 'grid gap-3 rounded-xl bg-muted/30 p-4 sm:grid-cols-2'
                   }
                 >
                   <legend className="sr-only">Món thuê {index + 1}</legend>
-                  <div className={customer ? 'customer-order-field' : 'space-y-1'}>
-                    <label htmlFor={`rental-item-${index}`}>Mẫu thuê {index + 1}</label>
+                  <div
+                    className={
+                      customer ? 'customer-order-field customer-rental-form__item' : 'space-y-1'
+                    }
+                  >
+                    <label
+                      className={customer ? 'customer-rental-form__field-label' : undefined}
+                      htmlFor={`rental-item-${index}`}
+                    >
+                      Mẫu thuê {index + 1}
+                    </label>
                     <OrderSelect
                       id={`rental-item-${index}`}
                       required
@@ -445,9 +502,28 @@ export default function NewRentalPage() {
                         </option>
                       ))}
                     </OrderSelect>
+                    {row.size && (
+                      <p>
+                        Cỡ {row.size} · còn tối đa {remaining} món cho dòng này.
+                      </p>
+                    )}
+                    {row.costumeId && (!item || (row.size && quantity > remaining)) && (
+                      <p role="alert" className={customer ? 'customer-error' : 'text-destructive'}>
+                        Lựa chọn này không đủ hàng trong kỳ thuê mới. Hãy chọn lại.
+                      </p>
+                    )}
                   </div>
-                  <div className={customer ? 'customer-order-field' : 'space-y-1'}>
-                    <label htmlFor={`rental-size-${index}`}>Kích cỡ {index + 1}</label>
+                  <div
+                    className={
+                      customer ? 'customer-order-field customer-rental-form__size' : 'space-y-1'
+                    }
+                  >
+                    <label
+                      className={customer ? 'customer-rental-form__field-label' : undefined}
+                      htmlFor={`rental-size-${index}`}
+                    >
+                      Kích cỡ {index + 1}
+                    </label>
                     <OrderSelect
                       id={`rental-size-${index}`}
                       required
@@ -462,31 +538,70 @@ export default function NewRentalPage() {
                       )}
                       {item?.sizes.map((size) => (
                         <option key={size} value={size}>
-                          {size} · còn {item.availableBySize?.[size] ?? 0}
+                          {customer ? size : `${size} · còn ${item.availableBySize?.[size] ?? 0}`}
                         </option>
                       ))}
                     </OrderSelect>
                   </div>
-                  <label className={customer ? 'customer-order-field' : undefined}>
-                    Số lượng {index + 1}
-                    <Input
-                      required
-                      min={1}
-                      max={Math.max(1, remaining)}
-                      disabled={!row.size}
-                      step={1}
-                      type="number"
-                      value={row.quantity}
-                      onChange={(event) => rowPatch(index, { quantity: event.target.value })}
-                    />
-                  </label>
-                  <div className="self-center text-sm text-muted-foreground">
+                  <div className={customer ? 'customer-rental-form__quantity' : 'space-y-1'}>
+                    <label
+                      className={customer ? 'customer-rental-form__field-label' : undefined}
+                      htmlFor={`rental-quantity-${index}`}
+                    >
+                      Số lượng {index + 1}
+                    </label>
+                    <div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        aria-label={`Giảm số lượng ${index + 1}`}
+                        disabled={!row.size || !Number.isSafeInteger(quantity) || quantity <= 1}
+                        onClick={() => rowPatch(index, { quantity: String(quantity - 1) })}
+                      >
+                        <Minus aria-hidden="true" size={18} />
+                      </Button>
+                      <Input
+                        id={`rental-quantity-${index}`}
+                        required
+                        min={1}
+                        max={Math.max(1, remaining)}
+                        disabled={!row.size}
+                        step={1}
+                        type="number"
+                        value={row.quantity}
+                        onChange={(event) => rowPatch(index, { quantity: event.target.value })}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        aria-label={`Tăng số lượng ${index + 1}`}
+                        disabled={
+                          !row.size ||
+                          !Number.isSafeInteger(quantity) ||
+                          quantity < 1 ||
+                          quantity >= remaining
+                        }
+                        onClick={() => rowPatch(index, { quantity: String(quantity + 1) })}
+                      >
+                        <Plus aria-hidden="true" size={18} />
+                      </Button>
+                    </div>
+                  </div>
+                  <div
+                    className={
+                      customer
+                        ? 'customer-rental-form__rate'
+                        : 'self-center text-sm text-muted-foreground'
+                    }
+                  >
+                    <span className={customer ? 'customer-rental-form__field-label' : 'sr-only'}>
+                      Giá thuê/ngày
+                    </span>
                     <p>
-                      Giá thuê/ngày:{' '}
                       {item ? (
                         typeof item.rentalDailyPrice === 'number' && item.rentalDailyPrice > 0 ? (
                           customer ? (
-                            <CustomerPrice amount={item.rentalDailyPrice} unit="/món/ngày" />
+                            <CustomerPrice amount={item.rentalDailyPrice} unit="/ngày" />
                           ) : (
                             `${rentalMoney(item.rentalDailyPrice)}/món/ngày`
                           )
@@ -497,22 +612,38 @@ export default function NewRentalPage() {
                         'Chọn mẫu trước'
                       )}
                     </p>
-                    {row.size && <p>Còn tối đa {remaining} món cho dòng này trong kỳ thuê.</p>}
-                    {row.costumeId && (!item || (row.size && Number(row.quantity) > remaining)) && (
-                      <p role="alert">
-                        Lựa chọn này không đủ hàng trong kỳ thuê mới. Hãy chọn lại.
-                      </p>
-                    )}
                   </div>
-                  {draft.lines.length > 1 && (
+                  <div className={customer ? 'customer-rental-form__line-total' : undefined}>
+                    <span className={customer ? 'customer-rental-form__field-label' : 'sr-only'}>
+                      Tiền thuê
+                    </span>
+                    <p>
+                      {lineTotal === null ? (
+                        item ? (
+                          'Chờ báo giá'
+                        ) : (
+                          '—'
+                        )
+                      ) : customer ? (
+                        <CustomerPrice amount={lineTotal} />
+                      ) : (
+                        rentalMoney(lineTotal)
+                      )}
+                    </p>
+                  </div>
+                  {(customer || draft.lines.length > 1) && (
                     <Button
                       type="button"
                       variant="ghost"
+                      className={customer ? 'customer-rental-form__remove' : undefined}
+                      aria-label={`Bỏ món ${index + 1}`}
+                      disabled={draft.lines.length === 1}
                       onClick={() =>
                         patch({ lines: draft.lines.filter((_, position) => position !== index) })
                       }
                     >
-                      Bỏ món {index + 1}
+                      <Trash2 aria-hidden="true" size={20} />
+                      {!customer && `Bỏ món ${index + 1}`}
                     </Button>
                   )}
                 </fieldset>
@@ -521,25 +652,26 @@ export default function NewRentalPage() {
             <Button
               type="button"
               variant="outline"
+              className={customer ? 'customer-rental-form__add' : undefined}
               disabled={draft.lines.length >= 30}
               onClick={() =>
                 patch({ lines: [...draft.lines, { costumeId: '', size: '', quantity: '1' }] })
               }
             >
-              Thêm món thuê
+              <CirclePlus aria-hidden="true" size={20} /> Thêm món thuê
             </Button>
           </section>
           <section
             className={
               customer
-                ? 'customer-order-surface customer-order-field__group'
+                ? 'customer-rental-form__contact'
                 : 'grid gap-4 rounded-2xl border bg-card p-5 sm:grid-cols-2'
             }
           >
             <h2
               className={
                 customer
-                  ? 'customer-section-title customer-order-span-full'
+                  ? 'customer-section-title customer-rental-form__section-title'
                   : 'text-lg font-semibold sm:col-span-2'
               }
             >
@@ -550,6 +682,8 @@ export default function NewRentalPage() {
               <Input
                 required
                 maxLength={120}
+                autoComplete="name"
+                placeholder="Nhập họ và tên"
                 value={draft.contactName}
                 onChange={(event) => patch({ contactName: event.target.value })}
               />
@@ -560,30 +694,46 @@ export default function NewRentalPage() {
                 required
                 type="tel"
                 maxLength={20}
+                autoComplete="tel"
+                placeholder="Nhập số điện thoại"
                 value={draft.phone}
                 onChange={(event) => patch({ phone: event.target.value })}
               />
             </label>
             <label
               className={
-                customer ? 'customer-order-field customer-order-span-full' : 'sm:col-span-2'
+                customer ? 'customer-order-field customer-rental-form__notes' : 'sm:col-span-2'
               }
             >
-              Ghi chú thuê
+              Ghi chú (không bắt buộc)
               <Textarea
+                aria-label="Ghi chú thuê"
                 rows={3}
+                placeholder="Lời nhắn cho studio"
                 maxLength={2000}
                 value={draft.note}
                 onChange={(event) => patch({ note: event.target.value })}
               />
             </label>
           </section>
-          {estimateContent}
-          <Button type="submit" disabled={!!selectionError}>
-            Xem lại yêu cầu thuê
-          </Button>
+          <div className={customer ? 'customer-rental-form__footer' : 'space-y-4'}>
+            {estimateContent}
+            <div className={customer ? 'customer-rental-form__footer-meta' : undefined}>
+              <p>
+                {draft.lines.reduce((sum, row) => sum + (Number(row.quantity) || 0), 0)} món ·{' '}
+                {days} ngày
+              </p>
+              <p>Chưa gồm cọc và phát sinh. Studio sẽ gửi báo giá để bạn xác nhận.</p>
+            </div>
+            <div className={customer ? 'customer-rental-form__footer-action' : undefined}>
+              <Button type="submit" disabled={!!selectionError}>
+                Xem lại yêu cầu thuê
+              </Button>
+              <p>Gửi yêu cầu chưa giữ hàng.</p>
+            </div>
+          </div>
         </form>
       )}
-    </main>
+    </section>
   );
 }

@@ -176,13 +176,22 @@ describe('Customer shared navigation', () => {
   });
 
   it.each([
-    ['portfolio', '/booking/start?source=portfolio'],
-    ['costumes', '/booking/start?source=costumes'],
-    ['account', '/account/bookings/new'],
-  ] as const)('preserves the booking entry point for %s', (source, href) => {
-    renderHeader('/portfolio', source);
-    expect(screen.getByRole('link', { name: 'Đặt lịch' })).toHaveAttribute('href', href);
-  });
+    ['portfolio', '/portfolio', '/booking/start?source=portfolio'],
+    [
+      'costumes',
+      '/costumes?receiveDate=2098-04-10&returnDate=2098-04-12',
+      '/booking/start?source=costumes',
+    ],
+    ['account', '/account/bookings', '/account/bookings/new'],
+  ] as const)(
+    'keeps the explicit photography booking entry point for %s',
+    (source, pathname, href) => {
+      renderHeader(pathname, source);
+      expect(screen.getByRole('link', { name: 'Đặt lịch chụp' })).toHaveAttribute('href', href);
+      expect(screen.queryByRole('link', { name: /^Đặt lịch$/ })).not.toBeInTheDocument();
+      expect(navLabels(desktopNav())).toEqual(primaryLabels);
+    },
+  );
 
   it('uses consultation without unavailable account routes when the portal is disabled', async () => {
     mocks.flags.portal = false;
@@ -191,7 +200,7 @@ describe('Customer shared navigation', () => {
       'href',
       '/consultation',
     );
-    expect(screen.queryByRole('link', { name: 'Đặt lịch' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Đặt lịch chụp' })).not.toBeInTheDocument();
     expect(within(desktopNav()).getByRole('link', { name: 'Liên hệ studio' })).toHaveAttribute(
       'href',
       '/portfolio#contact',

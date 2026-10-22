@@ -97,7 +97,7 @@ export function CustomerHeader({
         </nav>
         <div className="customer-header__utilities">
           <CustomerButton asChild className="customer-header__booking">
-            <Link to={bookingHref}>{clientPortalEnabled ? 'Đặt lịch' : 'Nhận tư vấn'}</Link>
+            <Link to={bookingHref}>{clientPortalEnabled ? 'Đặt lịch chụp' : 'Nhận tư vấn'}</Link>
           </CustomerButton>
           <div className="customer-header__account-control">
             {user ? (

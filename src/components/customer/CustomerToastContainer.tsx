@@ -6,6 +6,7 @@ const publicPaths = [
   '/login',
   '/portfolio',
   '/costumes',
+  '/rental/start',
   '/form/:customer',
   '/member-intake/:token',
   '/feedback',
@@ -22,7 +23,7 @@ const portalPaths = [
   '/account/profile',
 ];
 
-const rentalPaths = ['/rental/start', '/account/rentals', '/account/rentals/:id'];
+const rentalPaths = ['/account/rentals', '/account/rentals/:id'];
 
 function isCustomerSurface(pathname: string) {
   const matches = (paths: string[]) =>

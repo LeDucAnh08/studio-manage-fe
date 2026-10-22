@@ -28,13 +28,6 @@ export function CustomerCatalogCard({
     (size) => !item.availableBySize || item.availableBySize[size] > 0,
   );
   const rentalParams = new URLSearchParams({ item: item._id, receiveDate, returnDate });
-  const bookingParams = new URLSearchParams({
-    source: 'costumes',
-    item: item._id,
-    itemName: item.name,
-    receiveDate,
-    returnDate,
-  });
   return (
     <article className="customer-catalog-card">
       <div className="customer-catalog-card__illustration">
@@ -47,7 +40,7 @@ export function CustomerCatalogCard({
       </div>
       <div className="customer-catalog-card__meta">
         <p className="customer-caption">{item.category || itemKindLabel[item.itemKind]}</p>
-        <h2 className="customer-catalog-card__title">{item.name}</h2>
+        <h4 className="customer-catalog-card__title">{item.name}</h4>
         <CustomerStatusBadge>{genderLabel[item.gender]}</CustomerStatusBadge>
         {item.description && (
           <p className="customer-catalog-card__description">{item.description}</p>
@@ -81,14 +74,8 @@ export function CustomerCatalogCard({
           </p>
         )}
         <CustomerButton asChild fullWidth>
-          <Link
-            to={
-              clientRentalEnabled
-                ? `/rental/start?${rentalParams}`
-                : `/booking/start?${bookingParams}`
-            }
-          >
-            {clientRentalEnabled ? 'Yêu cầu thuê mẫu này' : 'Thêm vào yêu cầu'}
+          <Link to={`/rental/start?${rentalParams}`}>
+            {clientRentalEnabled ? 'Thuê riêng mẫu này' : 'Liên hệ thuê riêng'}
           </Link>
         </CustomerButton>
       </div>
