@@ -182,7 +182,7 @@ describe('Customer shared navigation', () => {
       '/costumes?receiveDate=2098-04-10&returnDate=2098-04-12',
       '/booking/start?source=costumes',
     ],
-    ['account', '/account/bookings', '/account/bookings/new'],
+    ['account', '/account/bookings', '/booking/start?source=account'],
   ] as const)(
     'keeps the explicit photography booking entry point for %s',
     (source, pathname, href) => {
@@ -190,8 +190,32 @@ describe('Customer shared navigation', () => {
       expect(screen.getByRole('link', { name: 'Đặt lịch chụp' })).toHaveAttribute('href', href);
       expect(screen.queryByRole('link', { name: /^Đặt lịch$/ })).not.toBeInTheDocument();
       expect(navLabels(desktopNav())).toEqual(primaryLabels);
+
+      fireEvent.click(screen.getByRole('link', { name: 'Đặt lịch chụp' }));
+      expect(JSON.parse(screen.getByTestId('location').textContent || '{}')).toMatchObject({
+        pathname: '/booking/start',
+        search: `?source=${source}`,
+      });
     },
   );
+
+  it('takes the account footer booking link to the shared booking entry', () => {
+    render(
+      <MemoryRouter initialEntries={['/account/bookings']}>
+        <ClientLayout />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+    const footer = screen.getByRole('navigation', { name: 'Khám phá và đặt dịch vụ' });
+    const booking = within(footer).getByRole('link', { name: 'Đặt dịch vụ' });
+    expect(booking).toHaveAttribute('href', '/booking/start?source=account');
+
+    fireEvent.click(booking);
+    expect(JSON.parse(screen.getByTestId('location').textContent || '{}')).toMatchObject({
+      pathname: '/booking/start',
+      search: '?source=account',
+    });
+  });
 
   it('uses consultation without unavailable account routes when the portal is disabled', async () => {
     mocks.flags.portal = false;

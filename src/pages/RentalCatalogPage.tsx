@@ -179,17 +179,6 @@ export default function RentalCatalogPage() {
   return (
     <PublicSiteLayout source="costumes">
       <CustomerContainer as="section" width="listing" className="customer-catalog">
-        <nav aria-label="Đường dẫn trang" className="customer-catalog__breadcrumbs">
-          <ol>
-            <li>
-              <Link to="/portfolio#top" className="customer-link">
-                Trang chủ
-              </Link>
-            </li>
-            <li aria-hidden="true">/</li>
-            <li aria-current="page">Trang phục & phụ kiện</li>
-          </ol>
-        </nav>
         <CustomerSurface className="customer-catalog__intro">
           <CustomerStatusBadge>Dịch vụ cho thuê</CustomerStatusBadge>
           <h1>Trang phục & phụ kiện</h1>

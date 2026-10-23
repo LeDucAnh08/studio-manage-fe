@@ -154,7 +154,7 @@ export default function BookingsPage({ admin = false }: { admin?: boolean }) {
         </div>
         {!admin && !customer && (
           <Link
-            to="/account/bookings/new"
+            to="/booking/start?source=account"
             className="rounded-lg bg-primary text-primary-foreground px-4 py-3 self-start"
           >
             Đặt dịch vụ

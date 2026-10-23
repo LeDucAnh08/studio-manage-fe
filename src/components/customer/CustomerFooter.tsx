@@ -40,7 +40,7 @@ export function CustomerFooter({
       <div className="customer-container customer-container--editorial">
         {account && (
           <nav className="customer-footer__account" aria-label="Khám phá và đặt dịch vụ">
-            <Link to="/account/bookings/new">Đặt dịch vụ</Link>
+            <Link to="/booking/start?source=account">Đặt dịch vụ</Link>
             <Link to="/portfolio#packages">Khám phá dịch vụ</Link>
             <Link to="/rental-catalog">Trang phục & phụ kiện</Link>
           </nav>

@@ -6,6 +6,7 @@ import { CustomerAppearanceContext } from '@/components/customer/CustomerAppeara
 import type { BookingWorkflowDto } from '../services/bookingWorkflowService';
 import type { RentalOrder } from '../services/rentalService';
 import { RENTAL_DRAFT_KEY } from '../services/rentalDraft';
+import BookingsPage from './BookingsPage';
 import BookingWorkflowDetailPage from './BookingWorkflowDetailPage';
 import RentalDetailPage from './RentalDetailPage';
 import NewRentalPage from './NewRentalPage';
@@ -14,6 +15,8 @@ const mocks = vi.hoisted(() => ({
   workflowGet: vi.fn(),
   workflowAct: vi.fn(),
   legacyGet: vi.fn(),
+  bookingList: vi.fn(),
+  bookingNotifications: vi.fn(),
   photographers: vi.fn(),
   rentalGet: vi.fn(),
   rentalAct: vi.fn(),
@@ -29,7 +32,14 @@ vi.mock('../services/bookingWorkflowService', () => ({
   bookingWorkflowService: { get: mocks.workflowGet, act: mocks.workflowAct },
   createWorkflowRequestId: mocks.requestId,
 }));
-vi.mock('../services/bookingService', () => ({ bookingService: { get: mocks.legacyGet } }));
+vi.mock('../services/bookingService', async () => ({
+  ...(await vi.importActual('../services/bookingService')),
+  bookingService: {
+    get: mocks.legacyGet,
+    list: mocks.bookingList,
+    notifications: mocks.bookingNotifications,
+  },
+}));
 vi.mock('../services/userService', () => ({
   userService: { getPhotographers: mocks.photographers },
 }));
@@ -183,6 +193,7 @@ function renderPage(page: ReactNode, path: string, route: string, customer = tru
           <Routes>
             <Route path={route} element={page} />
             <Route path="/login" element={<Location />} />
+            <Route path="/booking/start" element={<Location />} />
             <Route path="/account/bookings" element={<Location />} />
             <Route path="/account/rentals/:id" element={<Location />} />
           </Routes>
@@ -211,6 +222,11 @@ describe('Customer order presentation preserves workflow contracts', () => {
     mocks.requestId.mockImplementation(() => 'action-' + ++sequence);
     mocks.workflowGet.mockResolvedValue(bookingFixture());
     mocks.legacyGet.mockResolvedValue(null);
+    mocks.bookingList.mockResolvedValue({
+      data: [],
+      pagination: { page: 1, limit: 20, total: 0 },
+    });
+    mocks.bookingNotifications.mockResolvedValue([]);
     mocks.photographers.mockResolvedValue([]);
     mocks.rentalGet.mockResolvedValue(rentalFixture());
     mocks.catalog.mockResolvedValue([
@@ -225,6 +241,18 @@ describe('Customer order presentation preserves workflow contracts', () => {
       },
     ]);
     mocks.rentalCreate.mockResolvedValue({ _id: 'created-rental' });
+  });
+
+  it('takes the existing account booking action to the shared booking entry', async () => {
+    renderPage(<BookingsPage />, '/account/bookings', '/account/bookings', false);
+    await screen.findByText('Chưa có yêu cầu phù hợp.');
+    const booking = screen.getByRole('link', { name: 'Đặt dịch vụ' });
+    expect(booking).toHaveAttribute('href', '/booking/start?source=account');
+
+    fireEvent.click(booking);
+    expect(await screen.findByTestId('destination')).toHaveTextContent(
+      '/booking/start?source=account',
+    );
   });
 
   it('keeps an intake request informational with one back link and no quote or payment actions', async () => {

@@ -956,3 +956,8 @@ Không tick task khi mới chỉ sửa code mà chưa kiểm chứng runtime c�
 - [x] Giữ draft, returnTo, availability, paused gate, review và request key; bổ sung test nhiều món, giới hạn số lượng và payload.
 - [x] 38/38 tests, TypeScript, ESLint, Prettier và production build đạt. Browser kiểm validation → xem lại → chỉnh sửa, desktop/mobile320–1440 không tràn ngang; không gửi đơn DB.
 - [x] Visual comparison full/focused đạt; evidence ../docs/design/customer-rental-form-qa.md và ../design-qa.md. Chỉ sửa customer presentation, không push/deploy trong đợt này.
+
+### BOOK03: Thống nhất lối vào đặt dịch vụ — 23/10/2026
+
+- [x] Header, footer và CTA hiện có cùng mở wizard `/booking/start` như từ Trang phục; URL account cũ là alias giữ query/hash/state, không render thêm khung account.
+- [x] Giữ nguyên wizard/draft/auth/submit và feature gate;41 tests đạt, browser kiểm canonical entry và7 gói. Evidence: ../docs/design/customer-booking-entry-checks.md.

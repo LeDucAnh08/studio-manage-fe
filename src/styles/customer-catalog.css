@@ -1,21 +1,6 @@
 .customer-catalog {
   padding-block: var(--customer-space-32) var(--customer-space-64);
 }
-.customer-catalog__breadcrumbs {
-  margin-bottom: var(--customer-space-24);
-  color: var(--customer-muted);
-}
-.customer-catalog__breadcrumbs ol {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--customer-space-8);
-}
-.customer-catalog__breadcrumbs a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 48px;
-}
 .customer-catalog__intro h1 {
   margin-top: var(--customer-space-12);
   font-size: var(--customer-display-xl-size);

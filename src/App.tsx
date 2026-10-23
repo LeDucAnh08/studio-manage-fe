@@ -125,6 +125,10 @@ function App() {
                     )
                   }
                 />
+                <Route
+                  path="/account/bookings/new"
+                  element={<SearchPreservingRedirect pathname="/booking/start" />}
+                />
                 {clientPortalEnabled && (
                   <Route
                     path="/account"
@@ -136,7 +140,6 @@ function App() {
                   >
                     <Route index element={<Navigate to="bookings" replace />} />
                     <Route path="bookings" element={<BookingsPage />} />
-                    <Route path="bookings/new" element={<NewBookingPage />} />
                     <Route path="bookings/:id" element={<BookingWorkflowDetailPage />} />
                     <Route path="profile" element={<ProfilePage />} />
                     {clientRentalEnabled && <Route path="rentals" element={<RentalListPage />} />}

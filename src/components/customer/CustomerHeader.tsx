@@ -36,11 +36,7 @@ export function CustomerHeader({
     : '/login';
   const profilePath = client ? '/account/profile' : '/profile';
   const showProfile = !client || clientPortalEnabled;
-  const bookingHref = !clientPortalEnabled
-    ? '/consultation'
-    : source === 'account'
-      ? '/account/bookings/new'
-      : `/booking/start?source=${source}`;
+  const bookingHref = !clientPortalEnabled ? '/consultation' : `/booking/start?source=${source}`;
   const { pathname } = location;
   const current =
     pathname.startsWith('/account/bookings') || pathname.startsWith('/account/rentals')
