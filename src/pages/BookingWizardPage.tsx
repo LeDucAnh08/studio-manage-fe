@@ -67,6 +67,7 @@ const editingLabel: Record<NonNullable<Package['editingScope']>, string> = {
 };
 const sourceLabels: Record<string, string> = {
   portfolio: 'Trang giới thiệu',
+  services: 'Dịch vụ',
   pricing: 'Bảng giá',
   concepts: 'Concept',
   costumes: 'Danh mục trang phục',
@@ -222,7 +223,7 @@ export default function BookingWizardPage() {
       : '',
   ].filter(Boolean);
   const isClient = !!user?.roles.includes(6);
-  const accountPath = user ? '/account/bookings' : '/login';
+  const accountPath = user ? '/account/orders?tab=bookings' : '/login';
   const returnTo = safeBookingReturnTo(`${location.pathname}${location.search}${location.hash}`);
 
   const updateDraft = (patch: Partial<BookingDraft>) => {
@@ -325,7 +326,6 @@ export default function BookingWizardPage() {
     }
   };
 
-  const backTo = location.pathname === '/booking/start' ? '/portfolio#top' : accountPath;
   const isPublic = location.pathname === '/booking/start';
   const ContentTag = isPublic ? 'main' : 'section';
   const customerContext = [
@@ -337,18 +337,12 @@ export default function BookingWizardPage() {
     <div className={`customer-wizard${isPublic ? '' : ' customer-wizard--account'}`}>
       <aside className="customer-wizard__story" aria-label="Hành trình đặt dịch vụ">
         <div className="customer-wizard__story-inner">
-          <Link to="/portfolio#top" className="customer-wizard__brand" aria-label="Yume Studio">
+          <Link to={accountPath} className="customer-wizard__brand" aria-label="Yume Studio">
             <span aria-hidden="true">
               <Logo size={48} appearance="customer" />
             </span>
             <span>Yume Studio</span>
           </Link>
-          <Button asChild variant="text" className="customer-wizard__back">
-            <Link to={backTo}>
-              <ArrowLeft aria-hidden="true" />
-              {isPublic ? 'Quay lại Yume Studio' : 'Quay lại dịch vụ của tôi'}
-            </Link>
-          </Button>
           <CustomerImage
             className="customer-wizard__photo"
             src={portfolioImages.may01381.src}
@@ -387,14 +381,6 @@ export default function BookingWizardPage() {
         </div>
       </aside>
       <ContentTag className="customer-wizard__content" aria-label="Yêu cầu đặt dịch vụ">
-        <nav aria-label="Tài khoản" className="customer-wizard__content-navigation">
-          <Button asChild variant="text">
-            <Link to={accountPath}>
-              {user?.roles.includes(6) ? 'Dịch vụ của tôi' : 'Tài khoản'}
-            </Link>
-          </Button>
-        </nav>
-
         {customerContext.length > 0 && (
           <CustomerSurface as="div" padding="compact" className="customer-wizard__context">
             <aside aria-labelledby="booking-context-title">

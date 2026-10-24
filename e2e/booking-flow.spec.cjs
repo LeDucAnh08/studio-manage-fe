@@ -41,7 +41,7 @@ async function logout(page) {
   await page.goto('/login');
 }
 
-test('guest booking draft returns from login and continues through studio review', async ({ page }) => {
+test('guest signs in before booking and continues through studio review', async ({ page }) => {
   await page.goto('/register');
   await page.getByLabel('Họ tên').fill(client.name);
   await page.getByLabel('Tên đăng nhập').fill(client.username);
@@ -51,6 +51,9 @@ test('guest booking draft returns from login and continues through studio review
   await expect(page).toHaveURL(/\/login$/);
 
   await page.goto('/booking/start?source=portfolio&concept=Vintage');
+  await expect(page).toHaveURL(/\/login$/);
+  await login(page, client.username, client.password);
+  await expect(page).toHaveURL(/\/account\/bookings\/new\?/);
   await expect(page.getByText('Concept tham khảo: Vintage')).toBeVisible();
   await page.getByRole('button', { name: 'Chọn gói' }).click();
   await page.getByRole('button', { name: /Tiếp tục/ }).click();
@@ -65,19 +68,13 @@ test('guest booking draft returns from login and continues through studio review
   await page.getByLabel('Điều Yume nên biết thêm').fill('Luồng E2E với bản nháp qua đăng nhập.');
   await page.getByRole('button', { name: /Xem lại yêu cầu/ }).click();
   await expect(page.getByRole('heading', { name: 'Kiểm tra trước khi gửi' })).toBeVisible();
-  await page.getByRole('button', { name: 'Đăng nhập để gửi' }).click();
-  await expect(page).toHaveURL(/\/login$/);
-
-  await login(page, client.username, client.password);
-  await expect(page).toHaveURL(/\/booking\/start\?/);
-  await expect(page.getByRole('heading', { name: 'Kiểm tra trước khi gửi' })).toBeVisible();
   await expect(page.getByText('12A1 E2E')).toBeVisible();
   await expect(page.getByText('THPT Yume')).toBeVisible();
   await page.getByRole('button', { name: 'Gửi yêu cầu tới Yume' }).click();
   await expect(page).toHaveURL(/\/account\/bookings\/[a-f0-9]{24}$/);
   const bookingUrl = page.url();
   const bookingId = new URL(bookingUrl).pathname.split('/').pop();
-  await expect(page.getByRole('heading', { name: '12A1 E2E' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /(?:Yêu cầu của lớp )?12A1 E2E/ })).toBeVisible();
   await expect(page.getByText(/Yêu cầu đang chờ studio xem xét/)).toBeVisible();
   await expect(page.getByText('Concept tham khảo: Vintage')).toBeVisible();
 

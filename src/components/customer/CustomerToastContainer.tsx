@@ -5,6 +5,9 @@ import { clientPortalEnabled, clientRentalEnabled } from '../../config/features'
 const publicPaths = [
   '/login',
   '/portfolio',
+  '/services',
+  '/concepts',
+  '/pricing',
   '/costumes',
   '/rental/start',
   '/form/:customer',
@@ -17,6 +20,7 @@ const portalPaths = [
   '/register',
   '/booking/start',
   '/account',
+  '/account/orders',
   '/account/bookings',
   '/account/bookings/new',
   '/account/bookings/:id',

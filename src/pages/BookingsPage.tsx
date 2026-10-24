@@ -4,7 +4,6 @@ import { toast } from 'react-toastify';
 import { Textarea } from '@/components/ui';
 import { OrderButton as Button, OrderSelect } from '../components/customer/CustomerOrderControls';
 import { useCustomerAppearance } from '../components/customer/CustomerAppearance';
-import { CustomerAccountTabs } from '../components/customer/CustomerAccountTabs';
 import { CustomerOrderCard } from '../components/customer/CustomerOrderCard';
 import { CustomerStatusBadge } from '../components/customer/CustomerStatusBadge';
 import '../styles/customer-orders.css';
@@ -101,7 +100,13 @@ export function BookingNotifications({ base }: { base: string }) {
   );
 }
 
-export default function BookingsPage({ admin = false }: { admin?: boolean }) {
+export default function BookingsPage({
+  admin = false,
+  embedded = false,
+}: {
+  admin?: boolean;
+  embedded?: boolean;
+}) {
   const customer = useCustomerAppearance();
   const OrderCard = customer ? CustomerOrderCard : Link;
   const Status = customer ? CustomerStatusBadge : 'span';
@@ -113,6 +118,7 @@ export default function BookingsPage({ admin = false }: { admin?: boolean }) {
   const [error, setError] = useState('');
   const [refresh, setRefresh] = useState(0);
   const base = admin ? '/booking-requests' : '/account/bookings';
+  const Heading = embedded ? 'h2' : 'h1';
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -141,27 +147,29 @@ export default function BookingsPage({ admin = false }: { admin?: boolean }) {
         className={customer ? 'customer-orders__header' : 'flex flex-wrap justify-between gap-3'}
       >
         <div>
-          <h1 className={customer ? 'customer-page-title' : 'text-2xl font-bold'}>
-            {admin ? 'Yêu cầu đặt dịch vụ' : customer ? 'Dịch vụ của tôi' : 'Booking của tôi'}
-          </h1>
+          <Heading className={customer ? 'customer-page-title' : 'text-2xl font-bold'}>
+            {admin ? 'Yêu cầu đặt dịch vụ' : 'Đơn chụp ảnh'}
+          </Heading>
           <p className="text-muted-foreground mt-1">
             {admin
               ? 'Kiểm tra yêu cầu và phản hồi cho khách hàng.'
-              : customer
-                ? 'Theo dõi yêu cầu và lịch chụp của bạn.'
-                : 'Theo dõi yêu cầu và phản hồi từ Yume Studio.'}
+              : 'Theo dõi yêu cầu và phản hồi từ Yume Studio.'}
           </p>
         </div>
-        {!admin && !customer && (
-          <Link
-            to="/booking/start?source=account"
-            className="rounded-lg bg-primary text-primary-foreground px-4 py-3 self-start"
-          >
-            Đặt dịch vụ
-          </Link>
-        )}
+        {!admin &&
+          (customer ? (
+            <Button asChild>
+              <Link to="/account/bookings/new">Đặt dịch vụ</Link>
+            </Button>
+          ) : (
+            <Link
+              to="/account/bookings/new"
+              className="rounded-lg bg-primary text-primary-foreground px-4 py-3 self-start"
+            >
+              Đặt dịch vụ
+            </Link>
+          ))}
       </div>
-      {customer && !admin && <CustomerAccountTabs />}
       <BookingNotifications base={base} />
       <div className={customer ? 'customer-orders__toolbar' : 'flex flex-wrap gap-3 items-center'}>
         <label htmlFor="status">Trạng thái</label>
@@ -188,9 +196,12 @@ export default function BookingsPage({ admin = false }: { admin?: boolean }) {
       {loading ? (
         <p>Đang tải…</p>
       ) : error ? (
-        <p role="alert" className="text-destructive">
-          {error}
-        </p>
+        <div role="alert">
+          <p className="text-destructive">{error}</p>
+          <Button variant="outline" onClick={() => setRefresh((v) => v + 1)}>
+            Thử lại
+          </Button>
+        </div>
       ) : !items.length ? (
         <p
           className={
@@ -199,7 +210,12 @@ export default function BookingsPage({ admin = false }: { admin?: boolean }) {
               : 'border rounded-xl p-8 text-center text-muted-foreground'
           }
         >
-          Chưa có yêu cầu phù hợp.
+          Chưa có yêu cầu phù hợp.{' '}
+          {!admin && (
+            <Link to="/account/bookings/new" className="customer-link">
+              Đặt dịch vụ mới
+            </Link>
+          )}
         </p>
       ) : (
         <div className={customer ? 'customer-order-grid' : 'grid gap-4 md:grid-cols-2'}>
@@ -297,7 +313,10 @@ export function BookingDetailPage({ admin = false }: { admin?: boolean }) {
   };
   return (
     <div className="space-y-5">
-      <Link className="text-primary" to={admin ? '/booking-requests' : '/account/bookings'}>
+      <Link
+        className="text-primary"
+        to={admin ? '/booking-requests' : '/account/orders?tab=bookings'}
+      >
         ← Danh sách yêu cầu
       </Link>
       {error && (

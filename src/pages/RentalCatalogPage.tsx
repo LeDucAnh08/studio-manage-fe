@@ -424,11 +424,7 @@ export default function RentalCatalogPage() {
                 <CustomerButton type="button" variant="secondary" onClick={clearFilters}>
                   Xoá bộ lọc
                 </CustomerButton>
-              ) : (
-                <CustomerButton asChild variant="secondary">
-                  <Link to="/consultation">Nhận tư vấn</Link>
-                </CustomerButton>
-              )}
+              ) : null}
             </CustomerSurface>
           ) : (
             <>

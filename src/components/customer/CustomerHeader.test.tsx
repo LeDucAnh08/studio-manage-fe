@@ -85,18 +85,19 @@ describe('Customer shared navigation', () => {
         </MemoryRouter>,
       );
 
-      expect(navLabels(desktopNav())).toEqual(primaryLabels);
-      expect(within(desktopNav()).getByRole('link', { name: 'Khám phá dịch vụ' })).toHaveAttribute(
+      const navigation = screen.getByRole('navigation', { name: 'Tài khoản khách hàng' });
+      expect(navLabels(navigation)).toEqual(['Đặt dịch vụ', 'Trang phục', 'Đơn của tôi']);
+      expect(within(navigation).getByRole('link', { name: 'Đặt dịch vụ' })).toHaveAttribute(
         'href',
-        '/portfolio#packages',
+        '/account/bookings/new',
       );
-      expect(within(desktopNav()).getByRole('link', { name: 'Trang phục' })).toHaveAttribute(
+      expect(within(navigation).getByRole('link', { name: 'Trang phục' })).toHaveAttribute(
         'href',
         '/costumes',
       );
-      expect(within(desktopNav()).getByRole('link', { name: 'Dịch vụ của tôi' })).toHaveAttribute(
+      expect(within(navigation).getByRole('link', { name: 'Đơn của tôi' })).toHaveAttribute(
         'href',
-        '/account/bookings',
+        '/account/orders',
       );
     },
   );
@@ -208,12 +209,12 @@ describe('Customer shared navigation', () => {
     );
     const footer = screen.getByRole('navigation', { name: 'Khám phá và đặt dịch vụ' });
     const booking = within(footer).getByRole('link', { name: 'Đặt dịch vụ' });
-    expect(booking).toHaveAttribute('href', '/booking/start?source=account');
+    expect(booking).toHaveAttribute('href', '/account/bookings/new');
 
     fireEvent.click(booking);
     expect(JSON.parse(screen.getByTestId('location').textContent || '{}')).toMatchObject({
-      pathname: '/booking/start',
-      search: '?source=account',
+      pathname: '/account/bookings/new',
+      search: '',
     });
   });
 

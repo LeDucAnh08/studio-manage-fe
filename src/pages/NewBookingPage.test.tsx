@@ -132,6 +132,12 @@ describe('NewBookingPage', () => {
     );
 
     await screen.findByText('Concept tham khảo: Vintage');
+    expect(
+      screen.queryByRole('navigation', { name: 'Khám phá và tài khoản' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Dịch vụ' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Concept' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Bảng giá' })).not.toBeInTheDocument();
     const packageStep = screen.getByRole('region', { name: 'Chọn gói chụp phù hợp' });
     const packageCards = within(packageStep).getAllByRole('article');
     expect(packageCards).toHaveLength(4);

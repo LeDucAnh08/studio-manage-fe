@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { CustomerContainer } from '../customer/CustomerContainer';
 import { CustomerFooter } from '../customer/CustomerFooter';
-import { CustomerHeader } from '../customer/CustomerHeader';
+import CustomerHeader from './CustomerHeader';
 
 export default function ClientLayout() {
   return (
@@ -9,7 +9,7 @@ export default function ClientLayout() {
       <a href="#account-content" className="customer-skip-link">
         Bỏ qua điều hướng
       </a>
-      <CustomerHeader source="account" />
+      <CustomerHeader />
       <CustomerContainer
         as="main"
         id="account-content"

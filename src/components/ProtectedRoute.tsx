@@ -31,12 +31,12 @@ const ProtectedRoute = ({ children, requiredRole, allowedRoles }: Props) => {
     return (
       <Navigate
         to={location.pathname === '/' ? '/portfolio' : loginEntryForPath(location.pathname)}
-        state={{ from: safeBookingReturnTo(location.pathname + location.search) }}
+        state={{ from: safeBookingReturnTo(location.pathname + location.search + location.hash) }}
         replace
       />
     );
   const home = user?.roles?.includes(6)
-    ? '/account/bookings'
+    ? '/account/orders'
     : user?.roles?.includes(5) && user.roles.length === 1
       ? '/manage/finance'
       : '/';

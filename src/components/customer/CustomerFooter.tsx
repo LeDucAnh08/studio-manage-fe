@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom';
+import { clientPortalEnabled } from '../../config/features';
 import '../../styles/customer-shell.css';
 
 const groups = [
   {
     title: 'Hỗ trợ',
     links: [
-      { to: '/consultation', label: 'Nhận tư vấn' },
-      { to: '/portfolio#process', label: 'Quy trình đặt dịch vụ' },
-      { to: '/portfolio#feedback', label: 'Gửi phản hồi' },
+      { to: '/services#process', label: 'Quy trình đặt dịch vụ' },
+      { to: '/feedback', label: 'Gửi phản hồi' },
     ],
   },
   {
@@ -23,7 +23,6 @@ const groups = [
     links: [
       { to: '/portfolio#about', label: 'Về studio' },
       { to: '/pricing', label: 'Báo giá' },
-      { to: '/portfolio#contact', label: 'Liên hệ' },
     ],
   },
 ];
@@ -40,9 +39,11 @@ export function CustomerFooter({
       <div className="customer-container customer-container--editorial">
         {account && (
           <nav className="customer-footer__account" aria-label="Khám phá và đặt dịch vụ">
-            <Link to="/booking/start?source=account">Đặt dịch vụ</Link>
-            <Link to="/portfolio#packages">Khám phá dịch vụ</Link>
-            <Link to="/rental-catalog">Trang phục & phụ kiện</Link>
+            {clientPortalEnabled && <Link to="/account/bookings/new">Đặt dịch vụ</Link>}
+            <Link to="/services">Dịch vụ</Link>
+            <Link to="/pricing">Bảng giá</Link>
+            <Link to="/account/orders">Đơn của tôi</Link>
+            <Link to="/costumes">Trang phục & phụ kiện</Link>
           </nav>
         )}
         {!minimal && (
@@ -66,7 +67,7 @@ export function CustomerFooter({
           {minimal && (
             <nav aria-label="Hỗ trợ khách hàng">
               <Link to="/pricing">Báo giá</Link>
-              <Link to="/consultation">Nhận tư vấn</Link>
+              <Link to="/feedback">Gửi phản hồi</Link>
             </nav>
           )}
           {!minimal && <Link to="/portfolio#top">Yume Studio</Link>}

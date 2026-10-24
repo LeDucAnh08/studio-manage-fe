@@ -39,7 +39,7 @@ const LoginPage = () => {
         user.roles.includes(6)
           ? returnTo
             ? returnTo
-            : '/account/bookings'
+            : '/account/orders'
           : user.roles.length === 1 && user.roles.includes(5)
             ? '/manage/finance'
             : '/',

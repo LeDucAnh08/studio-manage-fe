@@ -194,6 +194,8 @@ function renderPage(page: ReactNode, path: string, route: string, customer = tru
             <Route path={route} element={page} />
             <Route path="/login" element={<Location />} />
             <Route path="/booking/start" element={<Location />} />
+            <Route path="/account/bookings/new" element={<Location />} />
+            <Route path="/account/orders" element={<Location />} />
             <Route path="/account/bookings" element={<Location />} />
             <Route path="/account/rentals/:id" element={<Location />} />
           </Routes>
@@ -247,12 +249,10 @@ describe('Customer order presentation preserves workflow contracts', () => {
     renderPage(<BookingsPage />, '/account/bookings', '/account/bookings', false);
     await screen.findByText('Chưa có yêu cầu phù hợp.');
     const booking = screen.getByRole('link', { name: 'Đặt dịch vụ' });
-    expect(booking).toHaveAttribute('href', '/booking/start?source=account');
+    expect(booking).toHaveAttribute('href', '/account/bookings/new');
 
     fireEvent.click(booking);
-    expect(await screen.findByTestId('destination')).toHaveTextContent(
-      '/booking/start?source=account',
-    );
+    expect(await screen.findByTestId('destination')).toHaveTextContent('/account/bookings/new');
   });
 
   it('keeps an intake request informational with one back link and no quote or payment actions', async () => {
@@ -268,7 +268,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
     ).toBeInTheDocument();
     const back = screen.getByRole('link', { name: /Quay lại danh sách/ });
     expect(screen.getAllByRole('link', { name: /Quay lại danh sách/ })).toHaveLength(1);
-    expect(back).toHaveAttribute('href', '/account/bookings');
+    expect(back).toHaveAttribute('href', '/account/orders?tab=bookings');
     expect(screen.getAllByRole('button', { name: 'Tải lại hồ sơ' })).toHaveLength(1);
     expect(screen.queryByText(/Phiên bản hồ sơ|₫/)).not.toBeInTheDocument();
     expect(screen.queryByRole('table', { name: 'Chi tiết báo giá' })).not.toBeInTheDocument();
@@ -282,7 +282,9 @@ describe('Customer order presentation preserves workflow contracts', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Loại yêu cầu')).not.toBeInTheDocument();
     fireEvent.click(back);
-    expect(await screen.findByTestId('destination')).toHaveTextContent('/account/bookings');
+    expect(await screen.findByTestId('destination')).toHaveTextContent(
+      '/account/orders?tab=bookings',
+    );
     expect(mocks.workflowAct).not.toHaveBeenCalled();
   });
 

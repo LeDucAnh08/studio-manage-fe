@@ -1,7 +1,3 @@
-html:has(.customer-ui) {
-  scrollbar-gutter: stable;
-}
-
 .customer-container {
   width: 100%;
   margin-inline: auto;
@@ -35,7 +31,7 @@ html:has(.customer-ui) {
   position: sticky;
   top: 0;
   z-index: 40;
-  height: 72px;
+  height: 80px;
   background: var(--customer-canvas);
   border-bottom: 1px solid var(--customer-hairline);
 }
@@ -65,17 +61,14 @@ html:has(.customer-ui) {
   display: block;
 }
 .customer-brand__name {
-  display: none;
   white-space: nowrap;
 }
 .customer-header__nav {
   display: none;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  gap: var(--customer-space-4);
-  padding: var(--customer-space-4);
-  border-radius: var(--customer-radius-pill);
-  background: var(--customer-surface-soft);
+  gap: var(--customer-space-16);
+  height: 100%;
   min-width: 0;
 }
 .customer-nav-link {
@@ -93,150 +86,62 @@ html:has(.customer-ui) {
   color: var(--customer-ink);
 }
 .customer-header__utilities {
-  display: flex;
+  display: none;
   align-items: center;
   gap: var(--customer-space-8);
   min-width: 0;
 }
-.customer-header__account-control {
-  display: none;
-}
-.customer-header__booking {
+.customer-header__account {
+  justify-content: center;
+  width: 48px;
   flex-shrink: 0;
-  white-space: nowrap;
-}
-.customer-header__nav .customer-nav-link {
-  position: relative;
-  justify-content: center;
-  padding: var(--customer-space-12) var(--customer-space-24);
-  border: 0;
-  border-radius: var(--customer-radius-pill);
-  white-space: nowrap;
-  line-height: var(--customer-title-line);
-}
-.customer-header__nav .customer-nav-link[aria-current] {
-  background: var(--customer-canvas);
-}
-.customer-header__nav .customer-nav-link[aria-current]::after {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  width: 64px;
-  height: 2px;
-  background: var(--customer-primary);
-  content: '';
-  transform: translateX(-50%);
-}
-.customer-header__nav .customer-nav-link:hover {
-  color: var(--customer-ink);
-}
-.customer-header__login,
-.customer-account-trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 48px;
-  gap: var(--customer-space-8);
+  border: 1px solid var(--customer-hairline);
   border-radius: var(--customer-radius-control);
   color: var(--customer-ink);
-  font-size: var(--customer-body-small-size);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.customer-header__login {
-  padding-inline: var(--customer-space-8);
-}
-.customer-account-trigger {
-  padding: 0;
-  border: 0;
   background: transparent;
   cursor: pointer;
 }
-.customer-account-trigger__avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: var(--customer-radius-pill);
-  background: color-mix(in srgb, var(--customer-primary) 12%, var(--customer-canvas));
-  font-size: var(--customer-body-size);
-}
-.customer-account-trigger > svg {
-  width: 16px;
-  height: 16px;
-}
-.customer-account-trigger:focus-visible {
-  outline: 2px solid var(--customer-ink);
-  outline-offset: 3px;
-}
-.customer-account-menu {
-  z-index: 70;
-  width: 192px;
-  max-width: calc(100vw - 32px);
-  padding: var(--customer-space-8);
-  border: 1px solid var(--customer-hairline-soft);
-  border-radius: var(--customer-radius-card);
-  background: var(--customer-canvas);
-  color: var(--customer-ink);
-  box-shadow: var(--customer-shadow);
-}
-.customer-account-menu__item {
-  display: flex;
-  align-items: center;
-  gap: var(--customer-space-12);
-  min-height: 48px;
-  padding: var(--customer-space-12);
-  border-radius: var(--customer-radius-control);
-  color: var(--customer-ink);
-  font-size: var(--customer-body-size);
-  line-height: var(--customer-body-line);
-  text-decoration: none;
-  cursor: pointer;
-  outline: none;
-}
-.customer-account-menu__item svg {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-}
-.customer-account-menu__item[data-highlighted],
-.customer-account-menu__item:hover {
+.customer-header__account:hover {
   background: var(--customer-surface-soft);
 }
-.customer-account-menu__item:focus-visible {
-  outline: 2px solid var(--customer-ink);
-  outline-offset: -2px;
+.customer-account-menu {
+  min-width: 208px;
+  padding: 8px;
+  background: var(--customer-canvas);
+  color: var(--customer-ink);
+  border-color: var(--customer-hairline);
+  font-family: var(--customer-font);
 }
-.customer-account-menu__separator {
-  height: 1px;
-  margin: var(--customer-space-4) var(--customer-space-12);
-  background: var(--customer-hairline-soft);
+.customer-account-menu__item {
+  min-height: 44px;
+  padding: 10px 12px;
+  cursor: pointer;
 }
-.customer-menu__account {
-  padding-top: var(--customer-space-16);
-  border-top: 1px solid var(--customer-hairline-soft);
+.customer-account-menu__item[data-highlighted] {
+  background: var(--customer-surface-soft);
+  color: var(--customer-ink);
 }
-.customer-menu__account .customer-menu__username {
-  padding-inline: var(--customer-space-12);
+.customer-header__username {
+  display: none;
+  max-width: 144px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.customer-account-tabs {
+.customer-header__booking {
+  display: none;
+}
+.customer-header--public .customer-header__utilities {
   display: flex;
-  gap: var(--customer-space-24);
-  border-bottom: 1px solid var(--customer-hairline);
 }
-.customer-account-tabs .customer-nav-link {
-  padding: var(--customer-space-12) var(--customer-space-8);
+.customer-header--guest .customer-header__booking {
+  display: inline-flex;
 }
-.customer-account-tabs .customer-nav-link[aria-current] {
-  border-bottom-color: var(--customer-primary);
-}
-.customer-account-tabs a:focus-visible {
-  outline: 2px solid var(--customer-ink);
-  outline-offset: -3px;
-  border-radius: var(--customer-radius-control);
+.customer-header--guest .customer-brand__name {
+  display: none;
 }
 .customer-header a:focus-visible,
+.customer-header__account:focus-visible,
 .customer-footer a:focus-visible,
 .customer-menu a:focus-visible {
   outline: 2px solid var(--customer-ink);
@@ -326,31 +231,72 @@ html:has(.customer-ui) {
   margin: 0;
   padding: 0;
 }
-@media (min-width: 390px) {
-  .customer-brand__name {
-    display: inline;
-  }
-}
 @media (min-width: 744px) {
   .customer-container {
     padding-inline: var(--customer-space-24);
+  }
+  .customer-header__utilities {
+    display: flex;
+  }
+  .customer-brand__name {
+    display: none;
   }
   .customer-footer__groups {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 @media (min-width: 1128px) {
+  .customer-header__nav {
+    display: flex;
+  }
   .customer-container {
     padding-inline: var(--customer-space-32);
   }
-  .customer-header {
-    height: 88px;
+  .customer-header__nav {
+    gap: var(--customer-space-24);
   }
-  .customer-header__nav,
-  .customer-header__account-control {
-    display: flex;
+  .customer-brand__name,
+  .customer-header--guest .customer-brand__name,
+  .customer-header__username {
+    display: inline;
   }
-  .customer-header__utilities {
-    gap: var(--customer-space-16);
+  .customer-header__booking {
+    display: inline-flex;
   }
+}
+
+.customer-discovery-heading {
+  padding-top: 32px;
+}
+.customer-discovery-heading h1 {
+  margin-top: 24px;
+}
+.customer-discovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-bottom: 48px;
+}
+.customer-order-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-block: 24px;
+  border-bottom: 1px solid var(--customer-hairline);
+}
+.customer-order-tabs button {
+  min-height: 48px;
+  padding: 12px 20px;
+  color: var(--customer-muted);
+  border-bottom: 2px solid transparent;
+}
+.customer-order-tabs button[data-state='active'] {
+  color: var(--customer-ink);
+  border-bottom-color: var(--customer-ink);
+  font-weight: 600;
+}
+.customer-order-tabs button:focus-visible,
+.customer-order-panel:focus-visible {
+  outline: 2px solid var(--customer-ink);
+  outline-offset: 3px;
 }

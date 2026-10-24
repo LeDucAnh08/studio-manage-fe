@@ -49,6 +49,7 @@ export default function NewRentalPage() {
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => headingRef.current?.focus(), []);
   const customer = useCustomerAppearance();
+  const ContentTag = customer ? 'section' : 'main';
   const { user } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -256,7 +257,7 @@ export default function NewRentalPage() {
     }
   };
   return (
-    <section
+    <ContentTag
       className={
         customer
           ? 'customer-orders customer-orders--rental-form customer-rental-form'
@@ -734,6 +735,6 @@ export default function NewRentalPage() {
           </div>
         </form>
       )}
-    </section>
+    </ContentTag>
   );
 }

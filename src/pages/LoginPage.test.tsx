@@ -80,7 +80,7 @@ describe('Login appearance preserves authentication and return contracts', () =>
       );
       fillCredentials();
       submitLogin();
-      expect((await screen.findByTestId('destination')).textContent).toBe('/account/bookings');
+      expect((await screen.findByTestId('destination')).textContent).toBe('/account/orders');
       expect(loginMock).toHaveBeenCalledWith('customer.test', 'test-pass-123');
     },
   );
@@ -126,7 +126,7 @@ describe('Login appearance preserves authentication and return contracts', () =>
     expect(loginMock).toHaveBeenNthCalledWith(2, ' Client.Test ', ' password with spaces ');
 
     await act(async () => finishLogin?.({ roles: [6] }));
-    expect((await screen.findByTestId('destination')).textContent).toBe('/account/bookings');
+    expect((await screen.findByTestId('destination')).textContent).toBe('/account/orders');
     expect(loginMock).toHaveBeenCalledTimes(2);
   });
 
@@ -180,7 +180,7 @@ describe('Login appearance preserves authentication and return contracts', () =>
       });
       fillCredentials();
       submitLogin();
-      expect((await screen.findByTestId('destination')).textContent).toBe('/account/bookings');
+      expect((await screen.findByTestId('destination')).textContent).toBe('/account/orders');
       page.unmount();
     }
     expect(loginMock).toHaveBeenCalledTimes(5);

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { useEffect } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout/Layout';
@@ -9,7 +10,9 @@ import ClientRegisterPage from './pages/ClientRegisterPage';
 import ClientLayout from './components/Layout/ClientLayout';
 import PublicSiteLayout from './components/Layout/PublicSiteLayout';
 import PublicMemberIntakePage from './pages/PublicMemberIntakePage';
-import BookingsPage, { NewBookingPage } from './pages/BookingsPage';
+import { NewBookingPage } from './pages/BookingsPage';
+import CustomerOrdersPage from './pages/CustomerOrdersPage';
+import PublicDiscoveryPage from './pages/PublicDiscoveryPage';
 import BookingWorkflowDetailPage from './pages/BookingWorkflowDetailPage';
 import { navItems, adminItems, type NavItem } from './config/navItems';
 import type { UserRole } from './types';
@@ -18,7 +21,6 @@ import FeedbackFormPage from './pages/FeedbackFormPage';
 import PortfolioPage from './pages/PortfolioPage';
 import RentalCatalogPage from './pages/RentalCatalogPage';
 import NewRentalPage from './pages/NewRentalPage';
-import RentalListPage from './pages/RentalListPage';
 import RentalDetailPage from './pages/RentalDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import CustomerScope from './components/customer/CustomerScope';
@@ -30,7 +32,56 @@ import { clientPortalEnabled, clientRentalEnabled } from './config/features';
 
 function PageTitleManager() {
   usePageTitle();
+  const { pathname, hash } = useLocation();
+  useEffect(() => {
+    if (
+      !['/portfolio', '/services', '/concepts', '/pricing', '/costumes'].includes(pathname) &&
+      !pathname.startsWith('/account/')
+    )
+      return;
+    const main =
+      document.getElementById('main-content') || document.getElementById('account-content');
+    main?.focus({ preventScroll: true });
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView?.({ block: 'start' });
+    else window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [pathname, hash]);
   return null;
+}
+
+function PortfolioEntry() {
+  const { user, isBootstrapping } = useAuth();
+  const location = useLocation();
+  const legacy: Record<string, string> = {
+    '#services': '/services',
+    '#gallery': '/concepts',
+    '#packages': '/pricing',
+    '#process': '/services#process',
+    '#feedback': '/feedback',
+  };
+  if (legacy[location.hash]) return <Navigate to={legacy[location.hash]} replace />;
+  if (isBootstrapping) return <p role="status">Đang xác thực...</p>;
+  if (clientPortalEnabled && user?.roles.includes(6))
+    return <Navigate to="/account/orders" replace />;
+  return <PortfolioPage />;
+}
+
+function BookingEntry() {
+  const location = useLocation();
+  return (
+    <Navigate
+      to={{ pathname: '/account/bookings/new', search: location.search, hash: location.hash }}
+      state={location.state}
+      replace
+    />
+  );
+}
+
+function ConceptEntry() {
+  const { user, isBootstrapping } = useAuth();
+  if (isBootstrapping) return <p role="status">Đang xác thực...</p>;
+  if (clientPortalEnabled && user?.roles.includes(6))
+    return <Navigate to="/account/orders" replace />;
+  return <PublicDiscoveryPage page="concepts" />;
 }
 
 function SearchPreservingRedirect({ pathname }: { pathname: string }) {
@@ -108,26 +159,21 @@ function App() {
                     )
                   }
                 />
-                <Route path="/services" element={<Navigate to="/portfolio#services" replace />} />
-                <Route path="/concepts" element={<Navigate to="/portfolio#gallery" replace />} />
-                <Route path="/pricing" element={<Navigate to="/portfolio#packages" replace />} />
-                <Route
-                  path="/consultation"
-                  element={<Navigate to="/portfolio#contact" replace />}
-                />
+                <Route path="/services" element={<PublicDiscoveryPage page="services" />} />
+                <Route path="/concepts" element={<ConceptEntry />} />
+                <Route path="/pricing" element={<PublicDiscoveryPage page="pricing" />} />
+                <Route path="/consultation" element={<Navigate to="/services" replace />} />
                 <Route
                   path="/booking/start"
                   element={
                     clientPortalEnabled ? (
-                      <NewBookingPage />
+                      <ProtectedRoute allowedRoles={[6]}>
+                        <BookingEntry />
+                      </ProtectedRoute>
                     ) : (
-                      <Navigate to="/consultation" replace />
+                      <Navigate to="/services" replace />
                     )
                   }
-                />
-                <Route
-                  path="/account/bookings/new"
-                  element={<SearchPreservingRedirect pathname="/booking/start" />}
                 />
                 {clientPortalEnabled && (
                   <Route
@@ -138,26 +184,47 @@ function App() {
                       </ProtectedRoute>
                     }
                   >
-                    <Route index element={<Navigate to="bookings" replace />} />
-                    <Route path="bookings" element={<BookingsPage />} />
+                    <Route index element={<Navigate to="orders" replace />} />
+                    <Route path="orders" element={<CustomerOrdersPage />} />
+                    <Route
+                      path="bookings"
+                      element={<Navigate to="/account/orders?tab=bookings" replace />}
+                    />
+                    <Route path="bookings/new" element={<NewBookingPage />} />
                     <Route path="bookings/:id" element={<BookingWorkflowDetailPage />} />
                     <Route path="profile" element={<ProfilePage />} />
-                    {clientRentalEnabled && <Route path="rentals" element={<RentalListPage />} />}
+                    <Route
+                      path="rentals"
+                      element={
+                        <Navigate
+                          to={
+                            clientRentalEnabled
+                              ? '/account/orders?tab=rentals'
+                              : '/account/orders?tab=bookings'
+                          }
+                          replace
+                        />
+                      }
+                    />
                     {clientRentalEnabled && (
                       <Route path="rentals/:id" element={<RentalDetailPage />} />
                     )}
                   </Route>
                 )}
-                <Route path="/portfolio" element={<PortfolioPage />} />
+                <Route path="/portfolio" element={<PortfolioEntry />} />
                 <Route path="/costumes" element={<RentalCatalogPage />} />
-                <Route
-                  path="/rental/start"
-                  element={
-                    <PublicSiteLayout source="costumes">
-                      <NewRentalPage />
-                    </PublicSiteLayout>
-                  }
-                />
+                {clientRentalEnabled && (
+                  <Route
+                    path="/rental/start"
+                    element={
+                      <ProtectedRoute allowedRoles={[6]}>
+                        <PublicSiteLayout source="costumes">
+                          <NewRentalPage />
+                        </PublicSiteLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                )}
                 <Route
                   path="/rental-catalog"
                   element={<SearchPreservingRedirect pathname="/costumes" />}

@@ -337,26 +337,13 @@ describe('date-first rental catalog', () => {
     expect(url.searchParams.has('package')).toBe(false);
   });
 
-  it('opens the rental form with the chosen item and dates from rental contact when online submission is disabled', async () => {
+  it('keeps the selected period but hides rental actions when online submission is disabled', async () => {
     flags.rental = false;
-    const first = renderCatalog(periodQuery);
-    await screen.findByRole('heading', { name: item.name });
-    const restoredQuery = screen.getByTestId('location').textContent!.split('?')[1];
-    first.unmount();
-    renderCatalog(restoredQuery);
+    renderCatalog(periodQuery);
     await screen.findByRole('heading', { name: item.name });
     expect(screen.getByLabelText(/Ngày nhận/)).toHaveValue(receiveDate);
     expect(screen.queryByRole('link', { name: 'Tạo yêu cầu thuê riêng' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Liên hệ thuê riêng' })).toHaveAttribute(
-      'href',
-      `/rental/start?item=outfit-1&${periodQuery}`,
-    );
-    fireEvent.click(screen.getByRole('link', { name: 'Liên hệ thuê riêng' }));
-    expect(catalogUrl().pathname).toBe('/rental/start');
-    expect(catalogUrl().searchParams.get('item')).toBe(item._id);
-    expect(catalogUrl().searchParams.get('receiveDate')).toBe(receiveDate);
-    expect(catalogUrl().searchParams.get('returnDate')).toBe(returnDate);
-    expect(screen.queryByRole('link', { name: 'Thêm vào yêu cầu' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Liên hệ thuê riêng' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Thuê riêng mẫu này' })).not.toBeInTheDocument();
   });
 

@@ -377,7 +377,7 @@ export default function BookingWorkflowDetailPage() {
     booking?.packageName ||
     'Hồ sơ dịch vụ';
   const backPath = isClient
-    ? '/account/bookings'
+    ? '/account/orders?tab=bookings'
     : isAdmin
       ? '/booking-requests'
       : '/workflow-bookings';
@@ -924,7 +924,7 @@ export default function BookingWorkflowDetailPage() {
   }
 
   return (
-    <main
+    <DetailContainer
       className={
         customer
           ? 'customer-orders customer-orders--detail'
@@ -3156,7 +3156,7 @@ export default function BookingWorkflowDetailPage() {
           </p>
         )}
       </section>
-    </main>
+    </DetailContainer>
   );
 }
 

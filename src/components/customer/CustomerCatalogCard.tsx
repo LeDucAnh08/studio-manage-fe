@@ -73,11 +73,11 @@ export function CustomerCatalogCard({
             Tạm tính {days} ngày / 1 sản phẩm: <CustomerPrice amount={dailyPrice * days} />
           </p>
         )}
-        <CustomerButton asChild fullWidth>
-          <Link to={`/rental/start?${rentalParams}`}>
-            {clientRentalEnabled ? 'Thuê riêng mẫu này' : 'Liên hệ thuê riêng'}
-          </Link>
-        </CustomerButton>
+        {clientRentalEnabled && (
+          <CustomerButton asChild fullWidth>
+            <Link to={`/rental/start?${rentalParams}`}>Thuê riêng mẫu này</Link>
+          </CustomerButton>
+        )}
       </div>
     </article>
   );

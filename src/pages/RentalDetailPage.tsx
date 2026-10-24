@@ -63,6 +63,7 @@ type ReturnRow = {
 };
 export default function RentalDetailPage() {
   const customer = useCustomerAppearance();
+  const ContentTag = customer ? 'section' : 'main';
   const { id = '' } = useParams();
   const { user } = useAuth();
   const roles = user?.roles ?? [];
@@ -260,11 +261,11 @@ export default function RentalDetailPage() {
     });
   };
   return (
-    <main className={customer ? 'customer-orders customer-orders--detail' : 'space-y-6'}>
+    <ContentTag className={customer ? 'customer-orders customer-orders--detail' : 'space-y-6'}>
       <div className="flex flex-wrap justify-between gap-3">
         <Link
           className={customer ? 'customer-link' : 'text-sm text-primary'}
-          to={client ? '/account/rentals' : '/rental-orders'}
+          to={client ? '/account/orders?tab=rentals' : '/rental-orders'}
         >
           ← Danh sách đơn thuê
         </Link>
@@ -1305,6 +1306,6 @@ export default function RentalDetailPage() {
           ))}
         </ol>
       </section>
-    </main>
+    </ContentTag>
   );
 }

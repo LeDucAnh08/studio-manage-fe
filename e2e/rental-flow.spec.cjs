@@ -1,4 +1,6 @@
 const path = require('node:path');
+const fs = require('node:fs');
+const captures = path.resolve(__dirname, '../../.workflow-tools/pulled-intake');
 const { randomUUID } = require('node:crypto');
 const { createRequire } = require('node:module');
 const { test, expect } = require('@playwright/test');
@@ -15,6 +17,7 @@ test('guest rental draft completes quote, handover, damage return and deposit se
   request,
 }) => {
   test.setTimeout(180000);
+  fs.mkdirSync(captures, { recursive: true });
   const suffix = randomUUID().slice(0, 8),
     password = 'RentalBrowser123!',
     title = `Khách thuê ${suffix}`,
@@ -60,10 +63,18 @@ test('guest rental draft completes quote, handover, damage return and deposit se
       month: '2-digit',
       day: '2-digit',
     }).format(new Date(Date.now() + offset * 86400000));
-  await page.goto(`/rental/start?item=${costume._id}`);
-  await expect(page.getByLabel('Mẫu thuê 1', { exact: true })).toHaveCount(0);
-  await page.getByLabel('Ngày nhận mong muốn').fill(day(0));
-  await page.getByLabel('Ngày trả mong muốn').fill(day(rentalDays - 1));
+  await page.goto('/costumes');
+  await page.getByLabel(/Ngày nhận/).fill(day(0));
+  await page.getByLabel(/Ngày trả/).fill(day(rentalDays - 1));
+  const card = page.getByRole('article').filter({ has: page.getByRole('heading', { name, exact: true }) });
+  await expect(card.getByRole('link', { name: 'Thuê riêng mẫu này', exact: true })).toBeVisible();
+  await page.screenshot({ path: path.join(captures, '01-period-selection.png') });
+  await card.getByRole('link', { name: 'Thuê riêng mẫu này', exact: true }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.getByLabel('Tên đăng nhập').fill(`rental.client.${suffix}`);
+  await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+  await expect(page).toHaveURL(/\/rental\/start\?/);
   await expect(page.getByLabel('Mẫu thuê 1', { exact: true })).toHaveValue(String(costume._id));
   await page.getByLabel('Kích cỡ 1', { exact: true }).selectOption('M');
   await expect(page.getByText(/Tiền thuê dự kiến:/)).toContainText(
@@ -72,15 +83,10 @@ test('guest rental draft completes quote, handover, damage return and deposit se
   await page.getByLabel('Người liên hệ').fill(title);
   await page.getByLabel('Số điện thoại', { exact: true }).fill('0901234567');
   await page.getByLabel('Ghi chú thuê').fill('Một món, dùng độc lập với lịch chụp.');
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+  await page.screenshot({ path: path.join(captures, '02-rental-details.png'), fullPage: true });
   await page.getByRole('button', { name: 'Xem lại yêu cầu thuê' }).click();
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Kiểm tra yêu cầu thuê' })).toBeVisible();
-  await page.getByRole('button', { name: 'Đăng nhập để gửi yêu cầu thuê' }).click();
-  await expect(page).toHaveURL(/\/login\?returnTo=/);
-  await page.getByLabel('Tên đăng nhập').fill(`rental.client.${suffix}`);
-  await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
-  await expect(page).toHaveURL(/\/rental\/start\?/);
   await expect(page.getByRole('heading', { name: 'Kiểm tra yêu cầu thuê' })).toBeVisible();
   await page.getByRole('button', { name: 'Gửi yêu cầu thuê', exact: true }).click();
   await expect(page).toHaveURL(/\/account\/rentals\/[a-f0-9]{24}$/);

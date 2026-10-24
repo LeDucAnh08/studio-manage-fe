@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { OrderButton as Button } from '../components/customer/CustomerOrderControls';
 import { useCustomerAppearance } from '../components/customer/CustomerAppearance';
-import { CustomerAccountTabs } from '../components/customer/CustomerAccountTabs';
 import { CustomerOrderCard } from '../components/customer/CustomerOrderCard';
 import { CustomerPrice } from '../components/customer/CustomerPrice';
 import { CustomerStatusBadge } from '../components/customer/CustomerStatusBadge';
@@ -16,13 +15,13 @@ import {
   rentalError,
   type RentalOrder,
 } from '../services/rentalService';
-export default function RentalListPage() {
+export default function RentalListPage({ embedded = false }: { embedded?: boolean }) {
   const customer = useCustomerAppearance();
-  const Container = customer ? 'section' : 'main';
   const OrderCard = customer ? CustomerOrderCard : Link;
   const Status = customer ? CustomerStatusBadge : 'span';
   const { user } = useAuth();
   const client = !!user?.roles.includes(6);
+  const Heading = embedded ? 'h2' : 'h1';
   const [rows, setRows] = useState<RentalOrder[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -45,20 +44,18 @@ export default function RentalListPage() {
     void load();
   }, [load]);
   return (
-    <Container className={customer ? 'customer-orders' : 'space-y-6'}>
+    <section className={customer ? 'customer-orders' : 'space-y-6'}>
       <header
         className={
           customer ? 'customer-orders__header' : 'flex flex-wrap items-center justify-between gap-3'
         }
       >
         <div>
-          <h1 className={customer ? 'customer-page-title' : 'text-2xl font-bold'}>
-            {client ? (customer ? 'Dịch vụ của tôi' : 'Đơn thuê của tôi') : 'Quản lý đơn thuê'}
-          </h1>
+          <Heading className={customer ? 'customer-page-title' : 'text-2xl font-bold'}>
+            {client ? 'Đơn thuê trang phục' : 'Quản lý đơn thuê'}
+          </Heading>
           <p className="mt-2 text-muted-foreground">
-            {customer && client
-              ? 'Theo dõi yêu cầu và tiến trình thuê của bạn.'
-              : 'Báo giá, giữ hàng, giao nhận và đối soát tiền.'}
+            Báo giá, giữ hàng, giao nhận và đối soát tiền.
           </p>
         </div>
         {client &&
@@ -75,7 +72,6 @@ export default function RentalListPage() {
             </Link>
           ))}
       </header>
-      {customer && client && <CustomerAccountTabs />}
       {loading ? (
         <p role="status">Đang tải đơn thuê…</p>
       ) : error ? (
@@ -154,6 +150,6 @@ export default function RentalListPage() {
           </Button>
         </div>
       )}
-    </Container>
+    </section>
   );
 }
