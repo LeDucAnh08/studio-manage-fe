@@ -6,6 +6,7 @@ import { OrderButton as Button, OrderSelect } from '../components/customer/Custo
 import { useCustomerAppearance } from '../components/customer/CustomerAppearance';
 import { CustomerOrderCard } from '../components/customer/CustomerOrderCard';
 import { CustomerStatusBadge } from '../components/customer/CustomerStatusBadge';
+import { BookingCostumeDetails } from '../components/customer/BookingCostumeDetails';
 import '../styles/customer-orders.css';
 import {
   bookingService,
@@ -353,6 +354,11 @@ export function BookingDetailPage({ admin = false }: { admin?: boolean }) {
             </p>
             {item.note && <p className="whitespace-pre-wrap break-words">Ghi chú: {item.note}</p>}
           </div>
+          <BookingCostumeDetails
+            booking={item}
+            admin={admin}
+            onReleased={async () => setItem(await bookingService.get(id!))}
+          />
           {item.reviewNote && (
             <section className="border rounded-xl p-5">
               <h2 className="font-semibold">Phản hồi của studio</h2>

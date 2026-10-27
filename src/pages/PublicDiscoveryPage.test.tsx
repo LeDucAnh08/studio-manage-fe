@@ -46,10 +46,24 @@ describe('Independent discovery pages', () => {
   });
   it('renders live package prices and preserves a selected package in its booking link', async () => {
     mocks.packages.mockResolvedValue([
-      { _id: 'p1', name: 'Gói thử', pricePerMember: 500000, duration: 'full_day', isPopular: true },
+      {
+        _id: 'p1',
+        name: 'Gói thử',
+        pricePerMember: 500000,
+        duration: 'full_day',
+        isPopular: true,
+        costumes: [
+          { _id: 'type-1', name: 'Áo dài' },
+          { _id: 'type-2', name: 'Vest' },
+        ],
+      },
     ]);
     open('pricing');
     await screen.findByText('Gói thử');
+    expect(screen.getByText(/Đã bao gồm trang phục: Áo dài, Vest/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Studio tư vấn mẫu và size trang phục khi chốt lịch/),
+    ).toBeInTheDocument();
     expect(
       screen
         .getAllByRole('link', { name: 'Đặt lịch' })

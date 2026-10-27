@@ -4,6 +4,7 @@ import { portfolioImages } from '@/assets/images/portfolio-images';
 import type { BookingWorkflowDto } from '@/services/bookingWorkflowService';
 import { CustomerImage } from './CustomerImage';
 import { OrderButton } from './CustomerOrderControls';
+import { BookingCostumeDetails } from './BookingCostumeDetails';
 import '../../styles/customer-booking-intake.css';
 
 interface CustomerBookingIntakeProps {
@@ -199,6 +200,7 @@ export function CustomerBookingIntake({
         )}
       </section>
 
+      <BookingCostumeDetails booking={booking} />
       <section
         className="customer-booking-intake__history"
         aria-labelledby="customer-intake-history-title"

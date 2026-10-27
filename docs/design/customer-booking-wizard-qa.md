@@ -1,5 +1,7 @@
 # Design QA: customer booking, mockup 2
 
+> Cập nhật 26/10/2026: luồng hiện tại trở lại ba bước, trang phục được bao gồm trong thông tin gói; không chọn mẫu/size hoặc giữ kho khi gửi từ wizard. Bản nháp v1/v2 chuyển sang v3. Xem [ADR-002](../../../docs/decisions/002-package-included-costumes.md). Nội dung bên dưới là evidence lịch sử của thiết kế ba bước; kiểm thử cập nhật nằm trong `NewBookingPage.test.tsx` và `e2e/booking-costumes.spec.cjs`.
+
 Ngày 09/10/2026 (Asia/Bangkok). BOOK01 gồm ba bước wizard customer. User chọn mockup 2, duyệt hai màn tiếp theo, yêu cầu bỏ chi tiết dev và chọn đổi tên/mô tả hai gói Demo. QA auth trước đây được giữ tại [customer-auth-layout-qa.md](customer-auth-layout-qa.md).
 
 ## Nguồn và evidence

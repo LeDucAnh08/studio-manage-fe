@@ -213,7 +213,7 @@ function App() {
                 )}
                 <Route path="/portfolio" element={<PortfolioEntry />} />
                 <Route path="/costumes" element={<RentalCatalogPage />} />
-                {clientRentalEnabled && (
+                {clientPortalEnabled && (
                   <Route
                     path="/rental/start"
                     element={

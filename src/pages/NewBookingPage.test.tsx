@@ -3,7 +3,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { packageService } from '../services/packageService';
 import { bookingService } from '../services/bookingService';
-import { BOOKING_DRAFT_KEY } from '../services/bookingDraft';
+import { BOOKING_DRAFT_KEY, createBookingDraft, readBookingDraft } from '../services/bookingDraft';
 import { NewBookingPage } from './BookingsPage';
 
 const { auth } = vi.hoisted(() => ({
@@ -27,6 +27,7 @@ vi.mock('../services/packageService', () => ({
 vi.mock('../services/bookingService', () => ({
   bookingLabels: { pending: 'Chờ duyệt', approved: 'Đã duyệt yêu cầu', rejected: 'Đã từ chối' },
   bookingService: {
+    costumes: vi.fn(),
     create: vi.fn(),
     list: vi.fn(),
     get: vi.fn(),
@@ -118,6 +119,7 @@ describe('NewBookingPage', () => {
       { _id: 'package-4', name: 'Gói bổ sung', pricePerMember: 1_100_000 },
     ]);
     vi.mocked(bookingService.create).mockResolvedValue({ _id: 'booking-1' });
+    vi.mocked(bookingService.costumes).mockResolvedValue([]);
   });
 
   it('keeps discovery context and package comparison while collecting class and VN schedule details', async () => {
@@ -229,7 +231,7 @@ describe('NewBookingPage', () => {
       className: '12A1',
       school: 'THPT Yume',
       contactName: 'Khách thử',
-      members: 30,
+      members: '30',
       startAt: start,
       endAt: end,
       source: 'concepts',
@@ -303,7 +305,7 @@ describe('NewBookingPage', () => {
     const first = vi.mocked(bookingService.create).mock.calls[0];
 
     fireEvent.click(screen.getByRole('button', { name: 'Sửa thông tin' }));
-    fireEvent.click(screen.getByRole('button', { name: /Xem lại yêu cầu/ }));
+    await reviewRequest();
     await screen.findByRole('heading', { name: 'Kiểm tra trước khi gửi' });
     fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu tới Yume' }));
     await waitFor(() => expect(bookingService.create).toHaveBeenCalledTimes(2));
@@ -312,7 +314,7 @@ describe('NewBookingPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Sửa thông tin' }));
     fireEvent.change(screen.getByLabelText('Tên lớp / nhóm'), { target: { value: '12A2' } });
-    fireEvent.click(screen.getByRole('button', { name: /Xem lại yêu cầu/ }));
+    await reviewRequest();
     await screen.findByRole('heading', { name: 'Kiểm tra trước khi gửi' });
     fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu tới Yume' }));
     await waitFor(() => expect(bookingService.create).toHaveBeenCalledTimes(3));
@@ -348,4 +350,133 @@ describe('NewBookingPage', () => {
     ).toBeInTheDocument();
     expect(bookingService.create).not.toHaveBeenCalled();
   });
+
+  it('allows clearing and restoring member text, validates whole numbers and submits a numeric member count', async () => {
+    const page = render(
+      <MemoryRouter initialEntries={['/account/bookings/new']}>
+        <NewBookingPage />
+      </MemoryRouter>,
+    );
+    await choosePackage();
+    fillDetails();
+    const input = screen.getByRole('textbox', { name: 'Số thành viên dự kiến' });
+    fireEvent.change(input, { target: { value: '' } });
+    expect(input).toHaveValue('');
+    expect(readBookingDraft()?.members).toBe('');
+    page.unmount();
+    render(
+      <MemoryRouter initialEntries={['/account/bookings/new']}>
+        <NewBookingPage />
+      </MemoryRouter>,
+    );
+    await screen.findByRole('heading', { name: 'Cho Yume biết về lớp mình' });
+    const restored = screen.getByRole('textbox', { name: 'Số thành viên dự kiến' });
+    expect(restored).toHaveValue('');
+    for (const value of ['', '0', '-1', '1.5', '1e2', 'abc', '1001']) {
+      fireEvent.change(restored, { target: { value } });
+      fireEvent.click(screen.getByRole('button', { name: /Xem lại yêu cầu/ }));
+      expect(restored).toHaveAttribute('aria-invalid', 'true');
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Nhập số thành viên là số nguyên từ 1 đến 1.000.',
+      );
+      expect(bookingService.create).not.toHaveBeenCalled();
+    }
+    fireEvent.change(restored, { target: { value: '40' } });
+    await reviewRequest();
+    expect(screen.getByText('40 thành viên')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu tới Yume' }));
+    await waitFor(() => expect(bookingService.create).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(bookingService.create).mock.calls[0][0].members).toBe(40);
+  });
+
+  it('shows included clothing in the package, comparison and review without a selection step or catalog request', async () => {
+    vi.mocked(packageService.listPublic).mockResolvedValue([
+      {
+        _id: 'package-1',
+        name: 'Gói thử',
+        pricePerMember: 500_000,
+        costumes: [
+          { _id: 'type-1', name: 'Áo dài' },
+          { _id: 'type-2', name: 'Vest' },
+        ],
+      },
+    ]);
+    render(
+      <MemoryRouter initialEntries={['/account/bookings/new']}>
+        <NewBookingPage />
+      </MemoryRouter>,
+    );
+    const card = (await screen.findAllByRole('article'))[0];
+    expect(within(card).getByText('Trang phục đã bao gồm')).toBeInTheDocument();
+    expect(within(card).getByText('Áo dài, Vest')).toBeInTheDocument();
+    fireEvent.click(within(card).getByRole('button', { name: 'So sánh gói' }));
+    expect(screen.getByText('Đã bao gồm trang phục: Áo dài, Vest')).toBeInTheDocument();
+    await choosePackage();
+    fillDetails();
+    await reviewRequest();
+    expect(
+      within(screen.getByRole('list', { name: 'Các bước gửi yêu cầu' })).getAllByRole('listitem'),
+    ).toHaveLength(3);
+    expect(screen.getByRole('heading', { name: 'Trang phục đã bao gồm' })).toBeInTheDocument();
+    expect(screen.getByText('Áo dài, Vest')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sửa trang phục' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Giữ tạm 24 giờ/)).not.toBeInTheDocument();
+    expect(bookingService.costumes).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu tới Yume' }));
+    await waitFor(() => expect(bookingService.create).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(bookingService.create).mock.calls[0][0]).not.toHaveProperty(
+      'costumeSelections',
+    );
+  });
+
+  it.each([
+    [1, 3],
+    [2, 3],
+    [2, 4],
+  ] as const)(
+    'migrates version %i step %i to the three-step flow, preserving entered details and dropping obsolete costume choices',
+    async (version, step) => {
+      const { start, end } = futureWindow();
+      sessionStorage.setItem(
+        `yume.booking-draft.v${version}`,
+        JSON.stringify({
+          ...createBookingDraft(),
+          version,
+          step,
+          packageId: 'package-1',
+          className: '12A cũ',
+          school: 'THPT Yume',
+          contactName: 'Khách thử',
+          phone: '0901234567',
+          members: 30,
+          location: 'Hà Nội',
+          startAt: start,
+          endAt: end,
+          note: 'Bản nháp cũ',
+          costumeSelections: [{ costumeId: 'obsolete', size: 'M', quantity: 20 }],
+        }),
+      );
+      expect(readBookingDraft()).toMatchObject({
+        version: 3,
+        step: 3,
+        className: '12A cũ',
+        note: 'Bản nháp cũ',
+      });
+      expect(readBookingDraft()).not.toHaveProperty('costumeSelections');
+      render(
+        <MemoryRouter initialEntries={['/account/bookings/new']}>
+          <NewBookingPage />
+        </MemoryRouter>,
+      );
+      await screen.findByText('Gói thử');
+      expect(screen.getByRole('heading', { name: 'Kiểm tra trước khi gửi' })).toBeInTheDocument();
+      expect(screen.getByText('Bản nháp cũ')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu tới Yume' }));
+      await waitFor(() => expect(bookingService.create).toHaveBeenCalledTimes(1));
+      expect(vi.mocked(bookingService.create).mock.calls[0][0]).not.toHaveProperty(
+        'costumeSelections',
+      );
+      expect(sessionStorage.getItem(`yume.booking-draft.v${version}`)).toBeNull();
+    },
+  );
 });

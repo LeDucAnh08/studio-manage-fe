@@ -108,11 +108,14 @@ const toDisplay = (list: Package[]): PackageDisplay[] => {
     if (p.costumes && p.costumes.length) {
       const names = p.costumes.map((c) => c?.name?.trim()).filter((n): n is string => Boolean(n));
       if (names.length) {
-        items.push(`Trang phục: ${names.join(', ')}`);
+        items.push(`Đã bao gồm trang phục: ${names.join(', ')}`);
       } else {
-        items.push(`${p.costumes.length} loại trang phục đi kèm`);
+        items.push(`Đã bao gồm ${p.costumes.length} loại trang phục đi kèm`);
       }
+    } else {
+      items.push('Đã bao gồm trang phục · Studio sẽ tư vấn chi tiết');
     }
+    items.push('Studio tư vấn mẫu và size trang phục khi chốt lịch');
     if (!items.length) items.push('Liên hệ Yume để biết thêm chi tiết');
     return {
       id: p._id,

@@ -1,5 +1,6 @@
 import api from './api';
 import type { ApiResponse, PaginatedApiResponse } from '../types';
+import type { Booking } from './bookingService';
 
 export type BookingWorkflowLifecycle =
   | 'intake'
@@ -34,6 +35,23 @@ export type BookingWorkflowAction =
   | 'member-link.close'
   | 'legacy.reconcile';
 
+export const bookingWorkflowLabels: Record<BookingWorkflowLifecycle, string> = {
+  intake: 'Mới tiếp nhận',
+  quoting: 'Đang báo giá',
+  awaiting_deposit: 'Chờ đặt cọc',
+  ready_to_confirm: 'Đã đủ tiền cọc',
+  confirmed: 'Đã chốt lịch',
+  shooting: 'Đang chụp',
+  editing: 'Đang hậu kỳ',
+  delivered: 'Đã bàn giao',
+  revision_requested: 'Đang chỉnh sửa',
+  accepted: 'Khách đã nghiệm thu',
+  completed: 'Hoàn tất',
+  change_pending: 'Đang xử lý yêu cầu thay đổi',
+  cancelled: 'Đã hủy',
+};
+export type CustomerOrderView = '' | 'active' | 'completed' | 'cancelled' | 'rejected';
+
 export interface PaymentInstructions {
   bankName: string;
   accountName: string;
@@ -59,7 +77,7 @@ export interface AllowedWorkflowCostume {
 }
 
 export interface BookingWorkflowDto {
-  booking: {
+  booking: Pick<Booking, 'costumeSelections' | 'costumeHold'> & {
     _id: string;
     status: 'pending' | 'approved' | 'rejected';
     packageName: string;
@@ -183,6 +201,8 @@ export interface WorkflowSummary {
   lifecycle: BookingWorkflowLifecycle;
   packageName: string;
   className?: string;
+  school?: string;
+  startTime?: string;
   shootDate: string | null;
   updatedAt: string;
   bookingStatus: 'pending' | 'approved' | 'rejected';
@@ -223,9 +243,11 @@ export interface WorkflowPage {
 }
 
 export const bookingWorkflowService = {
-  list: (page = 1, limit = 20) =>
+  list: (page = 1, limit = 20, view: CustomerOrderView = '') =>
     api
-      .get<PaginatedApiResponse<WorkflowSummary>>('/workflows', { params: { page, limit } })
+      .get<
+        PaginatedApiResponse<WorkflowSummary>
+      >('/workflows', { params: { page, limit, ...(view ? { view } : {}) } })
       .then((response) => response.data),
   get: (id: string) =>
     api

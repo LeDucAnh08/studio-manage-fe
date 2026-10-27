@@ -2,6 +2,32 @@ import api from './api';
 import type { ApiResponse, PaginatedApiResponse } from '../types';
 
 export type BookingStatus = 'pending' | 'approved' | 'rejected';
+export interface BookingCostumeInput {
+  costumeId: string;
+  size: string;
+  quantity: number;
+}
+export interface BookingCostumeSelection extends BookingCostumeInput {
+  name: string;
+  typeId: string;
+  typeName: string;
+}
+export interface BookingCostumeCatalogItem {
+  _id: string;
+  name: string;
+  description?: string;
+  gender: 'male' | 'female' | 'unisex';
+  typeId: string;
+  typeName: string;
+  availableBySize: Record<string, number>;
+}
+export interface BookingCostumeHold {
+  status: 'temporary' | 'expired' | 'approved' | 'released' | 'transferred';
+  receiveDate: string;
+  returnDate: string;
+  expiresAt?: string;
+  releaseReason?: string;
+}
 export const bookingLabels: Record<BookingStatus, string> = {
   pending: 'Chờ duyệt',
   approved: 'Đã duyệt yêu cầu',
@@ -24,6 +50,8 @@ export interface Booking {
   reviewNote?: string;
   createdAt: string;
   events?: { _id?: string; message: string; at: string }[];
+  costumeSelections?: BookingCostumeSelection[];
+  costumeHold?: BookingCostumeHold | null;
 }
 export interface BookingNotification {
   _id: string;
@@ -33,6 +61,14 @@ export interface BookingNotification {
   unread: boolean;
 }
 export const bookingService = {
+  costumes: (packageId: string, startAt: string, endAt: string) =>
+    api
+      .get<
+        ApiResponse<BookingCostumeCatalogItem[]>
+      >(`/public/packages/${packageId}/costumes`, { params: { startAt, endAt } })
+      .then((r) => r.data.data),
+  releaseCostumes: (id: string, note: string) =>
+    api.patch(`/bookings/${id}/costume-hold/release`, { note }),
   list: (page: number, status: string, limit = 20) =>
     api
       .get<PaginatedApiResponse<Booking>>('/bookings', {
@@ -52,6 +88,7 @@ export const bookingService = {
       endAt: string;
       location: string;
       note: string;
+      costumeSelections?: BookingCostumeInput[];
     },
     idempotencyKey: string,
   ) =>

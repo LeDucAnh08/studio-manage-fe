@@ -1,9 +1,10 @@
 import type { User } from '../types';
 
-export const BOOKING_DRAFT_KEY = 'yume.booking-draft.v1';
+export const BOOKING_DRAFT_KEY = 'yume.booking-draft.v3';
+const LEGACY_BOOKING_DRAFT_KEYS = ['yume.booking-draft.v2', 'yume.booking-draft.v1'];
 
 export interface BookingDraft {
-  version: 1;
+  version: 3;
   ownerId: string | null;
   idempotencyKey: string;
   submissionFingerprint?: string;
@@ -18,7 +19,7 @@ export interface BookingDraft {
   comparedPackageIds: string[];
   contactName: string;
   phone: string;
-  members: number;
+  members: string;
   startAt: string;
   endAt: string;
   location: string;
@@ -31,7 +32,7 @@ export const createIdempotencyKey = () =>
     : `booking-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 export const createBookingDraft = (ownerId: string | null = null): BookingDraft => ({
-  version: 1,
+  version: 3,
   ownerId,
   idempotencyKey: createIdempotencyKey(),
   step: 1,
@@ -45,23 +46,32 @@ export const createBookingDraft = (ownerId: string | null = null): BookingDraft 
   comparedPackageIds: [],
   contactName: '',
   phone: '',
-  members: 1,
+  members: '1',
   startAt: '',
   endAt: '',
   location: '',
   note: '',
 });
 
-const isBookingDraft = (value: unknown): value is BookingDraft => {
+type StoredBookingDraft = Omit<BookingDraft, 'version' | 'step' | 'members'> & {
+  version: 1 | 2 | 3;
+  step: 1 | 2 | 3 | 4;
+  members: string | number;
+  costumeSelections?: unknown;
+};
+const isBookingDraft = (value: unknown): value is StoredBookingDraft => {
   if (!value || typeof value !== 'object') return false;
-  const draft = value as Partial<BookingDraft>;
+  const draft = value as Partial<StoredBookingDraft>;
   return (
-    draft.version === 1 &&
+    (draft.version === 1 || draft.version === 2 || draft.version === 3) &&
     (draft.ownerId === null || typeof draft.ownerId === 'string') &&
     typeof draft.idempotencyKey === 'string' &&
     (draft.submissionFingerprint === undefined ||
       typeof draft.submissionFingerprint === 'string') &&
-    (draft.step === 1 || draft.step === 2 || draft.step === 3) &&
+    (draft.step === 1 ||
+      draft.step === 2 ||
+      draft.step === 3 ||
+      (draft.version === 2 && draft.step === 4)) &&
     typeof draft.source === 'string' &&
     typeof draft.concept === 'string' &&
     typeof draft.itemId === 'string' &&
@@ -73,8 +83,8 @@ const isBookingDraft = (value: unknown): value is BookingDraft => {
     draft.comparedPackageIds.every((id) => typeof id === 'string') &&
     typeof draft.contactName === 'string' &&
     typeof draft.phone === 'string' &&
-    typeof draft.members === 'number' &&
-    Number.isFinite(draft.members) &&
+    (typeof draft.members === 'string' ||
+      (typeof draft.members === 'number' && Number.isFinite(draft.members))) &&
     typeof draft.startAt === 'string' &&
     typeof draft.endAt === 'string' &&
     typeof draft.location === 'string' &&
@@ -84,14 +94,21 @@ const isBookingDraft = (value: unknown): value is BookingDraft => {
 
 export const readBookingDraft = (): BookingDraft | null => {
   try {
-    const raw = sessionStorage.getItem(BOOKING_DRAFT_KEY);
+    const raw = [BOOKING_DRAFT_KEY, ...LEGACY_BOOKING_DRAFT_KEYS]
+      .map((key) => sessionStorage.getItem(key))
+      .find((value) => value !== null);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (!isBookingDraft(parsed)) return null;
+    // Older costume choices are no longer submitted or used to reserve inventory.
+    const { costumeSelections: _selections, ...draft } = parsed;
     return {
-      ...parsed,
+      ...draft,
+      version: 3,
+      step: parsed.step === 4 ? 3 : parsed.step,
       className: parsed.className ?? '',
       school: parsed.school ?? '',
+      members: String(parsed.members),
     };
   } catch {
     return null;
@@ -101,6 +118,7 @@ export const readBookingDraft = (): BookingDraft | null => {
 export const writeBookingDraft = (draft: BookingDraft) => {
   try {
     sessionStorage.setItem(BOOKING_DRAFT_KEY, JSON.stringify(draft));
+    LEGACY_BOOKING_DRAFT_KEYS.forEach((key) => sessionStorage.removeItem(key));
   } catch {
     // The current form remains usable if storage is unavailable.
   }
@@ -109,6 +127,7 @@ export const writeBookingDraft = (draft: BookingDraft) => {
 export const clearBookingDraft = () => {
   try {
     sessionStorage.removeItem(BOOKING_DRAFT_KEY);
+    LEGACY_BOOKING_DRAFT_KEYS.forEach((key) => sessionStorage.removeItem(key));
   } catch {
     // Storage can be unavailable in privacy-restricted browser contexts.
   }

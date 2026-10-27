@@ -43,6 +43,7 @@ export default function CustomerHeader({ source = 'portfolio' }: { source?: stri
       className="customer-nav-link"
       aria-current={
         pathname === item.to ||
+        (item.to === '/costumes' && pathname === '/rental/start') ||
         (client &&
           item.to === '/account/orders' &&
           ((pathname.startsWith('/account/bookings/') && pathname !== '/account/bookings/new') ||

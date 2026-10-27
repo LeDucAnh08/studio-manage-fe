@@ -153,10 +153,10 @@ describe('date-first daily rental form', () => {
       renderNew(`${path}&item=${item._id}`);
       await choose();
       expect(screen.getByLabelText('Mẫu thuê 1')).toHaveValue(item._id);
-      const period = screen.getByRole('region', { name: 'Kỳ thuê đã chọn' });
-      expect(period.querySelector(`time[datetime="${receive}"]`)).toHaveTextContent('10/10/2099');
-      expect(period.querySelector(`time[datetime="${returned}"]`)).toHaveTextContent('12/10/2099');
-      expect(document.querySelector('input[type="date"]')).toBeNull();
+      const period = screen.getByRole('region', { name: 'Kỳ thuê' });
+      expect(within(period).getByLabelText('Ngày nhận')).toHaveValue(receive);
+      expect(within(period).getByLabelText('Ngày trả')).toHaveValue(returned);
+      expect(document.querySelectorAll('input[type="date"]')).toHaveLength(2);
       fireEvent.click(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' }));
       await screen.findByRole('heading', { name: 'Kiểm tra yêu cầu thuê' });
       const send = screen.getByRole('button', {
@@ -176,12 +176,12 @@ describe('date-first daily rental form', () => {
     },
   );
 
-  it('asks for a catalog period rather than date re-entry and shows the selected dates as a summary', async () => {
+  it('allows editing rental dates inline and keeps a readable period summary', async () => {
     const first = renderNew();
-    expect(screen.getByRole('heading', { name: 'Thông tin thuê riêng' })).toHaveFocus();
-    expect(document.querySelector('input[type="date"]')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Thông tin thuê trang phục' })).toHaveFocus();
+    expect(document.querySelectorAll('input[type="date"]')).toHaveLength(2);
     expect(screen.getByRole('alert')).toHaveTextContent('Chọn đủ ngày nhận và ngày trả');
-    expect(screen.getByRole('link', { name: '← Chọn thời gian và mẫu thuê' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Danh mục trang phục' })).toHaveAttribute(
       'href',
       '/costumes',
     );
@@ -190,13 +190,12 @@ describe('date-first daily rental form', () => {
     first.unmount();
     renderNew(path);
     await screen.findByLabelText('Mẫu thuê 1');
-    const period = screen.getByRole('region', { name: 'Kỳ thuê đã chọn' });
-    expect(within(period).getByRole('heading', { name: 'Kỳ thuê đã chọn' })).toBeInTheDocument();
-    expect(period.querySelector(`time[datetime="${receive}"]`)).toHaveTextContent('10/10/2099');
-    expect(period.querySelector(`time[datetime="${returned}"]`)).toHaveTextContent('12/10/2099');
+    const period = screen.getByRole('region', { name: 'Kỳ thuê' });
+    expect(within(period).getByLabelText('Ngày nhận')).toHaveValue(receive);
+    expect(within(period).getByLabelText('Ngày trả')).toHaveValue(returned);
     expect(period).toHaveTextContent('3 ngày thuê');
-    expect(document.querySelector('input[type="date"]')).toBeNull();
-    const changePeriod = screen.getByRole('link', { name: '← Đổi thời gian hoặc chọn mẫu' });
+    expect(document.querySelectorAll('input[type="date"]')).toHaveLength(2);
+    const changePeriod = screen.getByRole('link', { name: 'Danh mục trang phục' });
     expect(changePeriod).toHaveAttribute(
       'href',
       `/costumes?receiveDate=${receive}&returnDate=${returned}`,
@@ -226,7 +225,7 @@ describe('date-first daily rental form', () => {
       storePreviewDraft();
       renderNew(`/rental/start?${entry.query}`);
       expect(await screen.findByRole('alert')).toHaveTextContent(entry.error);
-      expect(document.querySelector('input[type="date"]')).toBeNull();
+      expect(document.querySelectorAll('input[type="date"]')).toHaveLength(2);
       expect(screen.queryByLabelText('Mẫu thuê 1')).not.toBeInTheDocument();
       expect(mocks.catalog).not.toHaveBeenCalled();
       expect(mocks.create).not.toHaveBeenCalled();
@@ -236,7 +235,7 @@ describe('date-first daily rental form', () => {
         preview: false,
       });
       const changePeriod = new URL(
-        screen.getByRole('link', { name: '← Chọn thời gian và mẫu thuê' }).getAttribute('href')!,
+        screen.getByRole('link', { name: 'Danh mục trang phục' }).getAttribute('href')!,
         'http://localhost',
       );
       expect(changePeriod.pathname).toBe('/costumes');
@@ -249,11 +248,11 @@ describe('date-first daily rental form', () => {
     mocks.create.mockResolvedValue({ _id: 'rental-1' });
     renderNew(path);
     await choose();
-    expect(screen.getByText(/Tiền thuê dự kiến:/)).toHaveTextContent('300.000');
-    expect(screen.getByText(/Tiền thuê dự kiến:/)).not.toHaveTextContent('9.999.999');
+    expect(screen.getByText(/Tạm tính:/)).toHaveTextContent('300.000');
+    expect(screen.getByText(/Tạm tính:/)).not.toHaveTextContent('9.999.999');
     fireEvent.click(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' }));
     expect(screen.getByRole('heading', { name: 'Kiểm tra yêu cầu thuê' })).toBeInTheDocument();
-    expect(document.querySelector('input[type="date"]')).toBeNull();
+    expect(document.querySelectorAll('input[type="date"]')).toHaveLength(2);
     fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu thuê' }));
     await waitFor(() =>
       expect(mocks.create).toHaveBeenCalledWith(
@@ -265,6 +264,36 @@ describe('date-first daily rental form', () => {
         'request-1',
       ),
     );
+  });
+
+  it('edits the rental period inline, restores the new period and rechecks inventory without reducing quantities', async () => {
+    const page = renderNew(path);
+    await choose();
+    fireEvent.change(screen.getByLabelText('Ngày trả'), { target: { value: '2099-10-13' } });
+    await waitFor(() =>
+      expect(mocks.catalog).toHaveBeenLastCalledWith({
+        receiveDate: receive,
+        returnDate: '2099-10-13',
+      }),
+    );
+    await waitFor(() => expect(screen.getByText(/Tạm tính:/)).toHaveTextContent('400.000'));
+    expect(screen.getByRole('complementary', { name: 'Tóm tắt kỳ thuê' })).toHaveTextContent(
+      '2 món · 4 ngày',
+    );
+    const url = screen.getByTestId('location').textContent!;
+    expect(url).toContain('returnDate=2099-10-13');
+    page.unmount();
+    renderNew(url);
+    await screen.findByLabelText('Mẫu thuê 1');
+    expect(screen.getByLabelText('Ngày trả')).toHaveValue('2099-10-13');
+    expect(screen.getByLabelText('Số lượng 1')).toHaveValue(2);
+    expect(screen.getByLabelText('Người liên hệ')).toHaveValue('Khách thuê');
+    mocks.catalog.mockResolvedValue([{ ...item, availableBySize: { M: 1 } }]);
+    fireEvent.change(screen.getByLabelText('Ngày trả'), { target: { value: '2099-10-14' } });
+    await screen.findByText(/Lựa chọn này không đủ hàng/);
+    expect(screen.getByLabelText('Số lượng 1')).toHaveValue(2);
+    expect(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' })).toBeDisabled();
+    expect(mocks.create).not.toHaveBeenCalled();
   });
 
   it('keeps item totals, quantity bounds and the submitted request in sync while editing multiple items', async () => {
@@ -305,7 +334,7 @@ describe('date-first daily rental form', () => {
     expect(
       within(screen.getByRole('group', { name: 'Món thuê 2' })).getByText(/90\.000/),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Tiền thuê dự kiến:/)).toHaveTextContent('840.000');
+    expect(screen.getByText(/Tạm tính:/)).toHaveTextContent('840.000');
 
     fireEvent.click(screen.getByRole('button', { name: 'Thêm món thuê' }));
     expect(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' })).toBeDisabled();
@@ -313,13 +342,13 @@ describe('date-first daily rental form', () => {
     expect(screen.queryByLabelText('Mẫu thuê 3')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Mẫu thuê 1')).toHaveValue(item._id);
     expect(screen.getByLabelText('Mẫu thuê 2')).toHaveValue(accessory._id);
-    expect(screen.getByText(/Tiền thuê dự kiến:/)).toHaveTextContent('840.000');
+    expect(screen.getByText(/Tạm tính:/)).toHaveTextContent('840.000');
     fireEvent.change(screen.getByLabelText('Ghi chú thuê'), {
       target: { value: '  Nhận tại studio  ' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' }));
     expect(screen.getByRole('heading', { name: 'Kiểm tra yêu cầu thuê' })).toBeInTheDocument();
-    expect(screen.getByText(/Tiền thuê dự kiến:/)).toHaveTextContent('840.000');
+    expect(screen.getByText(/Tạm tính:/)).toHaveTextContent('840.000');
     fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu thuê' }));
     await waitFor(() =>
       expect(mocks.create).toHaveBeenCalledWith(
@@ -343,7 +372,7 @@ describe('date-first daily rental form', () => {
     mocks.catalog.mockResolvedValue([{ ...item, rentalDailyPrice: null }]);
     renderNew(path);
     await choose();
-    expect(screen.getByText(/Tiền thuê dự kiến:/)).toHaveTextContent('Studio sẽ báo giá theo ngày');
+    expect(screen.getByText(/Tạm tính:/)).toHaveTextContent('Studio sẽ báo giá theo ngày');
     expect(screen.queryByText('9.999.999')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' })).toBeEnabled();
   });
@@ -397,7 +426,7 @@ describe('date-first daily rental form', () => {
     renderNew();
     await screen.findByRole('heading', { name: 'Kiểm tra yêu cầu thuê' });
     expect(mocks.catalog).toHaveBeenCalledWith({ receiveDate: receive, returnDate: returned });
-    expect(screen.getByText(/Tiền thuê dự kiến:/)).toHaveTextContent('300.000');
+    expect(screen.getByText(/Tạm tính:/)).toHaveTextContent('300.000');
   });
 
   it('keeps the period chosen outside the form through login rather than restoring the old draft dates', async () => {

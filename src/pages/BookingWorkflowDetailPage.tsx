@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
   OrderButton as Button,
@@ -21,11 +21,13 @@ import { useCustomerAppearance } from '../components/customer/CustomerAppearance
 import { CustomerPrice } from '../components/customer/CustomerPrice';
 import { CustomerPriceBreakdown } from '../components/customer/CustomerPriceBreakdown';
 import { CustomerBookingIntake } from '../components/customer/CustomerBookingIntake';
+import { BookingCostumeDetails } from '../components/customer/BookingCostumeDetails';
 import '../styles/customer-orders.css';
 import { useAuth } from '../context/AuthContext';
 import { bookingService, type Booking } from '../services/bookingService';
 import {
   bookingWorkflowService,
+  bookingWorkflowLabels as lifecycleLabels,
   type BookingWorkflowAction,
   type BookingWorkflowDto,
   type EditableWorkflowMember,
@@ -56,21 +58,6 @@ type MemberInput = {
 };
 
 const VN_TIME_ZONE = 'Asia/Ho_Chi_Minh';
-const lifecycleLabels: Record<Workflow['lifecycle'], string> = {
-  intake: 'Mới tiếp nhận',
-  quoting: 'Đang báo giá',
-  awaiting_deposit: 'Chờ đặt cọc',
-  ready_to_confirm: 'Đã đủ tiền cọc',
-  confirmed: 'Đã chốt lịch',
-  shooting: 'Đang chụp',
-  editing: 'Đang hậu kỳ',
-  delivered: 'Đã bàn giao',
-  revision_requested: 'Đang chỉnh sửa',
-  accepted: 'Khách đã nghiệm thu',
-  completed: 'Hoàn tất',
-  change_pending: 'Đang xử lý yêu cầu thay đổi',
-  cancelled: 'Đã hủy',
-};
 const progressLabels: Record<string, string> = {
   not_started: 'Chưa bắt đầu',
   shooting: 'Đang chụp',
@@ -261,6 +248,7 @@ function PaymentInstructionsPanel({ instructions }: { instructions: PaymentInstr
 }
 
 export default function BookingWorkflowDetailPage() {
+  const location = useLocation();
   const customer = useCustomerAppearance();
   const { id = '' } = useParams();
   const { user } = useAuth();
@@ -376,8 +364,12 @@ export default function BookingWorkflowDetailPage() {
     booking?.contactName?.trim() ||
     booking?.packageName ||
     'Hồ sơ dịch vụ';
+  const ordersReturnTo = location.state?.ordersReturnTo;
   const backPath = isClient
-    ? '/account/orders?tab=bookings'
+    ? typeof ordersReturnTo === 'string' &&
+      (ordersReturnTo === '/account/orders' || ordersReturnTo.startsWith('/account/orders?'))
+      ? ordersReturnTo
+      : '/account/orders?tab=bookings'
     : isAdmin
       ? '/booking-requests'
       : '/workflow-bookings';
@@ -1063,6 +1055,14 @@ export default function BookingWorkflowDetailPage() {
           </p>
         )}
       </header>
+
+      {(isAdmin || isClient) && (
+        <BookingCostumeDetails
+          booking={booking}
+          admin={isAdmin && !workflow.resources?.scheduleId}
+          onReleased={load}
+        />
+      )}
 
       {(isAdmin || isClient) && (booking.note || legacyBooking?.note) && (
         <section className={customer ? 'customer-order-surface' : 'rounded-2xl border p-5'}>

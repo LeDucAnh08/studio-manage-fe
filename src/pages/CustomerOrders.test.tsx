@@ -28,7 +28,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../context/AuthContext', () => ({ useAuth: () => mocks.auth }));
 vi.mock('../config/features', () => ({ clientRentalEnabled: true }));
-vi.mock('../services/bookingWorkflowService', () => ({
+vi.mock('../services/bookingWorkflowService', async () => ({
+  ...(await vi.importActual('../services/bookingWorkflowService')),
   bookingWorkflowService: { get: mocks.workflowGet, act: mocks.workflowAct },
   createWorkflowRequestId: mocks.requestId,
 }));
@@ -740,7 +741,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
     mocks.auth.user = null;
     const rentalPath = `/rental/start?item=costume-1&receiveDate=${futureDate()}&returnDate=${futureDate()}`;
     const first = renderPage(<NewRentalPage />, rentalPath, '/rental/start');
-    expect(document.querySelector('input[type="date"]')).toBeNull();
+    expect(document.querySelectorAll('input[type="date"]')).toHaveLength(2);
     await screen.findByLabelText('Mẫu thuê 1');
     fireEvent.change(screen.getByLabelText('Kích cỡ 1'), { target: { value: 'M' } });
     fireEvent.change(screen.getByLabelText('Số lượng 1'), { target: { value: '2' } });

@@ -66,7 +66,9 @@ test('guest rental draft completes quote, handover, damage return and deposit se
   await page.goto('/costumes');
   await page.getByLabel(/Ngày nhận/).fill(day(0));
   await page.getByLabel(/Ngày trả/).fill(day(rentalDays - 1));
-  const card = page.getByRole('article').filter({ has: page.getByRole('heading', { name, exact: true }) });
+  const card = page
+    .getByRole('article')
+    .filter({ has: page.getByRole('heading', { name, exact: true }) });
   await expect(card.getByRole('link', { name: 'Thuê riêng mẫu này', exact: true })).toBeVisible();
   await page.screenshot({ path: path.join(captures, '01-period-selection.png') });
   await card.getByRole('link', { name: 'Thuê riêng mẫu này', exact: true }).click();
@@ -77,9 +79,7 @@ test('guest rental draft completes quote, handover, damage return and deposit se
   await expect(page).toHaveURL(/\/rental\/start\?/);
   await expect(page.getByLabel('Mẫu thuê 1', { exact: true })).toHaveValue(String(costume._id));
   await page.getByLabel('Kích cỡ 1', { exact: true }).selectOption('M');
-  await expect(page.getByText(/Tiền thuê dự kiến:/)).toContainText(
-    rentalFee.toLocaleString('vi-VN'),
-  );
+  await expect(page.getByText(/Tạm tính:/)).toContainText(rentalFee.toLocaleString('vi-VN'));
   await page.getByLabel('Người liên hệ').fill(title);
   await page.getByLabel('Số điện thoại', { exact: true }).fill('0901234567');
   await page.getByLabel('Ghi chú thuê').fill('Một món, dùng độc lập với lịch chụp.');

@@ -1,5 +1,7 @@
 # Customer orders — kiểm tra runtime
 
+> Cập nhật 26/10/2026: `/account/orders` đã triển khai mockup 3, danh sách bên trái và tiến độ bên phải, xếp dọc ở mobile. Báo cáo nghiệm thu hiện tại ở [design-qa.md](../../design-qa.md); nội dung dưới đây giữ evidence lịch sử của danh sách cũ.
+
 Ngày kiểm tra: **08/10/2026**. Phạm vi UI17/UI19–UI23: danh sách booking/đơn thuê, workflow booking, chi tiết đơn thuê và tạo yêu cầu thuê. Đối chiếu `frontend/DESIGN-customer.md` và `frontend/docs/design/AUDIT-customer.md`.
 
 Kiểm tra trên source preview `http://127.0.0.1:4013`, Windows Chrome headless, viewport cao 1000px, `html.dark`. Trong đợt này chỉ cập nhật harness/artifacts và tài liệu này; không sửa hoặc format source/tests frontend, không chạy lại unit/build/E2E.

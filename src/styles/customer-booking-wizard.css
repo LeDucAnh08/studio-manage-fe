@@ -265,12 +265,25 @@
 }
 
 .customer-ui .customer-wizard .customer-package-card--row .customer-package-card__overview {
-  gap: var(--customer-space-12);
+  gap: var(--customer-space-16);
   min-width: 0;
 }
 
 .customer-ui .customer-wizard .customer-package-card--row .customer-package-card__title {
   margin-top: 0;
+  font-size: 20px;
+  line-height: 1.4;
+}
+
+.customer-ui .customer-wizard .customer-package-card--row .customer-package-card__note {
+  max-width: 48ch;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.customer-ui .customer-wizard .customer-package-card--row .customer-price__amount {
+  font-size: 20px;
+  line-height: 1.4;
 }
 
 .customer-ui .customer-wizard .customer-package-card--row .customer-package-card__check {
@@ -289,7 +302,7 @@
 }
 
 .customer-ui .customer-wizard .customer-package-card--row .customer-package-card__features dl {
-  gap: var(--customer-space-8);
+  gap: var(--customer-space-16);
   border: 0;
   padding: 0;
 }
@@ -309,12 +322,36 @@
 .customer-ui .customer-wizard .customer-package-card--row .customer-package-card__features dd {
   min-width: 0;
   color: var(--customer-body);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.6;
   overflow-wrap: anywhere;
+}
+
+.customer-ui .customer-wizard .customer-package-card--row .customer-package-card__features dt {
+  line-height: 1.6;
+}
+
+.customer-ui
+  .customer-wizard
+  .customer-package-card--row
+  .customer-package-card__features
+  dl
+  > .customer-wizard__package-costumes {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--customer-space-8);
+  border-top: 1px solid var(--customer-hairline-soft);
+  padding-top: var(--customer-space-16);
+}
+
+.customer-ui .customer-wizard .customer-package-card--row .customer-wizard__package-note {
+  margin-top: var(--customer-space-12);
+  line-height: 1.6;
 }
 
 .customer-ui .customer-wizard .customer-package-card--row .customer-package-card__actions {
   display: grid;
-  gap: var(--customer-space-8);
+  gap: var(--customer-space-16);
   min-width: 0;
   border-left: 1px solid var(--customer-hairline-soft);
   padding-left: var(--customer-space-16);

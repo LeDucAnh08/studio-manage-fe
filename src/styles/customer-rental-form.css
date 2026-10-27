@@ -1,116 +1,101 @@
 .customer-orders.customer-rental-form {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1440px;
   margin-inline: auto;
-  padding: var(--customer-space-24) var(--customer-space-16) var(--customer-space-48);
-  gap: var(--customer-space-16);
+  padding: 24px clamp(16px, 3.7vw, 56px) 48px;
+  font-size: 16px;
+  line-height: 1.6;
 }
-
-.customer-rental-form__header {
+.customer-rental-form__layout {
   display: grid;
-  gap: var(--customer-space-4);
+  grid-template-columns: minmax(0, 2.12fr) minmax(340px, 1fr);
+  align-items: start;
+  gap: 32px;
   min-width: 0;
 }
-
+.customer-rental-form__main,
+.customer-rental-form__body {
+  display: grid;
+  gap: 28px;
+  min-width: 0;
+}
+.customer-rental-form__header {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
 .customer-rental-form__header > a {
   display: inline-flex;
   align-items: center;
   justify-self: start;
-  min-height: 48px;
-  gap: var(--customer-space-8);
-  font-size: var(--customer-body-small-size);
+  min-height: 24px;
+  gap: 8px;
+  color: var(--customer-muted);
+  font-size: 14px;
 }
-
 .customer-rental-form__header h1 {
   margin: 0;
   color: var(--customer-ink);
-  font-size: var(--customer-display-xl-size);
-  font-weight: var(--customer-display-xl-weight);
-  line-height: var(--customer-display-xl-line);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.4;
   overflow-wrap: anywhere;
 }
-
 .customer-rental-form__header > p {
   margin: 0;
   color: var(--customer-muted);
-  font-size: var(--customer-body-size);
-  line-height: var(--customer-body-line);
+  font-size: 16px;
+  line-height: 1.6;
 }
-
+.customer-rental-form__paused {
+  padding: 12px 16px;
+  border-left: 3px solid var(--customer-hairline);
+  background: var(--customer-surface-soft);
+  color: var(--customer-muted);
+  font-size: 14px;
+}
 .customer-rental-form .customer-rental-form__period {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--customer-space-16);
+  grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.9fr);
+  align-items: center;
+  gap: 24px;
   min-width: 0;
-  padding: var(--customer-space-16);
+  padding: 16px 24px;
   border: 0;
-  border-radius: var(--customer-radius-control);
+  border-radius: 8px;
   background: var(--customer-surface-soft);
 }
-
-.customer-rental-form__period-title {
-  display: flex;
-  align-items: center;
-  gap: var(--customer-space-16);
-  min-width: 0;
+.customer-rental-form__period .customer-order-field {
+  font-size: 14px;
+  gap: 8px;
 }
-
-.customer-rental-form__period-title > svg {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
+.customer-rental-form__period .customer-order-field + .customer-order-field {
+  border-left: 1px solid var(--customer-hairline);
+  padding-left: 24px;
 }
-
-.customer-rental-form__period-title h2 {
-  font-size: var(--customer-title-size);
-  font-weight: var(--customer-title-weight);
-  line-height: var(--customer-title-line);
-  overflow-wrap: anywhere;
-}
-
-.customer-rental-form__period-dates {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--customer-space-16);
-  min-width: 0;
-  margin: 0;
-}
-
-.customer-rental-form__period-dates dt {
-  margin-bottom: var(--customer-space-4);
-  color: var(--customer-muted);
-  font-size: var(--customer-body-small-size);
-  line-height: var(--customer-body-small-line);
-}
-
-.customer-rental-form__period-dates dd {
-  margin: 0;
-  color: var(--customer-ink);
-  font-size: var(--customer-body-size);
-  font-weight: var(--customer-title-weight);
-  line-height: var(--customer-body-line);
-}
-
 .customer-rental-form__period-count {
-  display: flex;
-  flex-direction: column;
-  gap: var(--customer-space-4);
-  margin: 0;
+  display: grid;
+  gap: 4px;
+  border-left: 1px solid var(--customer-hairline);
+  padding-left: 24px;
   color: var(--customer-muted);
-  font-size: var(--customer-body-small-size);
-  line-height: var(--customer-body-small-line);
+  font-size: 14px;
+  line-height: 1.5;
 }
-
 .customer-rental-form__period-count strong {
   color: var(--customer-ink);
-  font-size: var(--customer-body-size);
-  font-weight: var(--customer-title-weight);
+  font-weight: 600;
 }
-
+.customer-ui .customer-rental-form input[type='date'] {
+  min-width: 0;
+  min-inline-size: 0;
+  width: 100%;
+  padding-inline: 12px;
+}
 .customer-rental-form .customer-rental-form__items,
 .customer-rental-form .customer-rental-form__contact {
   display: grid;
-  gap: var(--customer-space-16);
+  gap: 16px;
   min-width: 0;
   padding: 0;
   border: 0;
@@ -118,107 +103,125 @@
   background: transparent;
   box-shadow: none;
 }
-
 .customer-rental-form__section-title {
   grid-column: 1 / -1;
   margin: 0;
   color: var(--customer-ink);
-  font-size: var(--customer-display-lg-size);
-  font-weight: var(--customer-display-lg-weight);
-  line-height: var(--customer-display-lg-line);
-  letter-spacing: var(--customer-display-lg-tracking);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0;
 }
-
 .customer-rental-form__column-headings {
-  display: none;
-}
-
-.customer-rental-form__body {
   display: grid;
-  gap: var(--customer-space-24);
-  min-width: 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--customer-hairline);
+  color: var(--customer-muted);
+  font-size: 14px;
 }
-
+.customer-rental-form__column-headings,
+.customer-rental-form .customer-rental-form__row {
+  grid-template-columns: minmax(0, 1fr) 104px 136px 104px 120px 40px;
+  gap: 12px;
+}
 .customer-rental-form .customer-rental-form__row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
-  gap: var(--customer-space-16);
   min-width: 0;
-  margin: 0;
-  padding: var(--customer-space-8) 0;
+  margin: -16px 0 0;
+  padding: 16px 0;
   border: 0;
-  border-bottom: 1px solid var(--customer-hairline);
+  border-bottom: 1px solid var(--customer-hairline-soft);
   border-radius: 0;
   background: transparent;
 }
-
 .customer-rental-form__item,
 .customer-rental-form__size,
 .customer-rental-form__quantity {
   display: grid;
   align-content: start;
-  gap: var(--customer-space-8);
+  gap: 8px;
   min-width: 0;
 }
-
-.customer-rental-form__item {
-  gap: var(--customer-space-4);
-}
-
-.customer-rental-form__item {
-  grid-column: 1 / -1;
-}
-
-.customer-rental-form__item > p:not([role='alert']) {
+.customer-rental-form__item > p {
   color: var(--customer-muted);
-  font-size: var(--customer-caption-small-size);
-  line-height: var(--customer-body-small-line);
+  font-size: 13px;
+  line-height: 1.6;
 }
-
+.customer-rental-form__item > p[role='alert'] {
+  color: var(--customer-primary-error-text);
+}
 .customer-rental-form__field-label {
   display: block;
   color: var(--customer-muted);
-  font-size: var(--customer-body-small-size);
-  font-weight: var(--customer-caption-weight);
-  line-height: var(--customer-body-small-line);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
 }
-
+.customer-rental-form__row .customer-rental-form__field-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.customer-ui .customer-rental-form .customer-control,
+:root.dark .customer-ui .customer-rental-form .customer-control {
+  min-height: 48px;
+  height: 48px;
+  font-size: 16px;
+}
+.customer-ui .customer-rental-form__size select.customer-control,
+:root.dark .customer-ui .customer-rental-form__size select.customer-control {
+  padding: 10px 24px 10px 12px;
+}
+.customer-ui .customer-rental-form__size select.customer-control:focus,
+:root.dark .customer-ui .customer-rental-form__size select.customer-control:focus {
+  padding: 9px 23px 9px 11px;
+}
+.customer-ui .customer-rental-form textarea.customer-control,
+:root.dark .customer-ui .customer-rental-form textarea.customer-control {
+  height: 80px;
+  min-height: 80px;
+  line-height: 1.6;
+}
 .customer-rental-form__quantity > div {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
   min-width: 0;
 }
-
 .customer-rental-form .customer-rental-form__quantity > div > button {
-  width: 48px;
-  min-width: 48px;
-  min-height: 56px;
+  width: 40px;
+  min-width: 40px;
+  min-height: 48px;
   padding: 0;
   border: 1px solid var(--customer-hairline);
   border-radius: 0;
   background: var(--customer-canvas);
   color: var(--customer-ink);
 }
-
 .customer-rental-form .customer-rental-form__quantity > div > button:first-child {
-  border-radius: var(--customer-radius-control) 0 0 var(--customer-radius-control);
+  border-radius: 8px 0 0 8px;
 }
-
 .customer-rental-form .customer-rental-form__quantity > div > button:last-child {
-  border-radius: 0 var(--customer-radius-control) var(--customer-radius-control) 0;
+  border-radius: 0 8px 8px 0;
 }
-
 .customer-rental-form .customer-rental-form__quantity > div > button:disabled {
   background: var(--customer-surface-soft);
   color: var(--customer-muted-soft);
   cursor: not-allowed;
 }
-
-.customer-rental-form .customer-rental-form__quantity .customer-control,
-.customer-rental-form .customer-rental-form__quantity .customer-control:focus,
-:root.dark .customer-ui .customer-rental-form__quantity .customer-control,
-:root.dark .customer-ui .customer-rental-form__quantity .customer-control:focus {
+.customer-ui .customer-rental-form .customer-rental-form__quantity .customer-control,
+.customer-ui .customer-rental-form .customer-rental-form__quantity .customer-control:focus,
+:root.dark .customer-ui .customer-rental-form .customer-rental-form__quantity .customer-control,
+:root.dark
+  .customer-ui
+  .customer-rental-form
+  .customer-rental-form__quantity
+  .customer-control:focus {
   min-width: 0;
   padding-inline: 0;
   border-right: 0;
@@ -227,222 +230,263 @@
   text-align: center;
   appearance: textfield;
 }
-
 .customer-rental-form__quantity input[type='number']::-webkit-inner-spin-button,
 .customer-rental-form__quantity input[type='number']::-webkit-outer-spin-button {
   margin: 0;
   appearance: none;
 }
-
 .customer-rental-form .customer-rental-form__quantity > div > button:focus-visible,
 .customer-rental-form .customer-rental-form__quantity .customer-control:focus {
   outline: 2px solid var(--customer-ink);
   outline-offset: -3px;
 }
-
 .customer-rental-form__rate,
 .customer-rental-form__line-total {
   display: flex;
   flex-direction: column;
-  align-items: start;
-  gap: var(--customer-space-8);
   min-width: 0;
-  color: var(--customer-ink);
-  font-size: var(--customer-body-small-size);
-  line-height: var(--customer-body-small-line);
-  overflow-wrap: anywhere;
+  min-height: 48px;
+  justify-content: center;
 }
-
-.customer-rental-form__rate .customer-price__amount {
-  font-size: var(--customer-body-size);
-  font-weight: 400;
-}
-
+.customer-rental-form__rate .customer-price__amount,
 .customer-rental-form__line-total .customer-price__amount {
-  font-size: var(--customer-body-size);
-  font-weight: var(--customer-title-weight);
+  font-size: 16px;
 }
-
+.customer-rental-form__line-total .customer-price__amount {
+  font-weight: 600;
+}
 .customer-rental-form .customer-rental-form__remove {
-  justify-self: end;
-  grid-column: 2;
-  width: 48px;
-  min-width: 48px;
+  width: 40px;
+  min-width: 40px;
   min-height: 48px;
   padding: 0;
+  color: var(--customer-ink);
 }
-
-.customer-rental-form__remove > svg,
-.customer-rental-form__add > svg {
-  width: 20px;
-  height: 20px;
-}
-
 .customer-rental-form .customer-rental-form__add {
-  justify-content: center;
   width: 100%;
-  min-height: 48px;
-  gap: var(--customer-space-12);
 }
-
-.customer-rental-form__row [role='alert'] {
-  color: var(--customer-error);
-  font-size: var(--customer-caption-small-size);
-  line-height: var(--customer-body-small-line);
+.customer-rental-form .customer-rental-form__contact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 24px;
 }
-
-.customer-rental-form__contact {
-  grid-template-columns: minmax(0, 1fr);
+.customer-rental-form__contact .customer-order-field {
+  gap: 8px;
+  font-size: 14px;
 }
-
 .customer-rental-form__notes {
   grid-column: 1 / -1;
 }
-
-.customer-rental-form .customer-rental-form__notes textarea,
-:root.dark .customer-ui .customer-rental-form__notes textarea {
-  height: 80px;
-  min-height: 80px;
-  resize: vertical;
-}
-
-.customer-rental-form__footer {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: center;
-  gap: var(--customer-space-16);
+.customer-rental-form__summary {
+  position: sticky;
+  margin-top: 40px;
+  top: 104px;
   min-width: 0;
-  padding-top: var(--customer-space-8);
-  border-top: 1px solid var(--customer-hairline);
+  padding: 24px;
+  display: grid;
+  gap: 24px;
+  border-radius: 12px;
+  background: var(--customer-surface-soft);
 }
-
-.customer-rental-form__estimate {
+.customer-rental-form__summary > h2 {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.customer-rental-form__summary-period {
   display: flex;
-  flex-direction: column;
   align-items: start;
-  gap: var(--customer-space-4);
-  min-width: 0;
-  margin: 0;
-  color: var(--customer-ink);
-  font-size: var(--customer-body-size);
-  line-height: var(--customer-body-line);
+  gap: 16px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--customer-hairline);
 }
-
-.customer-rental-form__estimate .customer-price__amount {
-  color: var(--customer-primary);
-  font-size: var(--customer-display-xl-size);
-  font-weight: var(--customer-display-xl-weight);
-  line-height: var(--customer-display-xl-line);
+.customer-rental-form__summary-period > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
-
-.customer-rental-form__footer-meta,
-.customer-rental-form__footer-action {
-  display: grid;
-  gap: var(--customer-space-8);
+.customer-rental-form__summary-period > div {
   min-width: 0;
+}
+.customer-rental-form__summary-period p:first-child {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-weight: 600;
+}
+.customer-rental-form__summary-period p + p {
+  margin-top: 8px;
   color: var(--customer-muted);
-  font-size: var(--customer-body-small-size);
-  line-height: var(--customer-body-small-line);
+  font-size: 14px;
 }
-
-.customer-rental-form__footer-action {
-  gap: var(--customer-space-4);
-  text-align: center;
+.customer-rental-form__summary-items h3 {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.6;
 }
-
-.customer-rental-form__footer-action > button {
+.customer-rental-form__summary-items ul {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.customer-rental-form__summary-items li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--customer-hairline);
+}
+.customer-rental-form__summary-items h4 {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.customer-rental-form__summary-items li > div > p {
+  margin-top: 4px;
+  color: var(--customer-muted);
+  font-size: 14px;
+}
+.customer-rental-form__summary-line-total {
+  align-self: center;
+}
+.customer-rental-form__summary-line-total .customer-price__amount {
+  font-size: 16px;
+  font-weight: 600;
+}
+.customer-rental-form__summary-formula {
+  grid-column: 1 / -1;
+  color: var(--customer-muted);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.customer-rental-form__summary-empty {
+  color: var(--customer-muted);
+  margin-top: 16px;
+  font-size: 14px;
+}
+.customer-rental-form__summary-total {
+  display: grid;
+  gap: 16px;
+}
+.customer-rental-form__summary-total > p:first-child {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.customer-rental-form__summary-total > p:first-child > span:last-child {
+  color: var(--customer-muted);
+  font-size: 14px;
+}
+.customer-rental-form__summary .customer-rental-form__estimate {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 20px;
+}
+.customer-rental-form__estimate .customer-price--total .customer-price__amount {
+  color: var(--customer-primary);
+  font-size: 28px;
+  line-height: 1.4;
+}
+.customer-rental-form__summary > button {
   width: 100%;
 }
-
-@media (min-width: 360px) {
-  .customer-rental-form__period-dates {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.customer-rental-form__summary > p {
+  color: var(--customer-muted);
+  font-size: 14px;
+  line-height: 1.6;
 }
-
-@media (min-width: 744px) {
-  .customer-orders.customer-rental-form {
-    padding: var(--customer-space-8) var(--customer-space-32) var(--customer-space-48);
-  }
-
-  .customer-rental-form .customer-rental-form__period {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
-    align-items: center;
-    gap: var(--customer-space-24);
-    padding: var(--customer-space-16) var(--customer-space-24);
-  }
-
-  .customer-rental-form__period-dates > div,
-  .customer-rental-form__period-count {
-    padding-left: var(--customer-space-24);
-    border-left: 1px solid var(--customer-hairline);
-  }
-
-  .customer-rental-form__period-dates {
-    gap: var(--customer-space-24);
-  }
-
-  .customer-rental-form .customer-rental-form__contact {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--customer-space-12) var(--customer-space-24);
-  }
+.customer-rental-form__summary > p:last-child {
+  margin-top: -12px;
 }
-
-@media (min-width: 1128px) {
-  .customer-rental-form__column-headings,
-  .customer-rental-form .customer-rental-form__row {
-    grid-template-columns: minmax(0, 1fr) 120px 148px 160px 150px 48px;
-    gap: var(--customer-space-16);
-  }
-
+@media (max-width: 1279px) {
   .customer-rental-form__column-headings {
-    display: grid;
-    align-items: center;
-    padding-bottom: var(--customer-space-8);
-    border-bottom: 1px solid var(--customer-hairline);
-    color: var(--customer-muted);
-    font-size: var(--customer-body-small-size);
-    line-height: var(--customer-body-small-line);
+    display: none;
   }
-
   .customer-rental-form .customer-rental-form__row {
-    margin-top: calc(-1 * var(--customer-space-16));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 0;
   }
-
-  .customer-rental-form__row .customer-rental-form__field-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
   .customer-rental-form__item {
-    grid-column: auto;
+    grid-column: 1 / -1;
   }
-
-  .customer-rental-form__rate,
-  .customer-rental-form__line-total {
-    min-height: 56px;
-    justify-content: center;
+  .customer-rental-form__row .customer-rental-form__field-label {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
   }
-
   .customer-rental-form .customer-rental-form__remove {
-    grid-column: auto;
-    margin-top: var(--customer-space-4);
+    grid-column: 2;
+    justify-self: end;
   }
-
-  .customer-rental-form__footer {
-    grid-template-columns: minmax(0, 200px) minmax(0, 1fr) minmax(0, 300px);
-    gap: var(--customer-space-32);
+  .customer-rental-form .customer-rental-form__period {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
   }
-
-  .customer-rental-form__footer-meta {
-    padding-left: var(--customer-space-32);
-    border-left: 1px solid var(--customer-hairline);
+  .customer-rental-form__period > svg {
+    display: none;
+  }
+  .customer-rental-form__period-count {
+    grid-column: 1 / -1;
+    border: 0;
+    padding: 0;
+  }
+}
+@media (max-width: 1127px) {
+  .customer-rental-form__layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+  .customer-rental-form__summary {
+    position: static;
+    margin-top: 0;
+  }
+}
+@media (max-width: 743px) {
+  .customer-orders.customer-rental-form {
+    padding: 24px 16px 40px;
+  }
+  .customer-rental-form__main,
+  .customer-rental-form__body {
+    gap: 24px;
+  }
+  .customer-rental-form .customer-rental-form__contact {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .customer-rental-form__summary {
+    padding: 20px;
+  }
+  .customer-rental-form__summary-period > div p:first-child {
+    font-size: 14px;
+  }
+  .customer-rental-form__header h1 {
+    font-size: 26px;
+  }
+  .customer-rental-form .customer-rental-form__period {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .customer-rental-form__period .customer-order-field + .customer-order-field {
+    border: 0;
+    padding: 0;
+  }
+}
+@media (max-width: 359px) {
+  .customer-rental-form__summary-items li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .customer-rental-form__summary-line-total {
+    justify-self: start;
   }
 }

@@ -128,8 +128,9 @@ function validateStepTwo(draft: BookingDraft): WizardErrors {
   if (!draft.className.trim()) errors.className = 'Nhập tên lớp hoặc nhóm.';
   if (!draft.contactName.trim()) errors.contactName = 'Nhập tên người liên hệ.';
   if (!/^[+\d() .-]{8,25}$/.test(draft.phone.trim())) errors.phone = 'Nhập số điện thoại hợp lệ.';
-  if (!Number.isInteger(draft.members) || draft.members < 1 || draft.members > 1000) {
-    errors.members = 'Số thành viên từ 1 đến 1.000.';
+  const members = Number(draft.members);
+  if (!/^\d+$/.test(draft.members.trim()) || members < 1 || members > 1000) {
+    errors.members = 'Nhập số thành viên là số nguyên từ 1 đến 1.000.';
   }
   const start = parseVietnamDateTime(draft.startAt);
   const end = parseVietnamDateTime(draft.endAt);
@@ -229,7 +230,25 @@ export default function BookingWizardPage() {
   const updateDraft = (patch: Partial<BookingDraft>) => {
     setDraft((current) => ({ ...current, ...patch }));
   };
-
+  const buildPayload = () => {
+    const context = [
+      ...bookingContext,
+      selectedPackage ? `Gói dịch vụ: ${selectedPackage.name}` : '',
+    ].filter(Boolean);
+    const payload = {
+      packageId: draft.packageId,
+      contactName: draft.contactName.trim(),
+      phone: draft.phone.trim(),
+      members: Number(draft.members),
+      startAt: new Date(parseVietnamDateTime(draft.startAt)).toISOString(),
+      endAt: new Date(parseVietnamDateTime(draft.endAt)).toISOString(),
+      location: draft.location.trim(),
+      className: draft.className.trim(),
+      school: draft.school.trim(),
+      note: [...context, draft.note.trim()].filter(Boolean).join('\n\n').slice(0, 2000),
+    };
+    return payload;
+  };
   const goToStep = (step: BookingDraft['step']) => {
     setErrors({});
     setSubmitError('');
@@ -263,7 +282,10 @@ export default function BookingWizardPage() {
 
   const submit = async () => {
     if (loadingPackages) return;
-    const validation = { ...validateStepOne(draft, packages), ...validateStepTwo(draft) };
+    const validation = {
+      ...validateStepOne(draft, packages),
+      ...validateStepTwo(draft),
+    };
     if (Object.keys(validation).length) {
       setErrors(validation);
       const firstStep = validation.packageId ? 1 : 2;
@@ -284,22 +306,7 @@ export default function BookingWizardPage() {
     }
     setSubmitting(true);
     setSubmitError('');
-    const context = [
-      ...bookingContext,
-      selectedPackage ? `Gói dịch vụ: ${selectedPackage.name}` : '',
-    ].filter(Boolean);
-    const payload = {
-      packageId: draft.packageId,
-      contactName: draft.contactName.trim(),
-      phone: draft.phone.trim(),
-      members: draft.members,
-      startAt: new Date(parseVietnamDateTime(draft.startAt)).toISOString(),
-      endAt: new Date(parseVietnamDateTime(draft.endAt)).toISOString(),
-      location: draft.location.trim(),
-      className: draft.className.trim(),
-      school: draft.school.trim(),
-      note: [...context, draft.note.trim()].filter(Boolean).join('\n\n').slice(0, 2000),
-    };
+    const payload = buildPayload();
     const fingerprint = JSON.stringify(payload);
     const idempotencyKey = draft.submissionFingerprint
       ? draft.submissionFingerprint === fingerprint
@@ -498,12 +505,6 @@ export default function BookingWizardPage() {
                               <dd>{item.studentsPerCrew} học sinh / thợ</dd>
                             </div>
                           )}
-                          {item.costumes?.length ? (
-                            <div>
-                              <dt>Trang phục</dt>
-                              <dd>{item.costumes.map((costume) => costume.name).join(', ')}</dd>
-                            </div>
-                          ) : null}
                           {item.editingScope && (
                             <div>
                               <dt>Chỉnh sửa</dt>
@@ -516,7 +517,18 @@ export default function BookingWizardPage() {
                               <dd>Trong {item.deliveryDays} ngày</dd>
                             </div>
                           )}
+                          <div className="customer-wizard__package-costumes">
+                            <dt>Trang phục đã bao gồm</dt>
+                            <dd>
+                              {item.costumes?.length
+                                ? item.costumes.map((costume) => costume.name).join(', ')
+                                : 'Studio sẽ tư vấn trang phục đi kèm'}
+                            </dd>
+                          </div>
                         </dl>
+                        <p className="customer-caption customer-wizard__package-note">
+                          Đã gồm trong giá gói. Studio tư vấn mẫu và size khi chốt lịch.
+                        </p>
                       </CustomerPackageCard>
                     );
                   })}
@@ -558,8 +570,8 @@ export default function BookingWizardPage() {
                           </p>
                           <p className="customer-caption">
                             {item.costumes?.length
-                              ? item.costumes.map((c) => c.name).join(', ')
-                              : 'Trang phục trao đổi với studio'}
+                              ? `Đã bao gồm trang phục: ${item.costumes.map((c) => c.name).join(', ')}`
+                              : 'Đã bao gồm trang phục · Studio sẽ tư vấn chi tiết'}
                           </p>
                           <Button
                             type="button"
@@ -637,14 +649,14 @@ export default function BookingWizardPage() {
                     <p className="customer-caption">{durationLabel[selectedPackage.duration]}</p>
                   </div>
                 )}
-                {selectedPackage.costumes?.length ? (
-                  <div>
-                    <p className="customer-caption">Trang phục</p>
-                    <p className="customer-caption">
-                      {selectedPackage.costumes.map((item) => item.name).join(', ')}
-                    </p>
-                  </div>
-                ) : null}
+                <div>
+                  <p className="customer-caption">Trang phục đã bao gồm</p>
+                  <p className="customer-caption">
+                    {selectedPackage.costumes?.length
+                      ? selectedPackage.costumes.map((item) => item.name).join(', ')
+                      : 'Studio sẽ tư vấn trang phục đi kèm'}
+                  </p>
+                </div>
               </div>
             )}
             <div className="customer-wizard__fields">
@@ -694,13 +706,12 @@ export default function BookingWizardPage() {
               <Field id="members" label="Số thành viên dự kiến" error={errors.members}>
                 <Input
                   id="members"
-                  type="number"
+                  type="text"
                   inputMode="numeric"
-                  min={1}
-                  max={1000}
+                  placeholder="Ví dụ: 40"
                   value={draft.members}
                   aria-invalid={!!errors.members}
-                  onChange={(event) => updateDraft({ members: Number(event.target.value) })}
+                  onChange={(event) => updateDraft({ members: event.target.value })}
                 />
               </Field>
               <Field id="location" label="Địa điểm mong muốn" error={errors.location}>
@@ -792,14 +803,27 @@ export default function BookingWizardPage() {
                 <p className="customer-caption">{selectedPackage.description}</p>
               )}
               {selectedPackage && (
-                <div className="customer-wizard__package-summary">
-                  <CustomerPrice amount={selectedPackage.pricePerMember} unit="/ người" />
-                  <p className="customer-caption">
-                    {selectedPackage.duration
-                      ? durationLabel[selectedPackage.duration]
-                      : 'Thời lượng trao đổi với studio'}
-                  </p>
-                </div>
+                <>
+                  <div className="customer-wizard__package-summary">
+                    <CustomerPrice amount={selectedPackage.pricePerMember} unit="/ người" />
+                    <p className="customer-caption">
+                      {selectedPackage.duration
+                        ? durationLabel[selectedPackage.duration]
+                        : 'Thời lượng trao đổi với studio'}
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="customer-wizard__title">Trang phục đã bao gồm</h4>
+                    <p className="customer-caption">
+                      {selectedPackage.costumes?.length
+                        ? selectedPackage.costumes.map((item) => item.name).join(', ')
+                        : 'Studio sẽ tư vấn trang phục đi kèm'}
+                    </p>
+                    <p className="customer-caption">
+                      Đã gồm trong giá gói. Studio sẽ tư vấn mẫu và size khi chốt lịch.
+                    </p>
+                  </div>
+                </>
               )}
               {customerContext.length > 0 && (
                 <ul className="customer-wizard__context-list">
@@ -873,7 +897,7 @@ export default function BookingWizardPage() {
                         <span className="customer-caption">× {draft.members} thành viên</span>
                       </div>
                       <CustomerPrice
-                        amount={selectedPackage.pricePerMember * draft.members}
+                        amount={selectedPackage.pricePerMember * Number(draft.members)}
                         emphasis="total"
                       />
                     </>
