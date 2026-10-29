@@ -4,6 +4,7 @@ import * as Popover from '@radix-ui/react-popover';
 import { Bell } from 'lucide-react';
 import { bookingService, type BookingNotification } from '@/services/bookingService';
 import { CustomerButton } from './CustomerButton';
+import '../../styles/customer-orders-workspace.css';
 
 export function CustomerOrderNotifications() {
   const [items, setItems] = useState<BookingNotification[]>([]);

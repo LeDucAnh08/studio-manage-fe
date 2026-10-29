@@ -50,6 +50,7 @@ interface DataTableProps<T> {
   textSize?: 'xs' | 'sm';
   onRowClick?: (row: T, index: number) => void;
   pagination?: boolean | PaginationOptions;
+  'aria-label'?: string;
 }
 
 const alignClass = { left: 'text-left', center: 'text-center', right: 'text-right' };
@@ -75,6 +76,7 @@ export function DataTable<T>({
   textSize = 'sm',
   onRowClick,
   pagination,
+  'aria-label': label = typeof title === 'string' ? title : 'Danh sách dữ liệu',
 }: DataTableProps<T>) {
   const paginationOpts = useMemo<PaginationOptions | null>(
     () => (pagination ? (typeof pagination === 'object' ? pagination : {}) : null),
@@ -121,7 +123,11 @@ export function DataTable<T>({
 
   if (loading) {
     const content = (
-      <div className="flex items-center justify-center py-16 text-muted-foreground">
+      <div
+        role="status"
+        aria-label="Đang tải dữ liệu"
+        className="flex items-center justify-center py-16 text-muted-foreground"
+      >
         <Spinner size="lg" />
       </div>
     );
@@ -153,12 +159,14 @@ export function DataTable<T>({
   const textCls = textSize === 'xs' ? 'text-xs' : 'text-sm';
 
   const table = (
-    <Table className={textCls}>
+    <Table className={textCls} aria-label={label} containerLabel={label}>
       <TableHeader className={cn('bg-muted/40', stickyHeader && 'sticky top-0 z-10')}>
         <TableRow>
           {columns.map((col) => (
             <TableHead
               key={col.key}
+              scope="col"
+              data-align={col.align ?? 'left'}
               className={cn(
                 cellPad,
                 'font-semibold uppercase tracking-wide text-xs text-muted-foreground',
@@ -189,6 +197,7 @@ export function DataTable<T>({
               {columns.map((col) => (
                 <TableCell
                   key={col.key}
+                  data-align={col.align ?? 'left'}
                   className={cn(cellPad, alignClass[col.align ?? 'left'], col.className)}
                 >
                   {col.render(row, absoluteIndex)}
@@ -225,13 +234,13 @@ export function DataTable<T>({
   return variant === 'card' ? (
     <div className={wrapperCls}>
       {renderTitle()}
-      <div className="overflow-x-auto">{table}</div>
+      {table}
       {paginationFooter}
       {footer}
     </div>
   ) : (
     <div className={className}>
-      <div className="overflow-x-auto">{table}</div>
+      {table}
       {paginationFooter}
       {footer}
     </div>

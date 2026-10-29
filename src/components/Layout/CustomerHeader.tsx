@@ -6,6 +6,7 @@ import Logo from '../atoms/Logo';
 import { CustomerButton } from '../customer/CustomerButton';
 import { CustomerContainer } from '../customer/CustomerContainer';
 import { CustomerMobileMenu } from '../customer/CustomerMobileMenu';
+import { CustomerOrderNotifications } from '../customer/CustomerOrderNotifications';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +32,7 @@ export default function CustomerHeader({ source = 'portfolio' }: { source?: stri
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const client = clientPortalEnabled && !!user?.roles?.includes(6);
+  const showOrderNotifications = isAuthenticated && client;
   const accountAvailable = isAuthenticated && (!user?.roles?.includes(6) || clientPortalEnabled);
   const signOut = () => {
     logout();
@@ -62,7 +64,7 @@ export default function CustomerHeader({ source = 'portfolio' }: { source?: stri
   );
   return (
     <header
-      className={`customer-header customer-header--public${!isAuthenticated ? ' customer-header--guest' : ''}`}
+      className={`customer-header customer-header--public${!isAuthenticated ? ' customer-header--guest' : ''}${showOrderNotifications ? ' customer-header--notifications' : ''}`}
     >
       <CustomerContainer className="customer-header__row">
         <Link to={client ? '/account/orders' : '/portfolio'} className="customer-brand">
@@ -79,6 +81,7 @@ export default function CustomerHeader({ source = 'portfolio' }: { source?: stri
         )}
         <div className="customer-header__utilities">
           <div className="customer-header__booking">{booking}</div>
+          {showOrderNotifications && <CustomerOrderNotifications />}
           {accountAvailable ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

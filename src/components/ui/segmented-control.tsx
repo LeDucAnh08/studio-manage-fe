@@ -24,6 +24,7 @@ export function SegmentedControl<T extends SegmentedValue>({
 }: SegmentedControlProps<T>) {
   return (
     <div
+      data-ui="segmented-control"
       className={cn(
         'inline-flex items-center rounded-lg border bg-card p-0.5 shadow-sm',
         className,
@@ -35,6 +36,7 @@ export function SegmentedControl<T extends SegmentedValue>({
           <button
             key={item.value}
             type="button"
+            aria-pressed={isActive}
             onClick={() => onChange(item.value)}
             className={cn(
               'min-w-[5.25rem] rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all duration-200 inline-flex items-center justify-center gap-1.5',

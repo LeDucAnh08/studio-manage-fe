@@ -30,8 +30,8 @@ export const SCHEDULE_STATUS_LABEL: Record<string, string> = {
 };
 
 export const SCHEDULE_STATUS_COLOR: Record<string, string> = {
-  pending: 'bg-yellow-500/10 text-yellow-800',
-  confirmed: 'bg-blue-500/10 text-blue-800',
-  completed: 'bg-green-500/10 text-green-800',
-  cancelled: 'bg-red-500/10 text-red-800',
+  pending: 'staff-status--warning',
+  confirmed: 'staff-status--info',
+  completed: 'staff-status--success',
+  cancelled: 'staff-status--danger',
 };

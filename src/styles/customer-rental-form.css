@@ -47,13 +47,6 @@
   font-size: 16px;
   line-height: 1.6;
 }
-.customer-rental-form__paused {
-  padding: 12px 16px;
-  border-left: 3px solid var(--customer-hairline);
-  background: var(--customer-surface-soft);
-  color: var(--customer-muted);
-  font-size: 14px;
-}
 .customer-rental-form .customer-rental-form__period {
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.9fr);

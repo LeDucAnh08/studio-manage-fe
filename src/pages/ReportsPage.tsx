@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui';
-import { clientPortalEnabled, clientRentalEnabled } from '../config/features';
+import { clientPortalEnabled } from '../config/features';
 import { rentalLabels, rentalError } from '../services/rentalService';
 import {
   reportService,
@@ -71,14 +71,10 @@ function ReportTable({
 }
 function Reference({ row }: { row: FinancialRow }) {
   const id = row.referenceId;
-  const enabled =
-    row.service === 'photography'
-      ? clientPortalEnabled
-      : row.service === 'rental' && clientRentalEnabled;
   if (!id || row.service === 'unclassified')
     return <span className="text-muted-foreground">Giao dịch #{row._id.slice(-6)}</span>;
   const code = `${row.service === 'photography' ? 'Chụp' : 'Thuê'} #${id.slice(-6)}`;
-  return enabled ? (
+  return clientPortalEnabled ? (
     <Link
       className="font-medium text-primary underline underline-offset-4"
       to={`${row.service === 'photography' ? '/workflow-bookings' : '/rental-orders'}/${id}`}

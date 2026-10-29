@@ -23,10 +23,6 @@ import { RENTAL_DRAFT_KEY, clearRentalDraft } from '../services/rentalDraft';
 import { createWorkflowRequestId } from '../services/bookingWorkflowService';
 import type { RentalCatalogItem } from '../types';
 import { rentalDayCount, validateRentalPeriod, vietnamToday } from '../utils/rentalPeriod';
-import { clientRentalEnabled } from '../config/features';
-
-const requestsPaused =
-  'Studio tạm ngưng nhận yêu cầu thuê trực tuyến. Thông tin bạn nhập vẫn được lưu trong phiên hiện tại.';
 
 type Draft = Omit<RentalRequest, 'lines'> & {
   lines: Array<{ costumeId: string; size: string; quantity: string }>;
@@ -54,6 +50,7 @@ export default function NewRentalPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
+  const appliedCatalogItem = useRef('');
   const [draft, setDraft] = useState<Draft>(() => {
     const incomingPeriod = {
       receiveDate: params.get('receiveDate') ?? '',
@@ -133,13 +130,25 @@ export default function NewRentalPage() {
   }, [draft, user?._id]);
   useEffect(() => {
     const item = params.get('item');
-    if (item && catalog.some((row) => row._id === item))
-      setDraft((current) =>
-        current.lines.length === 1 && !current.lines[0].costumeId
-          ? { ...current, lines: [{ ...current.lines[0], costumeId: item }] }
-          : current,
-      );
-  }, [catalog, params]);
+    if (!item || item === appliedCatalogItem.current || !catalog.some((row) => row._id === item))
+      return;
+    appliedCatalogItem.current = item;
+    if (draft.lines.some((row) => row.costumeId === item)) return;
+    const emptyIndex = draft.lines.findIndex((row) => !row.costumeId);
+    if (emptyIndex < 0 && draft.lines.length >= 30) {
+      setError('Yêu cầu thuê tối đa 30 dòng. Hãy bỏ bớt một món trước khi chọn thêm mẫu.');
+      return;
+    }
+    const selection = { costumeId: item, size: '', quantity: '1' };
+    setDraft((current) => ({
+      ...current,
+      preview: false,
+      lines:
+        emptyIndex >= 0
+          ? current.lines.map((row, index) => (index === emptyIndex ? selection : row))
+          : [...current.lines, selection],
+    }));
+  }, [catalog, params, draft.lines]);
   const patch = (value: Partial<Draft>) => {
     setError('');
     setDraft((current) => ({ ...current, ...value }));
@@ -231,10 +240,6 @@ export default function NewRentalPage() {
     })),
   });
   const submit = async () => {
-    if (!clientRentalEnabled) {
-      setError(requestsPaused);
-      return;
-    }
     if (selectionError) {
       setError(selectionError);
       return;
@@ -301,11 +306,6 @@ export default function NewRentalPage() {
               Chọn mẫu, nhập số lượng và để lại thông tin liên hệ.
             </p>
           </header>
-          {!customer && !clientRentalEnabled && (
-            <p className="customer-rental-form__paused" role="status">
-              {requestsPaused}
-            </p>
-          )}
           {error && (
             <p
               role="alert"
@@ -473,10 +473,7 @@ export default function NewRentalPage() {
                 <Button variant="outline" disabled={busy} onClick={() => patch({ preview: false })}>
                   Chỉnh sửa yêu cầu
                 </Button>
-                <Button
-                  disabled={busy || !!selectionError || !clientRentalEnabled}
-                  onClick={() => void submit()}
-                >
+                <Button disabled={busy || !!selectionError} onClick={() => void submit()}>
                   {busy ? 'Đang gửi…' : user ? 'Gửi yêu cầu thuê' : 'Đăng nhập để gửi yêu cầu thuê'}
                 </Button>
               </div>
@@ -906,11 +903,6 @@ export default function NewRentalPage() {
             )}
             <p>Chưa gồm cọc và phát sinh. Studio sẽ gửi báo giá để bạn xác nhận.</p>
             <p>Gửi yêu cầu chưa giữ hàng.</p>
-            {!clientRentalEnabled && (
-              <p className="customer-rental-form__paused" role="status">
-                {requestsPaused}
-              </p>
-            )}
           </aside>
         )}
       </div>

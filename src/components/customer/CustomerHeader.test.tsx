@@ -6,22 +6,24 @@ import ClientLayout from '../Layout/ClientLayout';
 import PublicSiteLayout from '../Layout/PublicSiteLayout';
 import { CustomerAccountTabs } from './CustomerAccountTabs';
 import { CustomerHeader } from './CustomerHeader';
+import SharedCustomerHeader from '../Layout/CustomerHeader';
 
 const mocks = vi.hoisted(() => ({
   auth: { user: null as User | null, isAuthenticated: false, logout: vi.fn() },
-  flags: { portal: true, rental: true },
+  flags: { portal: true },
+  notifications: vi.fn(),
 }));
 
 vi.mock('../../context/AuthContext', () => ({
   useAuth: () => mocks.auth,
 }));
+vi.mock('../../services/bookingService', () => ({
+  bookingService: { notifications: mocks.notifications },
+}));
 
 vi.mock('../../config/features', () => ({
   get clientPortalEnabled() {
     return mocks.flags.portal;
-  },
-  get clientRentalEnabled() {
-    return mocks.flags.portal && mocks.flags.rental;
   },
 }));
 
@@ -59,7 +61,40 @@ describe('Customer shared navigation', () => {
     };
     mocks.auth.isAuthenticated = true;
     mocks.flags.portal = true;
-    mocks.flags.rental = true;
+    mocks.notifications.mockReset().mockResolvedValue([]);
+  });
+
+  it.each([
+    '/portfolio',
+    '/costumes',
+    '/account/bookings/new',
+    '/account/orders',
+    '/account/profile',
+  ])(
+    'keeps notifications next to the account control for a signed-in customer at %s',
+    async (pathname) => {
+      render(
+        <MemoryRouter initialEntries={[pathname]}>
+          <SharedCustomerHeader />
+        </MemoryRouter>,
+      );
+      const account = screen.getByRole('button', { name: 'Tài khoản' });
+      const bell = screen.getByRole('button', { name: 'Thông báo' });
+      expect(bell.nextElementSibling).toBe(account);
+      await waitFor(() => expect(mocks.notifications).toHaveBeenCalledTimes(1));
+    },
+  );
+
+  it('does not show or load customer notifications before login', () => {
+    mocks.auth.user = null;
+    mocks.auth.isAuthenticated = false;
+    render(
+      <MemoryRouter initialEntries={['/portfolio']}>
+        <SharedCustomerHeader />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('button', { name: /Thông báo/ })).not.toBeInTheDocument();
+    expect(mocks.notifications).not.toHaveBeenCalled();
   });
 
   it.each(['public', 'account'] as const)(
@@ -289,7 +324,6 @@ describe('Customer shared navigation', () => {
 describe('Customer account section tabs', () => {
   beforeEach(() => {
     mocks.flags.portal = true;
-    mocks.flags.rental = true;
   });
 
   it('marks the rental tab on a rental detail without replacing the primary navigation', () => {
@@ -309,8 +343,8 @@ describe('Customer account section tabs', () => {
     );
   });
 
-  it('hides rental access when the rental feature is disabled', () => {
-    mocks.flags.rental = false;
+  it('hides rental access when the customer portal is disabled', () => {
+    mocks.flags.portal = false;
     render(
       <MemoryRouter initialEntries={['/account/bookings']}>
         <CustomerAccountTabs />

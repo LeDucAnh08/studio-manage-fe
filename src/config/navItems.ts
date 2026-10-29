@@ -34,7 +34,6 @@ import SeasonPage from '@/pages/SeasonPage';
 import BookingsPage from '../pages/BookingsPage';
 import BookingWorkflowListPage from '../pages/BookingWorkflowListPage';
 import { clientPortalEnabled } from './features';
-import { clientRentalEnabled } from './features';
 import RentalListPage from '../pages/RentalListPage';
 import ReportsPage from '../pages/ReportsPage';
 
@@ -55,7 +54,7 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
-  ...(clientRentalEnabled
+  ...(clientPortalEnabled
     ? [
         {
           to: '/rental-orders',

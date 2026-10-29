@@ -1,12 +1,13 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { useRef, useState } from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Sidebar from './Sidebar';
 
-const mocks = vi.hoisted(() => ({ dispatch: vi.fn() }));
+const mocks = vi.hoisted(() => ({ dispatch: vi.fn(), roles: [0, 1] }));
 
 vi.mock('../../context/AuthContext', () => ({
-  useAuth: () => ({ user: { name: 'Quản trị viên', roles: [0, 1] }, logout: vi.fn() }),
+  useAuth: () => ({ user: { name: 'Quản trị viên', roles: mocks.roles }, logout: vi.fn() }),
 }));
 
 vi.mock('../../context/ThemeContext', () => ({
@@ -29,11 +30,69 @@ describe('Sidebar navigation', () => {
 
   beforeEach(() => {
     mocks.dispatch.mockClear();
+    mocks.roles = [0, 1];
     scrollIntoView.mockClear();
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
       configurable: true,
       value: scrollIntoView,
     });
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('labels the season control and preserves the photographer navigation', () => {
+    mocks.roles = [3];
+    render(
+      <MemoryRouter>
+        <Sidebar isOpen={false} onClose={vi.fn()} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('combobox', { name: 'Mùa chụp' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Lịch chụp' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Quản lý' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Đơn thuê' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Yume Studio' })).not.toBeInTheDocument();
+  });
+
+  it('removes closed mobile navigation from the DOM, focuses the drawer and restores its trigger on Escape', async () => {
+    vi.spyOn(window, 'matchMedia').mockImplementation((query) => ({
+      matches: query === '(max-width: 767px)',
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: () => false,
+    }));
+    function MobileMenu() {
+      const [open, setOpen] = useState(false);
+      const trigger = useRef<HTMLButtonElement>(null);
+      return (
+        <>
+          <button ref={trigger} onClick={() => setOpen(true)}>
+            Mở menu
+          </button>
+          <Sidebar isOpen={open} onClose={() => setOpen(false)} triggerRef={trigger} />
+        </>
+      );
+    }
+    render(
+      <MemoryRouter>
+        <MobileMenu />
+      </MemoryRouter>,
+    );
+    const trigger = screen.getByRole('button', { name: 'Mở menu' });
+    expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Đăng xuất →' })).not.toBeInTheDocument();
+    trigger.focus();
+    fireEvent.click(trigger);
+    const drawer = await screen.findByRole('dialog', { name: 'Điều hướng nội bộ' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Đóng menu' })).toHaveFocus());
+    expect(screen.getByRole('combobox', { name: 'Mùa chụp' })).toBeInTheDocument();
+    fireEvent.keyDown(drawer, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(trigger).toHaveFocus());
+    expect(screen.queryByRole('button', { name: 'Đăng xuất →' })).not.toBeInTheDocument();
   });
 
   it('keeps only one group open and exposes the controlled panel to assistive technology', () => {

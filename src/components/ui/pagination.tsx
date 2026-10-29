@@ -57,7 +57,9 @@ export const Pagination = ({
   };
 
   return (
-    <div
+    <nav
+      data-ui="pagination"
+      aria-label="Phân trang"
       className={cn(
         'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t px-3 py-2',
         className,
@@ -80,7 +82,7 @@ export const Pagination = ({
           <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
             <span className="hidden sm:inline">Mỗi trang</span>
             <Select value={String(pageSize)} onValueChange={(v) => onPageSizeChange(Number(v))}>
-              <SelectTrigger className="h-8 w-[72px]">
+              <SelectTrigger aria-label="Số dòng mỗi trang" className="h-8 w-[72px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -131,6 +133,8 @@ export const Pagination = ({
                 size="sm"
                 className="h-8 min-w-8 px-2"
                 onClick={() => goTo(p)}
+                aria-label={`Trang ${p}`}
+                aria-current={p === safePage ? 'page' : undefined}
               >
                 {p}
               </Button>
@@ -161,6 +165,6 @@ export const Pagination = ({
           </Button>
         </div>
       </div>
-    </div>
+    </nav>
   );
 };

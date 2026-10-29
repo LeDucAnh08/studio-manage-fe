@@ -8,6 +8,7 @@ export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps) {
   return (
     <DayPicker
+      data-ui="calendar"
       showOutsideDays={showOutsideDays}
       className={cn('p-3 select-none', className)}
       classNames={{

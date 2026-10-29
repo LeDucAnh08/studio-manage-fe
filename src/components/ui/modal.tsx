@@ -1,5 +1,11 @@
 import type { ReactNode } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 interface ModalProps {
@@ -36,11 +42,12 @@ export const Modal = ({
 }: ModalProps) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent
+      {...(description ? {} : { 'aria-describedby': undefined })}
       className={cn(sizeClass[size], 'max-h-[calc(100dvh-2rem)] overflow-y-auto', contentClassName)}
     >
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
-        {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        {description && <DialogDescription>{description}</DialogDescription>}
       </DialogHeader>
       <div className={className}>{children}</div>
     </DialogContent>

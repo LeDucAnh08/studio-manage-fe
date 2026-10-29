@@ -17,7 +17,7 @@ import { costumeService } from '../services/costumeService';
 import PublicSiteLayout from '../components/Layout/PublicSiteLayout';
 import type { RentalCatalogFilters, RentalCatalogItem } from '../types';
 import { rentalDayCount, validateRentalPeriod, vietnamToday } from '../utils/rentalPeriod';
-import { clientRentalEnabled } from '../config/features';
+import { clientPortalEnabled } from '../config/features';
 
 const SIZES = [
   'XS',
@@ -58,6 +58,7 @@ export default function RentalCatalogPage() {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [appliedFilters, setAppliedFilters] = useState<RentalCatalogFilters>({});
+  const [filterError, setFilterError] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(min-width: 744px)').matches,
   );
@@ -103,6 +104,15 @@ export default function RentalCatalogPage() {
       sum + kind.categories.reduce((count, category) => count + category.items.length, 0),
     0,
   );
+  const selectedCategoryName = visibleGroups
+    .flatMap((kind) => kind.categories)
+    .find((category) => category.key === selectedCategory)?.name;
+  const priceCeiling = Math.max(
+    500_000,
+    ...items.map((item) => item.rentalDailyPrice || 0),
+    Number(minPrice) || 0,
+    Number(maxPrice) || 0,
+  );
 
   const chooseGroup = (kind = '', category = '') => {
     setSearchParams((previous) => {
@@ -144,6 +154,14 @@ export default function RentalCatalogPage() {
     };
   }, [appliedFilters, receiveDate, returnDate, periodValid, requestKey, loadCatalog]);
 
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 1128px)');
+    const update = () => setFiltersOpen(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
   const changeDate = (name: 'receiveDate' | 'returnDate', value: string) => {
     requestId.current += 1;
     setSearchParams((previous) => {
@@ -165,6 +183,19 @@ export default function RentalCatalogPage() {
   const submitFilters = (event: FormEvent) => {
     event.preventDefault();
     const filters = currentFilters();
+    if (
+      [filters.minPrice, filters.maxPrice].some(
+        (price) => price !== undefined && (!Number.isSafeInteger(price) || price < 0),
+      ) ||
+      (filters.minPrice !== undefined &&
+        filters.maxPrice !== undefined &&
+        filters.minPrice > filters.maxPrice)
+    ) {
+      setFilterError('Nhập khoảng giá là số nguyên không âm; giá từ không được lớn hơn giá đến.');
+      setFiltersOpen(true);
+      return;
+    }
+    setFilterError('');
     setAppliedFilters(filters);
   };
 
@@ -174,21 +205,19 @@ export default function RentalCatalogPage() {
     setMinPrice('');
     setMaxPrice('');
     setAppliedFilters({});
+    setFilterError('');
   };
 
   return (
     <PublicSiteLayout source="costumes">
       <CustomerContainer as="section" width="listing" className="customer-catalog">
-        <CustomerSurface className="customer-catalog__intro">
-          <CustomerStatusBadge>Dịch vụ cho thuê</CustomerStatusBadge>
+        <header className="customer-catalog__intro">
           <h1>Trang phục & phụ kiện</h1>
           <p className="customer-copy">
-            Thuê trang phục và phụ kiện theo ngày, không cần đặt lịch chụp.
+            Chọn mẫu phù hợp, xem giá và số lượng còn trống theo kỳ thuê.
           </p>
-        </CustomerSurface>
-        <CustomerSurface className="customer-catalog__period">
-          <h2 className="customer-section-title">Bạn muốn thuê khi nào?</h2>
-          <p className="customer-copy">Chọn ngày nhận và trả để xem mặt hàng còn trống.</p>
+        </header>
+        <section className="customer-catalog__period" aria-label="Kỳ thuê">
           <div className="customer-catalog__period-fields">
             <CustomerFormField label="Ngày nhận" htmlFor="catalog-receive-date" required>
               <CustomerInput
@@ -212,265 +241,381 @@ export default function RentalCatalogPage() {
             </CustomerFormField>
           </div>
           <p
-            className={
-              periodError && receiveDate && returnDate ? 'customer-error' : 'customer-caption'
-            }
+            className={`customer-catalog__period-count${periodError && receiveDate && returnDate ? ' customer-error' : ''}`}
             role="status"
             aria-live="polite"
           >
-            {periodError || `${days} ngày thuê, tính cả ngày nhận và ngày trả.`}
+            {periodError || (
+              <>
+                <strong>{days} ngày thuê</strong>
+                <span>
+                  Từ {receiveDate.split('-').reverse().join('/')} đến{' '}
+                  {returnDate.split('-').reverse().join('/')}
+                </span>
+                <span className="sr-only">Tính cả ngày nhận và ngày trả.</span>
+              </>
+            )}
           </p>
-          {clientRentalEnabled && periodValid && !loading && !error && items.length > 0 && (
-            <CustomerButton asChild>
-              <Link to={`/rental/start?${new URLSearchParams({ receiveDate, returnDate })}`}>
-                Tạo yêu cầu thuê riêng
-              </Link>
-            </CustomerButton>
-          )}
-        </CustomerSurface>
-        {periodValid && !loading && !error && items.length > 0 && (
-          <CustomerSurface className="customer-catalog__browse">
-            <h2 className="customer-section-title">Chọn nhóm hàng</h2>
-            <div role="group" aria-label="Nhóm hàng" className="customer-catalog__kind-options">
-              <CustomerButton
-                type="button"
-                variant="pill"
-                className="customer-catalog__choice"
-                aria-pressed={!itemKind}
-                onClick={() => chooseGroup()}
-              >
-                Tất cả <span>{items.length} mẫu</span>
-              </CustomerButton>
-              {groups.map((kind) => (
-                <CustomerButton
-                  key={kind.value}
-                  type="button"
-                  variant="pill"
-                  className="customer-catalog__choice"
-                  aria-pressed={itemKind === kind.value}
-                  onClick={() => chooseGroup(kind.value)}
-                >
-                  {kind.label} <span>{kind.count} mẫu</span>
-                </CustomerButton>
-              ))}
-            </div>
-            <div className="customer-catalog__category-options">
-              <CustomerButton
-                type="button"
-                variant="text"
-                aria-pressed={!selectedCategory}
-                onClick={() => chooseGroup(itemKind)}
-              >
-                Tất cả danh mục
-              </CustomerButton>
-              {groups
-                .filter((kind) => (!itemKind || itemKind === kind.value) && kind.count > 0)
-                .map((kind) => (
-                  <div key={kind.value} className="customer-catalog__category-row">
-                    <p className="customer-caption">{kind.label}</p>
-                    <div
-                      role="group"
-                      aria-label={`Danh mục ${kind.label.toLocaleLowerCase('vi')}`}
-                      className="customer-catalog__category-chips"
+          <CustomerButton type="submit" form="catalog-filters" disabled={loading || !periodValid}>
+            {loading ? 'Đang kiểm tra…' : 'Xem mẫu còn trống'}
+          </CustomerButton>
+        </section>
+        <div className="customer-catalog__workspace">
+          <aside className="customer-catalog__sidebar" aria-label="Bộ lọc trang phục">
+            <h2 className="customer-catalog__sidebar-title">Danh mục</h2>
+            {periodValid && !loading && !error && items.length > 0 && (
+              <div className="customer-catalog__browse">
+                <h2 className="sr-only">Chọn nhóm hàng</h2>
+                <div role="group" aria-label="Nhóm hàng" className="customer-catalog__kind-options">
+                  <CustomerButton
+                    type="button"
+                    variant="pill"
+                    className="customer-catalog__choice"
+                    aria-pressed={!itemKind}
+                    onClick={() => chooseGroup()}
+                  >
+                    Tất cả{' '}
+                    <span>
+                      {items.length}
+                      <span className="sr-only"> mẫu</span>
+                    </span>
+                  </CustomerButton>
+                  {groups.map((kind) => (
+                    <CustomerButton
+                      key={kind.value}
+                      type="button"
+                      variant="pill"
+                      className="customer-catalog__choice"
+                      aria-pressed={itemKind === kind.value}
+                      onClick={() => chooseGroup(kind.value)}
                     >
-                      {kind.categories.map((category) => (
-                        <CustomerButton
-                          key={category.key}
-                          type="button"
-                          variant="pill"
-                          className="customer-catalog__choice"
-                          aria-pressed={
-                            itemKind === kind.value && selectedCategory === category.key
-                          }
-                          onClick={() => chooseGroup(kind.value, category.key)}
+                      {kind.label}{' '}
+                      <span>
+                        {kind.count}
+                        <span className="sr-only"> mẫu</span>
+                      </span>
+                    </CustomerButton>
+                  ))}
+                </div>
+                <div className="customer-catalog__category-options">
+                  <CustomerButton
+                    type="button"
+                    variant="text"
+                    aria-pressed={!selectedCategory}
+                    onClick={() => chooseGroup(itemKind)}
+                  >
+                    Tất cả danh mục
+                  </CustomerButton>
+                  {groups
+                    .filter((kind) => (!itemKind || itemKind === kind.value) && kind.count > 0)
+                    .map((kind) => (
+                      <div key={kind.value} className="customer-catalog__category-row">
+                        <p className={itemKind ? 'sr-only' : 'customer-caption'}>{kind.label}</p>
+                        <div
+                          role="group"
+                          aria-label={`Danh mục ${kind.label.toLocaleLowerCase('vi')}`}
+                          className="customer-catalog__category-chips"
                         >
-                          {category.name} <span>{category.items.length} mẫu</span>
-                        </CustomerButton>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </CustomerSurface>
-        )}
-        <details
-          open={filtersOpen}
-          onToggle={(event) => setFiltersOpen(event.currentTarget.open)}
-          className="customer-catalog__filters"
-        >
-          <summary>
-            <span>
-              <SlidersHorizontal aria-hidden="true" />
-              <span>Tìm theo nhu cầu</span>
-              <CustomerStatusBadge>
-                {appliedFilterCount ? `${appliedFilterCount} đang dùng` : 'Tuỳ chọn'}
-              </CustomerStatusBadge>
-            </span>
-            <ChevronDown aria-hidden="true" />
-          </summary>
-          <form onSubmit={submitFilters} className="customer-catalog__filter-form">
-            <CustomerFormField label="Kích cỡ" htmlFor="catalog-size">
-              <CustomerSelect
-                id="catalog-size"
-                value={size}
-                onChange={(event) => setSize(event.target.value)}
+                          {kind.categories.map((category) => (
+                            <CustomerButton
+                              key={category.key}
+                              type="button"
+                              variant="pill"
+                              className="customer-catalog__choice"
+                              aria-pressed={
+                                itemKind === kind.value && selectedCategory === category.key
+                              }
+                              onClick={() => chooseGroup(kind.value, category.key)}
+                            >
+                              {category.name}{' '}
+                              <span>
+                                {category.items.length}
+                                <span className="sr-only"> mẫu</span>
+                              </span>
+                            </CustomerButton>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+            <details
+              open={filtersOpen}
+              onToggle={(event) => setFiltersOpen(event.currentTarget.open)}
+              className="customer-catalog__filters"
+            >
+              <summary>
+                <span>
+                  <SlidersHorizontal aria-hidden="true" />
+                  <span>Tìm theo nhu cầu</span>
+                  <CustomerStatusBadge>
+                    {appliedFilterCount ? `${appliedFilterCount} đang dùng` : 'Tuỳ chọn'}
+                  </CustomerStatusBadge>
+                </span>
+                <ChevronDown aria-hidden="true" />
+              </summary>
+              <form
+                id="catalog-filters"
+                onSubmit={submitFilters}
+                className="customer-catalog__filter-form"
               >
-                <option value="">Tất cả</option>
-                {SIZES.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </CustomerSelect>
-            </CustomerFormField>
-            <CustomerFormField label="Giá/ngày từ (đ)" htmlFor="catalog-min-price">
-              <CustomerInput
-                id="catalog-min-price"
-                type="number"
-                min="0"
-                step="1"
-                value={minPrice}
-                onChange={(event) => setMinPrice(event.target.value)}
-              />
-            </CustomerFormField>
-            <CustomerFormField label="Giá/ngày đến (đ)" htmlFor="catalog-max-price">
-              <CustomerInput
-                id="catalog-max-price"
-                type="number"
-                min="0"
-                step="1"
-                value={maxPrice}
-                onChange={(event) => setMaxPrice(event.target.value)}
-              />
-            </CustomerFormField>
-            <div className="customer-catalog__actions">
-              <CustomerButton type="submit" disabled={loading || !periodValid}>
-                Tìm sản phẩm
-              </CustomerButton>
-              <CustomerButton type="button" variant="secondary" onClick={clearFilters}>
-                Xoá lọc
-              </CustomerButton>
-            </div>
-          </form>
-        </details>
-        <p className="customer-caption customer-catalog__note">
-          Hàng được giữ sau khi bạn xác nhận thuê và studio ghi nhận đủ tiền cọc.
-        </p>
-        <div className="customer-catalog__results">
-          {!periodValid ? (
-            <CustomerSurface className="customer-catalog__empty">
-              <h2 className="customer-section-title">Chọn thời gian thuê để bắt đầu</h2>
-              <p className="customer-copy">
-                Danh mục sẽ hiển thị các mẫu và kích cỡ còn trống trong khoảng ngày bạn chọn.
-              </p>
-            </CustomerSurface>
-          ) : error ? (
-            <CustomerSurface role="alert" className="customer-catalog__error">
-              <h2 className="customer-section-title customer-error">Không thể tải danh mục</h2>
-              <p className="customer-copy">{error}</p>
-              <div className="customer-catalog__actions">
-                <CustomerButton
-                  type="button"
-                  variant="secondary"
-                  onClick={() => void loadCatalog(requestFilters, requestKey)}
-                >
-                  <RotateCw aria-hidden="true" /> Thử lại
-                </CustomerButton>
-                {appliedFilterCount > 0 && (
+                <CustomerFormField label="Kích cỡ" htmlFor="catalog-size">
+                  <CustomerSelect
+                    id="catalog-size"
+                    value={size}
+                    onChange={(event) => setSize(event.target.value)}
+                  >
+                    <option value="">Tất cả</option>
+                    {SIZES.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </CustomerSelect>
+                </CustomerFormField>
+                <fieldset className="customer-catalog__price-range">
+                  <legend>
+                    Khoảng giá <span>(đ/ngày)</span>
+                  </legend>
+                  <div className="customer-catalog__price-inputs">
+                    <CustomerFormField
+                      label="Giá/ngày từ (đ)"
+                      htmlFor="catalog-min-price"
+                      className="customer-catalog__price-field"
+                    >
+                      <CustomerInput
+                        id="catalog-min-price"
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="Từ"
+                        value={minPrice}
+                        onChange={(event) => setMinPrice(event.target.value)}
+                      />
+                    </CustomerFormField>
+                    <CustomerFormField
+                      label="Giá/ngày đến (đ)"
+                      htmlFor="catalog-max-price"
+                      className="customer-catalog__price-field"
+                    >
+                      <CustomerInput
+                        id="catalog-max-price"
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="Đến"
+                        value={maxPrice}
+                        onChange={(event) => setMaxPrice(event.target.value)}
+                      />
+                    </CustomerFormField>
+                  </div>
+                  <div className="customer-catalog__range-controls">
+                    <input
+                      type="range"
+                      aria-label="Giá tối thiểu"
+                      min={0}
+                      max={priceCeiling}
+                      step={5000}
+                      value={Number(minPrice) || 0}
+                      onChange={(event) =>
+                        setMinPrice(
+                          String(
+                            Math.min(
+                              Number(event.target.value),
+                              maxPrice ? Number(maxPrice) : priceCeiling,
+                            ),
+                          ),
+                        )
+                      }
+                    />
+                    <input
+                      type="range"
+                      aria-label="Giá tối đa"
+                      min={0}
+                      max={priceCeiling}
+                      step={5000}
+                      value={maxPrice ? Number(maxPrice) : priceCeiling}
+                      onChange={(event) =>
+                        setMaxPrice(
+                          String(Math.max(Number(event.target.value), Number(minPrice) || 0)),
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="customer-catalog__range-labels" aria-hidden="true">
+                    <span>0 ₫</span>
+                    <span>{priceCeiling.toLocaleString('vi-VN')} ₫+</span>
+                  </div>
+                  {filterError && (
+                    <p role="alert" className="customer-error">
+                      {filterError}
+                    </p>
+                  )}
+                </fieldset>
+                <div className="customer-catalog__actions">
+                  <CustomerButton
+                    type="submit"
+                    className="customer-catalog__filter-apply"
+                    disabled={loading || !periodValid}
+                  >
+                    Tìm sản phẩm
+                  </CustomerButton>
                   <CustomerButton type="button" variant="text" onClick={clearFilters}>
                     Xoá lọc
                   </CustomerButton>
+                </div>
+              </form>
+            </details>
+          </aside>
+          <div className="customer-catalog__results">
+            {periodValid && !loading && !error && visibleCount > 0 && (
+              <header className="customer-catalog__results-heading">
+                <div>
+                  <h2>
+                    {selectedCategoryName ||
+                      groups.find((kind) => kind.value === itemKind)?.label ||
+                      'Tất cả mẫu'}
+                  </h2>
+                  <p className="customer-catalog__count" role="status" aria-live="polite">
+                    {visibleCount} mẫu còn trống
+                  </p>
+                </div>
+                <p className="customer-caption">Số lượng hiển thị theo kỳ thuê đã chọn.</p>
+                {clientPortalEnabled && (
+                  <CustomerButton asChild variant="secondary">
+                    <Link to={`/rental/start?${new URLSearchParams({ receiveDate, returnDate })}`}>
+                      Tạo yêu cầu thuê riêng
+                    </Link>
+                  </CustomerButton>
                 )}
-              </div>
-            </CustomerSurface>
-          ) : loading ? (
-            <div role="status" aria-live="polite" aria-label="Đang tải danh mục">
-              <div className="customer-catalog__grid">
-                {Array.from({ length: 6 }, (_, index) => (
-                  <div key={index} className="customer-catalog-card" aria-hidden="true">
-                    <div className="customer-catalog-card__illustration" />
-                    <div className="customer-catalog-card__meta">
-                      <div className="customer-catalog__skeleton-line customer-catalog__skeleton-line--short" />
-                      <div className="customer-catalog__skeleton-line" />
-                      <div className="customer-catalog__skeleton-body" />
-                      <div className="customer-catalog__skeleton-line" />
-                      <div className="customer-catalog__skeleton-body" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : visibleCount === 0 ? (
-            <CustomerSurface className="customer-catalog__empty">
-              <h2 className="customer-section-title">
-                {items.length > 0
-                  ? 'Danh mục đã chọn chưa có mặt hàng phù hợp'
-                  : appliedFilterCount
-                    ? 'Chưa tìm thấy mặt hàng phù hợp'
-                    : 'Chưa có mặt hàng còn trống trong thời gian này'}
-              </h2>
-              <p className="customer-copy">
-                {items.length > 0
-                  ? 'Hãy chọn nhóm khác hoặc xem tất cả danh mục trong khoảng thuê này.'
-                  : appliedFilterCount
-                    ? 'Hãy xoá bớt điều kiện lọc hoặc liên hệ studio để được tư vấn lựa chọn khác.'
-                    : 'Hãy chọn khoảng ngày khác hoặc liên hệ studio để được tư vấn.'}
-              </p>
-              {items.length > 0 ? (
-                <CustomerButton type="button" variant="secondary" onClick={() => chooseGroup()}>
-                  Xem tất cả danh mục
-                </CustomerButton>
-              ) : appliedFilterCount > 0 ? (
-                <CustomerButton type="button" variant="secondary" onClick={clearFilters}>
-                  Xoá bộ lọc
-                </CustomerButton>
-              ) : null}
-            </CustomerSurface>
-          ) : (
-            <>
-              <p className="customer-catalog__count" role="status" aria-live="polite">
-                {visibleCount} mặt hàng còn trống trong khoảng thuê đã chọn
-              </p>
-              <div className="customer-catalog__groups">
-                {visibleGroups.map((kind) => (
-                  <section
-                    key={kind.value}
-                    aria-labelledby={`catalog-${kind.value}-title`}
-                    className="customer-catalog__kind-section"
+              </header>
+            )}
+            {!periodValid ? (
+              <CustomerSurface className="customer-catalog__empty">
+                <h2 className="customer-section-title">Chọn thời gian thuê để bắt đầu</h2>
+                <p className="customer-copy">
+                  Danh mục sẽ hiển thị các mẫu và kích cỡ còn trống trong khoảng ngày bạn chọn.
+                </p>
+              </CustomerSurface>
+            ) : error ? (
+              <CustomerSurface role="alert" className="customer-catalog__error">
+                <h2 className="customer-section-title customer-error">Không thể tải danh mục</h2>
+                <p className="customer-copy">{error}</p>
+                <div className="customer-catalog__actions">
+                  <CustomerButton
+                    type="button"
+                    variant="secondary"
+                    onClick={() => void loadCatalog(requestFilters, requestKey)}
                   >
-                    <header className="customer-catalog__kind-heading">
-                      <h2 id={`catalog-${kind.value}-title`} className="customer-section-title">
-                        {kind.label}
-                      </h2>
-                    </header>
-                    {kind.categories.map((category, index) => (
-                      <section
-                        key={category.key}
-                        aria-labelledby={`catalog-${kind.value}-${index}-title`}
-                        className="customer-catalog__category-section"
-                      >
-                        <header className="customer-catalog__category-heading">
-                          <h3 id={`catalog-${kind.value}-${index}-title`}>{category.name}</h3>
-                          <CustomerStatusBadge>{category.items.length} mẫu</CustomerStatusBadge>
-                        </header>
-                        <div className="customer-catalog__grid">
-                          {category.items.map((item) => (
-                            <CustomerCatalogCard
-                              key={item._id}
-                              item={item}
-                              receiveDate={receiveDate}
-                              returnDate={returnDate}
-                            />
-                          ))}
-                        </div>
-                      </section>
-                    ))}
-                  </section>
-                ))}
+                    <RotateCw aria-hidden="true" /> Thử lại
+                  </CustomerButton>
+                  {appliedFilterCount > 0 && (
+                    <CustomerButton type="button" variant="text" onClick={clearFilters}>
+                      Xoá lọc
+                    </CustomerButton>
+                  )}
+                </div>
+              </CustomerSurface>
+            ) : loading ? (
+              <div role="status" aria-live="polite" aria-label="Đang tải danh mục">
+                <div className="customer-catalog__grid">
+                  {Array.from({ length: 6 }, (_, index) => (
+                    <div key={index} className="customer-catalog-card" aria-hidden="true">
+                      <div className="customer-catalog-card__illustration" />
+                      <div className="customer-catalog-card__meta">
+                        <div className="customer-catalog__skeleton-line customer-catalog__skeleton-line--short" />
+                        <div className="customer-catalog__skeleton-line" />
+                        <div className="customer-catalog__skeleton-body" />
+                        <div className="customer-catalog__skeleton-line" />
+                        <div className="customer-catalog__skeleton-body" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </>
-          )}
+            ) : visibleCount === 0 ? (
+              <CustomerSurface className="customer-catalog__empty">
+                <h2 className="customer-section-title">
+                  {items.length > 0
+                    ? 'Danh mục đã chọn chưa có mặt hàng phù hợp'
+                    : appliedFilterCount
+                      ? 'Chưa tìm thấy mặt hàng phù hợp'
+                      : 'Chưa có mặt hàng còn trống trong thời gian này'}
+                </h2>
+                <p className="customer-copy">
+                  {items.length > 0
+                    ? 'Hãy chọn nhóm khác hoặc xem tất cả danh mục trong khoảng thuê này.'
+                    : appliedFilterCount
+                      ? 'Hãy xoá bớt điều kiện lọc hoặc liên hệ studio để được tư vấn lựa chọn khác.'
+                      : 'Hãy chọn khoảng ngày khác hoặc liên hệ studio để được tư vấn.'}
+                </p>
+                {items.length > 0 ? (
+                  <CustomerButton type="button" variant="secondary" onClick={() => chooseGroup()}>
+                    Xem tất cả danh mục
+                  </CustomerButton>
+                ) : appliedFilterCount > 0 ? (
+                  <CustomerButton type="button" variant="secondary" onClick={clearFilters}>
+                    Xoá bộ lọc
+                  </CustomerButton>
+                ) : null}
+              </CustomerSurface>
+            ) : (
+              <>
+                <div className="customer-catalog__groups">
+                  {visibleGroups.map((kind) => (
+                    <section
+                      key={kind.value}
+                      aria-labelledby={`catalog-${kind.value}-title`}
+                      className="customer-catalog__kind-section"
+                    >
+                      <header
+                        className={
+                          itemKind || selectedCategory
+                            ? 'sr-only'
+                            : 'customer-catalog__kind-heading'
+                        }
+                      >
+                        <h2 id={`catalog-${kind.value}-title`} className="customer-section-title">
+                          {kind.label}
+                        </h2>
+                      </header>
+                      {kind.categories.map((category, index) => (
+                        <section
+                          key={category.key}
+                          aria-labelledby={`catalog-${kind.value}-${index}-title`}
+                          className="customer-catalog__category-section"
+                        >
+                          <header
+                            className={
+                              selectedCategory ? 'sr-only' : 'customer-catalog__category-heading'
+                            }
+                          >
+                            <h3 id={`catalog-${kind.value}-${index}-title`}>{category.name}</h3>
+                            <CustomerStatusBadge>{category.items.length} mẫu</CustomerStatusBadge>
+                          </header>
+                          <div className="customer-catalog__grid">
+                            {category.items.map((item) => (
+                              <CustomerCatalogCard
+                                key={item._id}
+                                item={item}
+                                receiveDate={receiveDate}
+                                returnDate={returnDate}
+                              />
+                            ))}
+                          </div>
+                        </section>
+                      ))}
+                    </section>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
+        <p className="customer-caption customer-catalog__note">
+          Hàng được giữ sau khi bạn xác nhận thuê và studio ghi nhận đủ tiền cọc.
+        </p>
       </CustomerContainer>
     </PublicSiteLayout>
   );

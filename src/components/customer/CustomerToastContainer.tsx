@@ -1,6 +1,6 @@
 import { matchPath, useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
-import { clientPortalEnabled, clientRentalEnabled } from '../../config/features';
+import { clientPortalEnabled } from '../../config/features';
 
 const publicPaths = [
   '/login',
@@ -25,18 +25,14 @@ const portalPaths = [
   '/account/bookings/new',
   '/account/bookings/:id',
   '/account/profile',
+  '/account/rentals',
+  '/account/rentals/:id',
 ];
-
-const rentalPaths = ['/account/rentals', '/account/rentals/:id'];
 
 function isCustomerSurface(pathname: string) {
   const matches = (paths: string[]) =>
     paths.some((path) => matchPath({ path, end: true }, pathname));
-  return (
-    matches(publicPaths) ||
-    (clientPortalEnabled && matches(portalPaths)) ||
-    (clientRentalEnabled && matches(rentalPaths))
-  );
+  return matches(publicPaths) || (clientPortalEnabled && matches(portalPaths));
 }
 
 export default function CustomerToastContainer() {

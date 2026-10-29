@@ -1,0 +1,136 @@
+{
+  "audit_dates": [
+    "2026-10-28",
+    "2026-10-29"
+  ],
+  "timezone": "Asia/Bangkok",
+  "css_viewports": [
+    {
+      "height": 1000,
+      "width": 1440
+    },
+    {
+      "height": 844,
+      "width": 390
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "01-staff-login.jpg",
+      "format": "JPEG",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 33244
+    },
+    {
+      "file": "02-dashboard-dark.jpg",
+      "format": "JPEG",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 93581
+    },
+    {
+      "file": "03-customers-dark.jpg",
+      "format": "JPEG",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 134872
+    },
+    {
+      "file": "04-customer-modal-dark.jpg",
+      "format": "JPEG",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 44148
+    },
+    {
+      "file": "05-schedules-dark.jpg",
+      "format": "JPEG",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 170998
+    },
+    {
+      "file": "06-schedules-light.jpg",
+      "format": "JPEG",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 171075
+    },
+    {
+      "file": "07-schedules-mobile.jpg",
+      "format": "JPEG",
+      "width": 384,
+      "height": 3077,
+      "bytes": 186626
+    },
+    {
+      "file": "08-inventory-light.jpg",
+      "format": "JPEG",
+      "width": 1434,
+      "height": 1680,
+      "bytes": 273184
+    },
+    {
+      "file": "09-workflow-list-light.jpg",
+      "format": "JPEG",
+      "width": 1434,
+      "height": 2572,
+      "bytes": 207271
+    },
+    {
+      "file": "10-workflow-detail-light.jpg",
+      "format": "JPEG",
+      "width": 1434,
+      "height": 996,
+      "bytes": 91096
+    },
+    {
+      "file": "11-workflow-payment-light.jpg",
+      "format": "JPEG",
+      "width": 1434,
+      "height": 996,
+      "bytes": 91616
+    },
+    {
+      "file": "12-rental-detail-light.jpg",
+      "format": "JPEG",
+      "width": 1434,
+      "height": 1732,
+      "bytes": 162098
+    },
+    {
+      "file": "13-reports-light.jpg",
+      "format": "JPEG",
+      "width": 1434,
+      "height": 996,
+      "bytes": 121991
+    },
+    {
+      "file": "14-photographer-dashboard-dark.jpg",
+      "format": "JPEG",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 62255
+    }
+  ],
+  "measurements": {
+    "schedule_action_hitbox_css_px": [
+      16,
+      16
+    ],
+    "customer_row_action_height_css_px": 16,
+    "mobile_menu_hitbox_css_px": [
+      32,
+      32
+    ],
+    "closed_mobile_sidebar_focused_logout_x_css_px": -224,
+    "payment_input_height_css_px": 36,
+    "payment_native_select_height_css_px": 44,
+    "schedule_dark_completed_status_contrast": 2.19,
+    "gradient_white_amber_endpoint_contrast": 2.15,
+    "gradient_white_cyan_endpoint_contrast": 1.81,
+    "proposed_primary_white_contrast": 4.7
+  },
+  "limits": "Captured and inspected screenshots plus targeted DOM/keyboard checks; not a full screen-reader or all-role audit. No business records modified."
+}

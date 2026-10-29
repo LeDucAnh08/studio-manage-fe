@@ -64,7 +64,7 @@ export const OrderSelect = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HT
     useCustomerAppearance() ? (
       <CustomerSelect {...props} ref={ref} />
     ) : (
-      <select {...props} ref={ref} />
+      <select {...props} ref={ref} data-ui="native-select" />
     ),
 );
 OrderSelect.displayName = 'OrderSelect';

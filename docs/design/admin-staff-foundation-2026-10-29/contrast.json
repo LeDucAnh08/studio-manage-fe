@@ -1,0 +1,133 @@
+{
+  "method": "Relative sRGB luminance; opaque staff token pairs, plus DOM-verified primary/completed/input values. Not a full accessibility audit.",
+  "results": [
+    {
+      "label": "light success",
+      "foreground": "#166534",
+      "background": "#ecfdf5",
+      "ratio": 6.77,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "label": "light warning",
+      "foreground": "#92400e",
+      "background": "#fffbeb",
+      "ratio": 6.84,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "label": "light info",
+      "foreground": "#3730a3",
+      "background": "#eef2ff",
+      "ratio": 8.88,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "label": "light danger",
+      "foreground": "#991b1b",
+      "background": "#fef2f2",
+      "ratio": 7.6,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "label": "light link",
+      "foreground": "#4d5bc5",
+      "background": "#ffffff",
+      "ratio": 5.8,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "label": "light focus",
+      "foreground": "#4d5bc5",
+      "background": "#ffffff",
+      "ratio": 5.8,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "label": "light input border",
+      "foreground": "#808793",
+      "background": "#ffffff",
+      "ratio": 3.62,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "label": "dark success",
+      "foreground": "#86efac",
+      "background": "#17372c",
+      "ratio": 9.24,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "label": "dark warning",
+      "foreground": "#fcd34d",
+      "background": "#392d1a",
+      "ratio": 9.31,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "label": "dark info",
+      "foreground": "#c7d2fe",
+      "background": "#232641",
+      "ratio": 9.88,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "label": "dark danger",
+      "foreground": "#fca5a5",
+      "background": "#3c1d24",
+      "ratio": 7.94,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "label": "dark link",
+      "foreground": "#9ca8ff",
+      "background": "#17181c",
+      "ratio": 7.99,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "label": "dark focus",
+      "foreground": "#9ca8ff",
+      "background": "#17181c",
+      "ratio": 7.99,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "label": "dark input border",
+      "foreground": "#737c8c",
+      "background": "#17181c",
+      "ratio": 4.22,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "label": "primary normal",
+      "foreground": "#ffffff",
+      "background": "#5e6ad2",
+      "ratio": 4.7,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "label": "primary hover",
+      "foreground": "#ffffff",
+      "background": "#5360c8",
+      "ratio": 5.42,
+      "minimum": 4.5,
+      "pass": true
+    }
+  ]
+}

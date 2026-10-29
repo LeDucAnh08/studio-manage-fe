@@ -10,7 +10,7 @@ import CustomerToastContainer from './CustomerToastContainer';
 
 const mocks = vi.hoisted(() => ({
   auth: { isBootstrapping: true, isAuthenticated: true, user: { roles: [6] } },
-  flags: { portal: true, rental: true },
+  flags: { portal: true },
 }));
 
 vi.mock('../../context/AuthContext', () => ({
@@ -20,9 +20,6 @@ vi.mock('../../context/AuthContext', () => ({
 vi.mock('../../config/features', () => ({
   get clientPortalEnabled() {
     return mocks.flags.portal;
-  },
-  get clientRentalEnabled() {
-    return mocks.flags.portal && mocks.flags.rental;
   },
 }));
 
@@ -85,7 +82,6 @@ describe('Customer route appearance', () => {
     mocks.auth.isAuthenticated = true;
     mocks.auth.user.roles = [6];
     mocks.flags.portal = true;
-    mocks.flags.rental = true;
     document.documentElement.classList.add('dark');
     localStorage.setItem('themeMode', 'dark');
   });
@@ -149,13 +145,12 @@ describe('Customer route appearance', () => {
   });
 
   it.each([
-    { pathname: '/register', portal: false, rental: false },
-    { pathname: '/account/rentals', portal: true, rental: false },
-    { pathname: '/account/unexpected', portal: true, rental: true },
-    { pathname: '/staff/login', portal: true, rental: true },
+    { pathname: '/register', portal: false },
+    { pathname: '/account/rentals', portal: false },
+    { pathname: '/account/unexpected', portal: true },
+    { pathname: '/staff/login', portal: true },
   ])('retains default toast appearance at $pathname with its route gates', async (entry) => {
     mocks.flags.portal = entry.portal;
-    mocks.flags.rental = entry.rental;
     renderToastSurface(entry.pathname);
     fireEvent.click(screen.getByRole('button', { name: 'Notify' }));
     const renderedToast = (await screen.findByText('Notification at ' + entry.pathname)).closest(
@@ -170,7 +165,6 @@ describe('Customer route appearance', () => {
     'uses customer login toasts independently of portal flag %s',
     async (portal) => {
       mocks.flags.portal = portal;
-      mocks.flags.rental = false;
       renderToastSurface('/login');
       fireEvent.click(screen.getByRole('button', { name: 'Notify' }));
       const renderedToast = (await screen.findByText('Notification at /login')).closest(
@@ -180,20 +174,19 @@ describe('Customer route appearance', () => {
     },
   );
 
-  it.each([
-    { portal: true, rental: false },
-    { portal: false, rental: false },
-  ])('uses customer toasts on the public rental form with flags %s', async (flags) => {
-    mocks.flags.portal = flags.portal;
-    mocks.flags.rental = flags.rental;
-    renderToastSurface('/rental/start');
-    fireEvent.click(screen.getByRole('button', { name: 'Notify' }));
-    const renderedToast = (await screen.findByText('Notification at /rental/start')).closest(
-      '.Toastify__toast',
-    );
-    expect(renderedToast).toHaveClass('customer-toast', 'customer-tokens');
-    expect(renderedToast).toHaveAttribute('role', 'alert');
-  });
+  it.each([{ portal: true }, { portal: false }])(
+    'uses customer toasts on the public rental form with flags %s',
+    async (flags) => {
+      mocks.flags.portal = flags.portal;
+      renderToastSurface('/rental/start');
+      fireEvent.click(screen.getByRole('button', { name: 'Notify' }));
+      const renderedToast = (await screen.findByText('Notification at /rental/start')).closest(
+        '.Toastify__toast',
+      );
+      expect(renderedToast).toHaveClass('customer-toast', 'customer-tokens');
+      expect(renderedToast).toHaveAttribute('role', 'alert');
+    },
+  );
 
   it.each([
     ['/account/bookings?source=portfolio', 'Customer login destination'],

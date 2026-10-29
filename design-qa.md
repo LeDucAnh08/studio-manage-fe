@@ -1,68 +1,74 @@
-# Rental request — selected option 2
+# Costume catalog — selected option 1
 
-Reviewed: 2026-10-27. Existing Yume application, `/rental/start`.
+Reviewed 2026-10-28. Route: `/costumes` in the existing Yume application.
 
 final result: passed
 
-## Evidence and comparison state
+## Evidence and matched state
 
-- Source: `../.workflow-tools/customer-ui/rental-refresh-ideation/selected-option-2.png`, the second displayed image from the selected rental mockup set.
-- Implementation: `../.workflow-tools/customer-ui/rental-refresh-ideation/qa/desktop-final.png`.
-- Combined evidence: `qa/comparison-full.png`, `qa/comparison-form.png`, `qa/comparison-summary.png` in that same artifact folder. Source left, implementation right; all three were opened and inspected together.
-- CSS viewport 1440 × 1024. Source raster 1487 × 1058; native IAB raster 1434 × 1020 (small viewport edge omitted). `qa/compare.py` proportionally contains both in 1440 × 1024 white canvases without stretching or painting content.
-- Matched edit state: 19–21 November 2026, inclusive three days; pearl white áo dài M × 2 at 125,000/day; silk-strap nón lá FREE × 2 at 15,000/day. Four items, total 840,000 VND. Contact fields blank in desktop comparison.
-- Actual app uses the persisted MongoDB catalog. Rental intake is currently paused by configuration, so an operational notice is intentionally added to the summary. No feature flag or live rental record was changed.
-- Previous orders QA archived at `docs/design/customer-orders-preview-qa.md`. Earlier rental QA remains at `docs/design/customer-rental-form-qa.md`.
+All artifacts below are in `../.workflow-tools/customer-ui/costume-catalog-refresh/`.
 
-## Findings and fixes
+- Exact selected source: `selected-option-1.png`, copied from `exec-3a99cee9-fdd2-4c65-b190-e9a1773b968b.png`, the first displayed result of the latest catalog ideation set.
+- Initial and final implementation captures: `qa/initial-fullpage.png`, `qa/final-fullpage.png`; viewport crops `qa/initial-desktop.png`, `qa/final-desktop.png`.
+- Combined comparisons, source left and implementation right: `qa/initial-comparison-full.png`, `qa/final-comparison-full.png`, `qa/final-comparison-filters.png`, `qa/final-comparison-products.png`. All were opened and inspected; focused products use slightly different crop bounds to include each actual result region without clipping its heading.
+- CSS viewport 1440 × 1024, DPR 1. Source raster 1487 × 1058. Native IAB final full-page raster 1434 × 1164; the first 1434 × 1020 pixels represent the viewport, with six/four edge pixels omitted by IAB. `qa/compare.py` contains both source and viewport crop proportionally in 1440 × 1024 white canvases. The full page is not compared against the viewport-sized source without cropping.
+- Matched period 19–21 November 2026, inclusive three days; Trang phục selected, Áo dài kỷ yếu selected, four real inventory models. Size and price filters unset. The app retains its actual alphabetical product/category order, rather than reproducing the generated image's arbitrary ordering.
+- Previous rental form QA archived as `docs/design/customer-rental-refresh-qa.md`. Existing older reports are preserved.
 
-No actionable P0/P1/P2 findings remain in the final combined comparison or responsive checks.
+## Findings and iteration history
 
-During browser inspection, shared dark-root rules forced 56px controls and clipped FREE in its select. Scoped rules now provide 48px controls, 80px notes and sufficient select padding in both root themes. Final desktop and tablet evidence show FREE completely.
+No actionable P0/P1/P2 findings remain.
 
-At 390px the initial two-column date row clipped the year. Dates now stack below 744px. Revised mobile captures show complete dates and usable controls.
-
-The paused notice originally interrupted the main header/date sequence. It now appears in the summary near the request context. The existing header marks Trang phục active on `/rental/start`, matching the source.
-
-These fixes preceded the final normalized comparison. The final full and focused comparison found no additional blocking issue.
+1. P2: initial rail repeated the category selector label and reset action on separate rows, pushing the price controls down; an extra desktop submit button also expanded the rail. See initial combined comparison. Moved reset beside the rail title, hid the redundant selected-kind label visually, and kept the period action as the desktop filter submit. Final rail comparison shows compact grouping and all controls.
+2. P2: gender badges initially inherited neutral styling instead of the source pink treatment. Scoped the existing `customer-status` component correctly; final product comparison shows the intended badges. Existing Lucide icons and supplied logo remain in use.
+3. P2: horizontal category scrolling at 390px allowed absolute screen-reader count text to escape its scroll container, making document width 851px. Positioned category buttons relatively, keeping their accessible text inside the scrolling row. Final measured document widths do not exceed viewports at 320, 390, 744 and 1280px. Verified mobile/tablet captures show intact content and controls.
+4. P2: an intermediate laptop breakpoint unnecessarily reduced results to one column. Removed that rule. At 1280px the final measured grid is 446px + 446px, with all four cards in two rows and no document overflow.
 
 ## Required fidelity surfaces
 
-- Typography: existing Inter Customer family; 32px desktop title, 26px mobile title, 24px section headings, 16px form/body and 14px labels/supporting copy. Clear hierarchy and visible keyboard focus. Raster source lettering is slightly heavier; app typography is retained for consistency.
-- Spacing/layout: two-column desktop form/summary, 32px column gap, 24–28px section rhythm, aligned item table, full-width add action and two-column contact section. Below 1128px summary follows form; mobile item controls have explicit labels. No horizontal overflow at 320, 390 or 744px.
-- Colors/tokens: established white canvas, gray surfaces, dark text, subtle separators and pink primary/total. Solid CTA preserves the app token instead of the raster highlight variation.
-- Assets/icons: supplied Yume logo and existing Lucide calendar, arrows, add, remove and stepper icons. Source has no photography; no placeholders or fabricated art were introduced. Date/select controls retain native platform behavior.
-- Copy/content: Vietnamese title, dates, per-day formula, summary, total and review action follow the mock. Stock text additionally identifies size and maximum quantity. Deposit/request-does-not-hold notes and current paused notice are visible.
+- Typography: existing Inter Customer font, desktop title 32px, result heading 28px, model titles 18px, body 16px, descriptions 14px and compact stock badges 12px. Native focus indicators and field labels remain accessible. Long descriptions retain the app's two-line treatment, so cards can be taller than the mock's abbreviated copy.
+- Layout/rhythm: compact date strip, left category/filter rail and right two-column product grid match the selected composition. Small garment icons replace the old square illustration panels. Controls are 48px high; rail and result sections use whitespace and light dividers. At smaller widths the category row scrolls inside its container, advanced filters collapse, and cards become one column on phones.
+- Colors/tokens: existing white canvas, #222222 ink, muted gray, pale gray supporting surfaces and #ff385c primary. Selected categories and gender badges use restrained pink. Existing solid primary-button token is retained instead of the generated image's highlight variation.
+- Assets: existing Yume logo and Lucide Shirt/Sparkles icons are used directly. The source contains no product photographs; no new raster assets, CSS illustrations or fabricated product imagery were introduced.
+- Copy/content: actual inventory names, descriptions, genders, daily prices, available sizes and inclusive-day estimates remain accurate. The catalog does not reserve inventory. Card selection and request submission are available within the customer portal by default; the separate rental flag was removed in the follow-up below. No database data was changed.
 
-## Native browser verification
+## Browser and responsive verification
 
-- Selected two models/sizes and quantities; checked line totals and 840,000 VND aggregate.
-- Entered fictional contact information and opened review through the external summary CTA. Both models and contact details appeared; final send stayed disabled while paused. No live request was submitted.
-- Returned to edit, changed date through native keyboard controls, observed query synchronization and five-day total 1,400,000 VND. Restored three days and 840,000 VND.
-- Reloaded and verified dates, two rows, quantities and contact draft restored. Cleared fictional contact fields before handoff.
-- Captures: mobile 390 × 844 (`qa/mobile-390.png`, 384 × 2954 raster), mobile 320 × 844 (`qa/mobile-320.png`, 314 × 3099), tablet 744 × 1024 (`qa/tablet-744.png`, 738 × 2631), mobile review (`qa/mobile-preview.png`, 384 × 2105). Inspected top/form and summary crops. Full-page images document responsive flow rather than desktop reference fidelity.
-- Measured document scroll width equal to CSS viewport width at 320, 390 and 744px.
-- Browser console error log empty after final interactions.
+Native IAB, existing frontend and API:
 
-## Automated validation
+- Applied size M and 100,000–150,000 price inputs, then moved the maximum slider with the keyboard to 145,000. Numeric input updated and the period action loaded the four eligible models without changing dates or selected category.
+- Cleared filters and reselected Áo dài kỷ yếu. Counts returned to 18 total / 15 clothing / 3 accessories, with four selected-category models.
+- Checked advanced-filter expansion/collapse, selected-category state, visible totals and both date inputs. No live rental request was created.
+- Full responsive evidence: `qa/mobile-final-390.png` (384 × 2494), `qa/mobile-320-verified.png` (314 × 2676), `qa/tablet-744-verified.png` (738 × 1627), `qa/laptop-final-1280.png` (1274 × 1210). Verified 320/tablet captures start at scroll position zero; earlier captures showing sticky chrome at a scrolled document position were replaced as visual evidence.
+- Browser console errors: none after final interactions.
+
+## Validation
 
 - TypeScript `tsc --noEmit`: passed.
-- Targeted TS/TSX ESLint and Prettier on changed rental files: passed. CSS is verified through formatting and rendered evidence, not ESLint.
-- Vitest 59/59 passed: DailyRentalPricing, CustomerOrders, CustomerHeader. Includes paused behavior, dates/draft restoration, repricing, insufficient stock without reducing quantities, normal send/login paths and orders/navigation regressions.
-- Automated Playwright E2E was not run. Native IAB covered primary UI interactions; final API creation is covered by mocked service tests without creating a live request.
+- Targeted TS/TSX ESLint and Prettier: passed.
+- Vitest: 38/38 passed across RentalCatalogPage and App tests. Covers date-first loading, normalized category groups, URL state, size and price filtering, paired sliders, inverted bounds without a request, clearing filters, absent prices, hidden sold-out sizes, stale responses, empty/error states, conditional rental actions and existing routing.
+- Automated Playwright E2E was not run. Native browser checks verified the actual UI; mocked tests cover unavailable/error and enabled-rental paths.
 
-## Follow-up polish and limits
+## Accepted differences and polish
 
-P3: native date/select affordances and existing shell logo inset differ slightly from the raster. Form rhythm is slightly more spacious to preserve explicit stock messages. These retain clarity and existing components.
+P3: the existing application shell has a wider logo inset and slightly taller header/footer than the generated source. Actual descriptions include bundle exclusions, giving cards a little more height. The extra compact reset link preserves the existing category-reset behavior. These differences preserve application consistency and useful product information.
 
-Live submission can be checked after rental intake is enabled by product configuration. This change preserves the current paused setting.
+Checklist: exact reference resolved; existing route updated; primary interactions verified; responsive evidence inspected; full and focused combined comparisons inspected; automated checks passed; no actionable P0/P1/P2 remains.
 
-## Implementation checklist
+## Follow-up: selectable catalog cards
 
-- [x] Exact option 2 copied into project artifacts.
-- [x] Form, live summary and existing review route implemented.
-- [x] Date changes synchronize query, draft, inventory and estimate.
-- [x] Responsive captures and primary interactions verified.
-- [x] Full and focused combined comparisons inspected.
-- [x] Relevant automated checks passed.
-- [x] No actionable P0/P1/P2 visual issue remains.
+User reported that cards could not be selected. The selection link was hidden while rental intake was paused. Each card now exposes a visible “Chọn mẫu này” link, stretched over the card body, with hover and keyboard-focus feedback. It carries the model and rental dates into the existing draft form; final submission still respects the intake flag.
+
+Choosing another model fills an empty draft row or appends a new row, keeping existing contact information, sizes and quantities. Selecting the same model again does not duplicate it. The incoming suggestion is consumed once so repricing does not re-add a removed row. The existing 30-row limit also applies to catalog additions.
+
+- Native IAB verified clicking the first card's garment icon opens the correct pink áo dài model. Selected M × 2, returned to the catalog, then selected the cream model: both rows and the original quantity remained. Enter on the cream card opened the same two-row draft without duplication. No request was submitted.
+- Desktop and 390px mobile captures were opened and inspected: `qa/selectable-cards-desktop.png`, `qa/selectable-cards-mobile.png`; draft evidence: `qa/selection-two-models.png`. Mobile document width equals the 390px viewport.
+- TypeScript and targeted ESLint passed. Vitest passed 62/62 across RentalCatalogPage, DailyRentalPricing and App, including paused intake, disabled portal, draft additions, repeat selection, removal followed by repricing and existing login/draft flows.
+- E2E selectors were updated for the new link label; automated E2E was not run.
+
+## Follow-up: rental available by default
+
+The user requested removal of the separate rental switch. Removed its frontend export, API gate, paused-form copy, Docker arguments, Compose environment entries and launcher settings. The shared portal control, authentication, role checks, validation and resource transactions remain in effect. Obsolete rental environment values have no effect. Inventory writers require the shared transaction lock whenever the portal is open, including its default when the portal variable is absent.
+
+- Validation: 127/127 frontend tests, 39/39 backend HTTP/catalog tests and 2/2 deployment configuration tests passed. TypeScript passed in both applications; targeted frontend ESLint passed. HTTP tests verify unset/false/true obsolete flags all reach the rental API, input validation still rejects malformed requests, unauthorized roles remain blocked, and clients only list their own orders.
+- Native browser verified the rental tab loads existing orders from the running API and a valid draft reaches an enabled “Gửi yêu cầu thuê” button without paused copy. Evidence: `qa/rental-default-open.png`. No live request was submitted. Automated E2E was not run for this change.

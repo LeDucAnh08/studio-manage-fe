@@ -1,548 +1,265 @@
 ---
-version: alpha
-name: Linear-design-analysis
-description: "A near-black product-focused marketing canvas built around #010102 (the deepest dark surface of any tool in this collection), light gray text (#f7f8f8), and the signature Linear lavender-blue (#5e6ad2) used as the single chromatic accent. The system reads as software-craft documentation: dense, technical, and quietly luxurious. Display type is set in the Linear custom sans (SF Pro Display fallback) at 500–700 with measured negative tracking. Cards live as charcoal panels (#0f1011) with hairline borders. The accent lavender appears on the brand mark, focus rings, and a few intentional CTAs — never decoratively. Page rhythm leans on product UI screenshots framed in dark panels rather than atmospheric color."
-
-colors:
-  primary: "#5e6ad2"
-  on-primary: "#ffffff"
-  primary-hover: "#828fff"
-  primary-focus: "#5e69d1"
-  ink: "#f7f8f8"
-  ink-muted: "#d0d6e0"
-  ink-subtle: "#8a8f98"
-  ink-tertiary: "#62666d"
-  canvas: "#010102"
-  surface-1: "#0f1011"
-  surface-2: "#141516"
-  surface-3: "#18191a"
-  surface-4: "#191a1b"
-  hairline: "#23252a"
-  hairline-strong: "#34343a"
-  hairline-tertiary: "#3e3e44"
-  inverse-canvas: "#ffffff"
-  inverse-surface-1: "#f5f6f6"
-  inverse-surface-2: "#f6f7f7"
-  inverse-ink: "#000000"
-  brand-secure: "#7a7fad"
-  semantic-success: "#27a644"
-  semantic-overlay: "#000000"
-
-typography:
-  display-xl:
-    fontFamily: Linear Display
-    fontSize: 80px
-    fontWeight: 600
-    lineHeight: 1.05
-    letterSpacing: -3.0px
-  display-lg:
-    fontFamily: Linear Display
-    fontSize: 56px
-    fontWeight: 600
-    lineHeight: 1.10
-    letterSpacing: -1.8px
-  display-md:
-    fontFamily: Linear Display
-    fontSize: 40px
-    fontWeight: 600
-    lineHeight: 1.15
-    letterSpacing: -1.0px
-  headline:
-    fontFamily: Linear Display
-    fontSize: 28px
-    fontWeight: 600
-    lineHeight: 1.20
-    letterSpacing: -0.6px
-  card-title:
-    fontFamily: Linear Display
-    fontSize: 22px
-    fontWeight: 500
-    lineHeight: 1.25
-    letterSpacing: -0.4px
-  subhead:
-    fontFamily: Linear Display
-    fontSize: 20px
-    fontWeight: 400
-    lineHeight: 1.40
-    letterSpacing: -0.2px
-  body-lg:
-    fontFamily: Linear Text
-    fontSize: 18px
-    fontWeight: 400
-    lineHeight: 1.50
-    letterSpacing: -0.1px
-  body:
-    fontFamily: Linear Text
-    fontSize: 16px
-    fontWeight: 400
-    lineHeight: 1.50
-    letterSpacing: -0.05px
-  body-sm:
-    fontFamily: Linear Text
-    fontSize: 14px
-    fontWeight: 400
-    lineHeight: 1.50
-    letterSpacing: 0
-  caption:
-    fontFamily: Linear Text
-    fontSize: 12px
-    fontWeight: 400
-    lineHeight: 1.40
-    letterSpacing: 0
-  button:
-    fontFamily: Linear Text
-    fontSize: 14px
-    fontWeight: 500
-    lineHeight: 1.20
-    letterSpacing: 0
-  eyebrow:
-    fontFamily: Linear Text
-    fontSize: 13px
-    fontWeight: 500
-    lineHeight: 1.30
-    letterSpacing: 0.4px
-  mono:
-    fontFamily: Linear Mono
-    fontSize: 13px
-    fontWeight: 400
-    lineHeight: 1.50
-    letterSpacing: 0
-
-rounded:
-  xs: 4px
-  sm: 6px
-  md: 8px
-  lg: 12px
-  xl: 16px
-  xxl: 24px
-  pill: 9999px
-  full: 9999px
-
-spacing:
-  xxs: 4px
-  xs: 8px
-  sm: 12px
-  md: 16px
-  lg: 24px
-  xl: 32px
-  xxl: 48px
-  section: 96px
-
-components:
-  button-primary:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.on-primary}"
-    typography: "{typography.button}"
-    rounded: "{rounded.md}"
-    padding: 8px 14px
-  button-primary-pressed:
-    backgroundColor: "{colors.primary-focus}"
-    textColor: "{colors.on-primary}"
-    typography: "{typography.button}"
-    rounded: "{rounded.md}"
-  button-primary-hover:
-    backgroundColor: "{colors.primary-hover}"
-    textColor: "{colors.on-primary}"
-    typography: "{typography.button}"
-    rounded: "{rounded.md}"
-  button-secondary:
-    backgroundColor: "{colors.surface-1}"
-    textColor: "{colors.ink}"
-    typography: "{typography.button}"
-    rounded: "{rounded.md}"
-    padding: 8px 14px
-  button-tertiary:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.button}"
-    rounded: "{rounded.md}"
-    padding: 8px 14px
-  button-inverse:
-    backgroundColor: "{colors.inverse-canvas}"
-    textColor: "{colors.inverse-ink}"
-    typography: "{typography.button}"
-    rounded: "{rounded.md}"
-    padding: 8px 14px
-  pricing-card:
-    backgroundColor: "{colors.surface-1}"
-    textColor: "{colors.ink}"
-    typography: "{typography.body}"
-    rounded: "{rounded.lg}"
-    padding: 24px
-  pricing-card-featured:
-    backgroundColor: "{colors.surface-2}"
-    textColor: "{colors.ink}"
-    typography: "{typography.body}"
-    rounded: "{rounded.lg}"
-    padding: 24px
-  feature-card:
-    backgroundColor: "{colors.surface-1}"
-    textColor: "{colors.ink}"
-    typography: "{typography.body}"
-    rounded: "{rounded.lg}"
-    padding: 24px
-  product-screenshot-card:
-    backgroundColor: "{colors.surface-1}"
-    textColor: "{colors.ink}"
-    typography: "{typography.body}"
-    rounded: "{rounded.xl}"
-    padding: 24px
-  testimonial-card:
-    backgroundColor: "{colors.surface-1}"
-    textColor: "{colors.ink}"
-    typography: "{typography.body-lg}"
-    rounded: "{rounded.lg}"
-    padding: 32px
-  customer-logo-tile:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink-subtle}"
-    typography: "{typography.caption}"
-    rounded: "{rounded.xs}"
-    padding: 16px
-  text-input:
-    backgroundColor: "{colors.surface-1}"
-    textColor: "{colors.ink}"
-    typography: "{typography.body}"
-    rounded: "{rounded.md}"
-    padding: 8px 12px
-  text-input-focused:
-    backgroundColor: "{colors.surface-1}"
-    textColor: "{colors.ink}"
-    typography: "{typography.body}"
-    rounded: "{rounded.md}"
-    padding: 8px 12px
-  pricing-tab-default:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink-subtle}"
-    typography: "{typography.button}"
-    rounded: "{rounded.pill}"
-    padding: 6px 14px
-  pricing-tab-selected:
-    backgroundColor: "{colors.surface-2}"
-    textColor: "{colors.ink}"
-    typography: "{typography.button}"
-    rounded: "{rounded.pill}"
-    padding: 6px 14px
-  cta-banner:
-    backgroundColor: "{colors.surface-1}"
-    textColor: "{colors.ink}"
-    typography: "{typography.headline}"
-    rounded: "{rounded.lg}"
-    padding: 48px
-  changelog-row:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.body}"
-    rounded: "{rounded.xs}"
-    padding: 24px 0
-  status-badge:
-    backgroundColor: "{colors.surface-2}"
-    textColor: "{colors.ink-muted}"
-    typography: "{typography.caption}"
-    rounded: "{rounded.pill}"
-    padding: 2px 8px
-  top-nav:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.xs}"
-    height: 56px
-  footer:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink-subtle}"
-    typography: "{typography.caption}"
-    rounded: "{rounded.xs}"
-    padding: 64px 32px
+version: '1.0-audit-plan'
+name: Yume-admin-staff-design
+status: refactor-in-progress-controls-complete
+updated: 2026-10-29
+scope: admin-and-staff
 ---
 
-## Overview
-
-Linear's marketing canvas is the deepest dark surface in this collection — `{colors.canvas}` is #010102, essentially pure black with a faint blue tint. On top sits a four-step surface ladder (`{colors.surface-1}` through `{colors.surface-4}`) for cards, panels, and lifted tiles, with hairline borders running from `{colors.hairline}` (#23252a) up through `{colors.hairline-strong}` and `{colors.hairline-tertiary}`. Light gray text (`{colors.ink}` #f7f8f8) carries the body and headlines.
+# Admin/staff — audit và kế hoạch refactor style
 
-The single chromatic accent is **Linear lavender-blue** `{colors.primary}` (#5e6ad2) — used on the brand mark, focus rings, and the primary CTA button. A lighter hover state (`{colors.primary-hover}` #828fff) and a focus-tinted variant (`{colors.primary-focus}` #5e69d1) extend the same hue. Linear avoids saturated greens, oranges, reds, etc. on the marketing canvas — the only semantic color is `{colors.semantic-success}` (#27a644) for status pills and the rare success indicator.
-
-Display type runs Linear's custom sans (with `SF Pro Display` fallback) at weight 500–700 with negative letter-spacing scaling from -3.0px at 80px down to 0 at body. The body family is Linear's text cut, and a Linear Mono is reserved for code snippets in product screenshots.
-
-The page rhythm is **dense product screenshots** — Linear's marketing leads with high-fidelity captures of the product UI (issue list, project view, dashboard) framed in `{colors.surface-1}` panels with `{rounded.xl}` 16px corners. The chrome is intentionally minimal so the app screenshots can do the heavy lifting.
-
-**Key Characteristics:**
-- **Dark-canvas marketing system** — `{colors.canvas}` (#010102) is the deepest dark in this collection.
-- **Lavender-blue brand accent** (`{colors.primary}` #5e6ad2) — used scarcely on brand mark, focus, and the primary CTA.
-- Four-step surface ladder (canvas → surface-1 → surface-2 → surface-3 → surface-4) carries hierarchy without shadow.
-- Display tracking pulls aggressively negative (-3.0px at 80px); body holds at -0.05px.
-- Cards use `{rounded.lg}` 12px corners with 1px hairline borders — never pill, rarely 16px.
-- **Product UI screenshots** dominate the page. The marketing chrome is a dark frame for the app.
-- No second chromatic color. No atmospheric gradients. No spotlight cards.
+Audit thực hiện ngày **28–29/10/2026**, Asia/Bangkok, trên ứng dụng local hiện có. Tài liệu này là nguồn quy chuẩn và checklist triển khai cho giao diện nội bộ. **Đã hoàn thành R01–R07 ngày 29/10; R08–R18 còn lại.** Kết quả và bằng chứng: [QA foundation](docs/design/admin-staff-foundation-qa-2026-10-29.md), [QA control và pilot](docs/design/admin-staff-controls-qa-2026-10-29.md).
 
-## Colors
+Bản tham chiếu Linear ban đầu được lưu nguyên vẹn tại [admin-staff-reference-linear.md](docs/design/admin-staff-reference-linear.md). Bản đó là mô tả **marketing site**, không phải đặc tả dashboard nghiệp vụ. Những quy tắc về hero 56–80px, section 96px, pricing cards, footer marketing và dark-only không áp dụng nguyên xi vào Yume.
 
-> Source pages: linear.app (home), /intake, /pricing, /contact/sales, /build.
+## 1. Kết luận và phạm vi
 
-### Brand & Accent
-- **Lavender-Blue** ({colors.primary}): The signature Linear accent — primary CTA, brand mark, link emphasis.
-- **Lavender Hover** ({colors.primary-hover}): Lighter lavender (#828fff) — hovered state of the primary CTA.
-- **Lavender Focus** ({colors.primary-focus}): Focus-ring tint (#5e69d1) — focused inputs, focused buttons.
-- **Brand Secure** ({colors.brand-secure}): Muted lavender-gray (#7a7fad) — used in "Linear Security" surfaces.
+**Cần refactor theo hệ thống, bắt đầu từ scope/theme và component dùng chung.** Đổi vài mã màu trong `index.css` sẽ không giải quyết được sự lệch control, trạng thái tối, bảng thao tác và các trang chi tiết.
 
-### Surface
-- **Canvas** ({colors.canvas}): Default page background — #010102, near-pure black with a faint blue tint.
-- **Surface 1** ({colors.surface-1}): One step above canvas — feature cards, pricing cards, product screenshot panels.
-- **Surface 2** ({colors.surface-2}): Two steps above — featured pricing card, hovered cards.
-- **Surface 3** ({colors.surface-3}): Three steps above — line-tertiary backgrounds, sub-nav.
-- **Surface 4** ({colors.surface-4}): Four steps above — bg-level-3, deepest lifted surface.
-- **Hairline** ({colors.hairline}): 1px borders on cards and dividers.
-- **Hairline Strong** ({colors.hairline-strong}): Stronger 1px borders — input focus rings.
-- **Hairline Tertiary** ({colors.hairline-tertiary}): Tertiary borders for nested surfaces.
-- **Inverse Canvas** ({colors.inverse-canvas}): Pure white — surface of the inverse pill CTA on a small set of section openers.
-- **Inverse Surface 1** ({colors.inverse-surface-1}): One step above inverse canvas.
-- **Inverse Surface 2** ({colors.inverse-surface-2}): Two steps above inverse canvas.
+Hướng refactor: kế thừa tính gọn, ít hiệu ứng và accent lavender của tài liệu Linear; chuyển thành giao diện làm việc có **sáng/tối/hệ thống**, bảng dễ đọc, thao tác rõ và form nhất quán. Scope, palette và shell nền tảng đã triển khai; các pattern và màn nghiệp vụ tiếp tục theo checklist bên dưới.
 
-### Text
-- **Ink** ({colors.ink}): All headlines and emphasized body type — light gray #f7f8f8.
-- **Ink Muted** ({colors.ink-muted}): Secondary type at #d0d6e0 — meta info on hero panels.
-- **Ink Subtle** ({colors.ink-subtle}): Tertiary type at #8a8f98 — deselected pricing tabs, footer columns.
-- **Ink Tertiary** ({colors.ink-tertiary}): Quaternary at #62666d — disabled, footnotes.
+### Trong phạm vi
 
-### Semantic
-- **Success Green** ({colors.semantic-success}): Status pills, success indicators. The only semantic color on marketing.
-- **Overlay** ({colors.semantic-overlay}): Pure black overlay scrim for modals.
+- Shell nội bộ: sidebar, mobile menu, breadcrumb, chọn mùa, chọn theme, hồ sơ nhân viên.
+- Dashboard; lớp/thành viên; yêu cầu chụp và hồ sơ quy trình; lịch chụp; đơn thuê; kho/danh mục/gói; tài chính/báo cáo; người dùng/mùa/phản hồi; đăng nhập/đăng ký nhân sự.
+- Token màu, typography, spacing, radius, elevation, control density; hover/focus/disabled/loading/error/empty; bảng, modal, popover và responsive.
+- Sửa semantics/focus/nhãn khi cần để control đã có sử dụng được bằng bàn phím và công nghệ hỗ trợ.
 
-## Typography
+### Ranh giới cần giữ
 
-### Font Family
+- Customer theo [DESIGN-customer.md](DESIGN-customer.md); không đưa theme nội bộ vào `/account/*`, `/costumes`, `/rental/start`, trang công khai hoặc form thành viên.
+- Giữ API, phân quyền, idempotency, trạng thái hồ sơ, giá/cọc/thu–hoàn tiền, kho và transaction. Không sửa nghiệp vụ để làm ảnh chụp trông đẹp hơn.
+- Không thêm dashboard KPI, bộ lọc, navigation hay quy trình phê duyệt mới trong PR style. Những thay đổi đó cần yêu cầu nghiệp vụ riêng.
+- Không thay Radix/shadcn/Tailwind, không bổ sung UI framework, không tách các controller/hook nghiệp vụ trong đợt đổi style.
 
-- **Linear Display** — Linear's custom display sans; fallback `SF Pro Display, -apple-system, system-ui, Segoe UI, Roboto`. Carries display-xl through subhead.
-- **Linear Text** — Linear's custom text sans (a slightly different cut tuned for body sizes); same fallback stack. Carries body sizes, button labels, captions.
-- **Linear Mono** — Linear's custom mono; fallback `ui-monospace, SF Mono, Menlo`. Used for code snippets in product screenshots and for status / ID tokens.
+## 2. Phương pháp và bằng chứng
 
-The marketing surface treats Display and Text as one continuous voice; the family change is silent.
+Dùng in-app browser, frontend `localhost:4001`, backend hiện có; tài khoản mẫu admin và nhiếp ảnh gia. Không tạo, sửa, xóa đơn/lịch/kho hay ghi nhận tiền. Theme được đổi tạm để đối chiếu rồi trả về chế độ hệ thống.
 
-### Hierarchy
+- Desktop CSS viewport **1440 × 1000**; mobile **390 × 844**. Native capture có thể bỏ vài pixel cạnh: ảnh desktop thường 1434px rộng, mobile 384px; không dùng kích thước raster đó thay cho kích thước CSS.
+- Tất cả ảnh dưới đây được chụp trong lượt audit này, mở file đã lưu và kiểm tra trước khi dùng. Ảnh login trắng nội dung ban đầu và capture chart giữa animation đã được loại, thay bằng ảnh đã ổn định.
+- Các trang có bảng dài được chụp full page; dashboard có chart và vùng chi tiết hồ sơ dùng viewport để tránh capture giữa animation hoặc ảnh quá dài. Phạm vi hiển thị được ghi bên dưới.
+- Audit chuyển qua ngày mới nên báo cáo 29/10 có kỳ đến 29/10; không so sánh số liệu đó như một thay đổi do style.
 
-| Token | Size | Weight | Line Height | Letter Spacing | Use |
-|---|---|---|---|---|---|
-| `{typography.display-xl}` | 80px | 600 | 1.05 | -3.0px | Largest hero headline |
-| `{typography.display-lg}` | 56px | 600 | 1.10 | -1.8px | Section opener headlines |
-| `{typography.display-md}` | 40px | 600 | 1.15 | -1.0px | Sub-section headlines |
-| `{typography.headline}` | 28px | 600 | 1.20 | -0.6px | Pricing tier titles, CTA banner heading |
-| `{typography.card-title}` | 22px | 500 | 1.25 | -0.4px | Feature card title |
-| `{typography.subhead}` | 20px | 400 | 1.40 | -0.2px | Lead body, intro paragraphs |
-| `{typography.body-lg}` | 18px | 400 | 1.50 | -0.1px | Hero subhead, lead paragraphs |
-| `{typography.body}` | 16px | 400 | 1.50 | -0.05px | Default body |
-| `{typography.body-sm}` | 14px | 400 | 1.50 | 0 | Card body, footer columns |
-| `{typography.caption}` | 12px | 400 | 1.40 | 0 | Captions, meta, status |
-| `{typography.button}` | 14px | 500 | 1.20 | 0 | All button labels |
-| `{typography.eyebrow}` | 13px | 500 | 1.30 | 0.4px | Section eyebrow (slight positive tracking) |
-| `{typography.mono}` | 13px | 400 | 1.50 | 0 | Linear Mono for code in product screenshots |
+Kích thước từng ảnh và các số đo được lưu trong [evidence.json](docs/design/admin-staff-audit-2026-10-28/evidence.json). File ảnh giữ nguyên byte của capture; phần mở rộng dùng JPEG theo định dạng thực tế.
 
-### Principles
+### 8 bước audit / 14 trạng thái
 
-- **Aggressive negative tracking on display** (-3.0px at 80px ≈ 4% of size).
-- **Single voice from display to body.** Display-xl at 600 → body at 400 — same family, narrower weights.
-- **Eyebrow uses positive tracking** (+0.4px) — contrast against the negative-tracked display marks the eyebrow as taxonomy.
-- **Mono only in code contexts.** Linear Mono lives inside product screenshots — not on marketing chrome.
+| Bước | Màn và trạng thái đã xem                         | Đánh giá                                                                                      | Ảnh                                                                                                                                                                                                                                  |
+| ---- | ------------------------------------------------ | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | Đăng nhập nhân sự, tối                           | Form có label/focus; CTA gradient và link đăng ký chưa phù hợp ngữ cảnh                       | [01](docs/design/admin-staff-audit-2026-10-28/01-staff-login.jpg)                                                                                                                                                                    |
+| 2    | Dashboard admin và nhiếp ảnh gia, tối            | Menu khác theo vai trò; màu chữ/trạng thái và hiệu ứng cần chuẩn hóa                          | [02](docs/design/admin-staff-audit-2026-10-28/02-dashboard-dark.jpg), [14](docs/design/admin-staff-audit-2026-10-28/14-photographer-dashboard-dark.jpg)                                                                              |
+| 3    | Danh sách lớp và modal thêm lớp, tối             | Có bảng/phân trang/modal; thao tác nhỏ, search thiếu tên truy cập                             | [03](docs/design/admin-staff-audit-2026-10-28/03-customers-dark.jpg), [04](docs/design/admin-staff-audit-2026-10-28/04-customer-modal-dark.jpg)                                                                                      |
+| 4    | Lịch chụp: desktop tối/sáng, mobile sáng         | Có card mobile và không tràn ngang ở 390px; trạng thái tối, icon action và focus menu cần sửa | [05](docs/design/admin-staff-audit-2026-10-28/05-schedules-dark.jpg), [06](docs/design/admin-staff-audit-2026-10-28/06-schedules-light.jpg), [07](docs/design/admin-staff-audit-2026-10-28/07-schedules-mobile.jpg)                  |
+| 5    | Kho trang phục, sáng                             | Thông tin loại/size/tình trạng đầy đủ; bảng dày và badge cần phân cấp                         | [08](docs/design/admin-staff-audit-2026-10-28/08-inventory-light.jpg)                                                                                                                                                                |
+| 6    | Danh sách quy trình và chi tiết hồ sơ chụp, sáng | Đọc được nghiệp vụ; card/list/section/control chưa thống nhất                                 | [09](docs/design/admin-staff-audit-2026-10-28/09-workflow-list-light.jpg), [10](docs/design/admin-staff-audit-2026-10-28/10-workflow-detail-light.jpg), [11](docs/design/admin-staff-audit-2026-10-28/11-workflow-payment-light.jpg) |
+| 7    | Chi tiết đơn thuê mẫu đã giữ hàng, sáng          | Có báo giá/cọc/giao nhận/lịch sử; mật độ và hierarchy cần đồng bộ với hồ sơ chụp              | [12](docs/design/admin-staff-audit-2026-10-28/12-rental-detail-light.jpg)                                                                                                                                                            |
+| 8    | Báo cáo dịch vụ và kho, sáng                     | Số liệu có nhãn và giải thích; header/filter/table khác các màn CRUD                          | [13](docs/design/admin-staff-audit-2026-10-28/13-reports-light.jpg)                                                                                                                                                                  |
 
-### Note on Font Substitutes
+### Minh họa các vấn đề chính
 
-Linear's custom typeface isn't publicly distributed; the documented fallback `SF Pro Display, -apple-system, system-ui` is the recommended substitute on macOS. For cross-platform implementation, **Inter** at weight 500 / 600 / 700 is the closest free substitute. **Geist Sans** is also viable. For mono, **JetBrains Mono** or **Geist Mono** at weight 400 closely approximates Linear Mono.
+**Lịch tối:** nhãn hoàn thành tối, action nhỏ, nhiều màu cùng cạnh tranh.
 
-## Layout
+![Bảng lịch chụp tối hiện tại](docs/design/admin-staff-audit-2026-10-28/05-schedules-dark.jpg)
 
-### Spacing System
+**Form thanh toán:** select cao 44px, input cùng hàng cao 36px, các nhóm thiếu nhịp chung.
 
-- **Base unit**: 4px.
-- **Tokens (front matter)**: `{spacing.xxs}` 4px · `{spacing.xs}` 8px · `{spacing.sm}` 12px · `{spacing.md}` 16px · `{spacing.lg}` 24px · `{spacing.xl}` 32px · `{spacing.xxl}` 48px · `{spacing.section}` 96px.
-- Card interior padding: `{spacing.lg}` 24px on feature/pricing cards; `{spacing.xl}` 32px on testimonial cards; `{spacing.xxl}` 48px on CTA banners.
-- Pill button padding: 8px vertical · 14px horizontal — Linear's compact button spec.
-- Form input padding: 8px vertical · 12px horizontal.
+![Thanh toán trong hồ sơ chụp hiện tại](docs/design/admin-staff-audit-2026-10-28/11-workflow-payment-light.jpg)
 
-### Grid & Container
+### Giới hạn của audit
 
-- Max content width sits around 1280px.
-- Card grids are 3-up at desktop, 2-up at tablet, 1-up at mobile.
-- Pricing tier grid is 3-up; comparison strip below shows checkmarks per tier.
-- Product screenshot panels span full content width — they're the protagonist.
+- Đã xem trực tiếp admin và photographer. Sale, cộng tác viên sale, kế toán và admin thường cần kiểm tra phiên đăng nhập riêng khi triển khai; đọc `navItems` không chứng minh mọi trạng thái theo vai trò đạt.
+- Chưa walkthrough toàn bộ CRUD settings, tài chính, tất cả trạng thái đơn, calendar view, trạng thái lỗi mạng/không dữ liệu. Các màn chưa chụp nằm trong ma trận rollout, không được coi là đã đạt.
+- Chưa chạy screen reader, zoom 200%, reduced-motion, Windows high-contrast hay kiểm đầy đủ tablet/320px. Đây không phải chứng nhận WCAG.
+- Không gửi báo giá, nhận tiền, chốt lịch, giao/nhận trả hoặc hủy hồ sơ để kiểm tra style. Hồi quy nghiệp vụ phải dùng dữ liệu test cô lập.
+
+## 3. Điểm đang làm tốt
+
+1. Có primitive trong `src/components/ui`, Radix cho dialog/popover/select và các component DataTable/PageHeader/EmptyState. Có thể chuẩn hóa trên nền hiện có.
+2. Theme sáng/tối/hệ thống đã hoạt động; không cần viết lại cơ chế lưu theme.
+3. Lịch chuyển sang card ở mobile; đo tại 390px thấy document width bằng viewport, không tràn ngang.
+4. Modal thêm lớp đưa focus vào trường đầu; label bắt buộc và focus ring nhìn thấy được. Thao tác Escape cho phép trở lại màn danh sách.
+5. Menu photographer không hiện nhóm quản trị như admin. Các hồ sơ giữ nhãn nghiệp vụ về cọc/giữ kho/đối soát rõ; cần bảo toàn khi thay bố cục.
 
-### Whitespace Philosophy
+## 4. Findings có mức ưu tiên
 
-The dark canvas IS the whitespace. Sections separate by lift onto surface-1 panels, not by gaps in white. Within a panel, generous `{spacing.lg}` 24px gaps between content blocks; `{spacing.section}` 96px between sections.
+P1 = cần xử lý trước rollout giao diện mới; P2 = ảnh hưởng tính nhất quán/hiệu quả sử dụng; P3 = polish. Không có bằng chứng P0 trong phạm vi đã xem.
 
-## Elevation & Depth
+| ID  | Mức | Phát hiện và bằng chứng                                                                                                                                                                                                         | Tác động / hướng sửa                                                                                                                                                             |
+| --- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A01 | P1  | 05/06: `SCHEDULE_STATUS_COLOR` dùng `text-green-800`, `text-blue-800` cho cả hai theme. Status hoàn thành tối có chữ RGB(22,101,52), nền xanh alpha 0.1 trên card RGB(21,21,30); contrast tính sau composite khoảng **2.19:1**. | Màu semantic phải có cặp sáng/tối, giữ text và icon/nhãn; không chỉ đổi màu nền hoặc dùng hue làm trạng thái duy nhất.                                                           |
+| A02 | P1  | 01/03/04/05: `Button variant="gradient"` dùng chữ trắng trên #f59e0b → #22d3ee. Contrast tại hai đầu khoảng **2.15:1 / 1.81:1**.                                                                                                | Primary dùng màu đặc, foreground đạt tương phản; bỏ gradient/glow khỏi thao tác nghiệp vụ.                                                                                       |
+| A03 | P1  | 05 + DOM: ba action mỗi dòng lịch có hit box **16 × 16px**, không `aria-label`, không `title`; AX chỉ đọc “button”. 03: Sửa/Xóa cao 16px.                                                                                       | Icon nhỏ có thể giữ, vùng bấm tăng; accessible name gắn hành động và dòng, tooltip chỉ bổ sung. Không khẳng định mọi nút 16px tự động vi phạm chuẩn vì còn ngoại lệ khoảng cách. |
+| A04 | P1  | 07 + kiểm bàn phím: sidebar đóng chỉ translate ra trái; không inert/aria-hidden. Shift+Tab từ Mở menu đưa focus tới Đăng xuất ở **x = -224px**, hoàn toàn ngoài màn.                                                            | Menu đóng không nhận focus; khi mở quản lý focus, Escape và trả focus. Giữ nguyên tree/phân quyền nav.                                                                           |
+| A05 | P1  | 02/03 + DOM: season select không id/label kết nối; search lớp chỉ có placeholder, AX không có tên.                                                                                                                              | Bổ sung label/aria-label, gắn lỗi/hint với field; audit các icon/filter còn lại theo cùng quy tắc.                                                                               |
+| A06 | P2  | 11 + DOM: hai select cao **44px**, hai input cao **36px** trong cùng cụm; 04 control 36px. `OrderSelect` nhánh staff là select native với class đặt tại trang.                                                                  | Một density cho cả hàng; chuẩn hóa native select/input/textarea, không ép Radix vào các handler native.                                                                          |
+| A07 | P2  | 02–14 + code: token shadcn, legacy CSS variables, utility màu cụ thể, inline style và nhánh customer/staff cùng tồn tại.                                                                                                        | Scope theme trước, map alias tương thích; thay dần từng màn. Không đổi `:root` toàn site sang palette mới.                                                                       |
+| A08 | P2  | Tài liệu gốc mô tả marketing dark-only, font Linear độc quyền, hero 80px, pricing/testimonial/footer; thực tế UI là phần mềm có light/dark.                                                                                     | Giữ làm nguồn tham chiếu; quy chuẩn sản phẩm phải có token và mẫu table/form/detail cụ thể trong file này.                                                                       |
+| A09 | P2  | 02/03/08/09/10/12/13: active nav phát sáng, nút gradient, link amber trên nền sáng và màu KPI riêng lẻ.                                                                                                                         | Accent dành cho action/focus/selection; trạng thái dùng semantic, chart được phép nhiều màu khi có legend. Không áp quy tắc marketing “chỉ một màu” lên biểu đồ nghiệp vụ.       |
+| A10 | P2  | 03/05: header bảng uppercase 12px; cột nhãn/trường/trạng thái xuống dòng, tên support chỉ là avatar chồng nhau, ghi chú dài cạnh action sát nhau.                                                                               | Quy định độ rộng/align/wrap từng loại cột, cụm action rõ, tên đầy đủ có cách xem; giữ card mobile đang hoạt động.                                                                |
+| A11 | P2  | 09–13: detail chụp/thuê dùng card và section khác nhau; heading cùng cấp có 14px/18px; hồ sơ chụp mẫu dài khoảng 3083px.                                                                                                        | Chung nhịp section, summary/metadata, money block và action group. Không tự thêm tab/accordion giấu hành động hay thay thứ tự nghiệp vụ trong PR style.                          |
+| A12 | P2  | 02/03/10 + DOM/code: brand sidebar là h1, PageHeader là h2; hồ sơ chụp có `main` lồng `main`.                                                                                                                                   | Một main/heading chính đúng cho màn; logo không chiếm vai trò tiêu đề trang. Chỉ thay semantics có kiểm hồi quy.                                                                 |
+| A13 | P2  | 01: `/staff/login` có link “Đăng ký khách hàng”; logo/chữ gradient và nền blob khác hướng nội bộ gọn.                                                                                                                           | Phân biệt đúng entry nhân sự/khách, điều chỉnh copy/link bằng route đã có; không đổi luồng auth hoặc cấp quyền.                                                                  |
+| A14 | P3  | 02/08/12/13: số tiền, metadata, ngày và khoảng đệm chưa có quy tắc xuyên trang; nền/viền/card khác nhau.                                                                                                                        | Tabular numerals, số tiền căn phải, radius/spacing và định dạng hiển thị nhất quán; giữ ý nghĩa “giá trị dịch vụ”, “thu–chi”, “cọc”.                                             |
 
-| Level | Treatment | Use |
-|---|---|---|
-| 0 (flat) | No shadow, no border | Default for body type, hero text, footer |
-| 1 (charcoal lift) | `{colors.surface-1}` background on canvas, 1px `{colors.hairline}` | Default cards, product panels |
-| 2 (surface-2 lift) | `{colors.surface-2}` background, 1px `{colors.hairline-strong}` | Featured pricing card, hovered cards |
-| 3 (surface-3 lift) | `{colors.surface-3}` background | Sub-nav, dropdown menus |
-| 4 (focus ring) | 2px `{colors.primary-focus}` outline at 50% opacity | Focused input, focused button |
+Các tỷ lệ trên tính từ mã CSS/computed styles, không suy từ màu pixel ảnh. Chúng chỉ áp dụng đúng các cặp đã đo; cần kiểm thêm hover/focus/disabled và vùng gradient trung gian khi triển khai.
 
-Linear's depth is carried by surface ladder + hairline borders. The brand resists drop shadows on dark almost entirely.
+## 5. Quy chuẩn style đích — đề xuất triển khai
 
-### Decorative Depth
+### 5.1. Theme có scope và nguồn token
+
+- Dùng **một bộ semantic tokens cho staff**, định nghĩa ở `src/styles/admin-staff.css` dự kiến; primitive hiện có tiếp tục dùng `--background`, `--primary`, `--border`…
+- Marker route-level trên root, ví dụ `html[data-app-surface="staff"]`, chỉ hoạt động khi đang ở shell/trang auth nội bộ; cleanup khi rời route. Không suy surface từ role đăng nhập.
+- Marker trên root cho phép portal Radix dưới `body` kế thừa cùng theme. Tránh chỉ đặt variables trên wrapper rồi để modal/popover rơi về theme cũ.
+- Legacy `--page-bg`, `--sidebar-bg`, `--card-bg`, `--input-*` được map từ cùng semantic tokens trong staff scope, như lớp tương thích trong thời gian migrate. Không duy trì hai palette độc lập.
+- Không đổi theme customer; kiểm cả điều hướng staff → customer và customer → staff, modal/select/date-picker/toast, light/dark và refresh.
+
+### 5.2. Palette đề xuất
+
+Palette này đã được áp dụng trong R01–R02. Input dùng token viền riêng (#808793 sáng, #737c8c tối) để đạt tương phản cần thiết, tách khỏi border trang trí của card/table. Chi tiết số đo nằm trong QA foundation.
+
+| Token          | Sáng    | Tối     | Vai trò                                    |
+| -------------- | ------- | ------- | ------------------------------------------ |
+| canvas         | #f6f7f9 | #0f1012 | nền làm việc                               |
+| surface        | #ffffff | #17181c | card/table/dialog                          |
+| surface-raised | #f0f2f6 | #202127 | hover/section phụ                          |
+| ink            | #1c1e24 | #f1f2f4 | chữ chính                                  |
+| ink-muted      | #5d6472 | #a7adb8 | mô tả/metadata vẫn cần đọc                 |
+| border         | #d4d7de | #383b45 | hairline/phân nhóm                         |
+| primary        | #5e6ad2 | #5e6ad2 | nút chính, selected action                 |
+| on-primary     | #ffffff | #ffffff | contrast với primary khoảng 4.70:1         |
+| primary-hover  | #5360c8 | #5360c8 | không dùng hover #828fff với chữ trắng     |
+| link / focus   | #4d5bc5 | #9ca8ff | link và focus nhìn thấy trên nền tương ứng |
 
-- **Product UI screenshots** dominate as decorative depth.
-- **No atmospheric gradients, no spotlight cards.**
-- **Subtle white edge highlight** on the top edge of lifted panels — gives the dark surface a faint "pixel rendered" feel.
-
-## Shapes
-
-### Border Radius Scale
-
-| Token | Value | Use |
-|---|---|---|
-| `{rounded.xs}` | 4px | Small chips, status badges |
-| `{rounded.sm}` | 6px | Inline tags |
-| `{rounded.md}` | 8px | All buttons, form inputs |
-| `{rounded.lg}` | 12px | Pricing cards, feature cards, testimonial cards |
-| `{rounded.xl}` | 16px | Product screenshot panels |
-| `{rounded.xxl}` | 24px | Oversized CTA banners (rare) |
-| `{rounded.pill}` | 9999px | Pricing tab toggles, status pills |
-| `{rounded.full}` | 9999px | Avatar circles |
-
-### Photography & Illustration Geometry
-
-- Product UI screenshots dominate; they sit in `{rounded.xl}` 16px tiles with `{spacing.lg}` 24px outer padding.
-- Customer logo tiles render at small sizes (~24px logo height) on `{colors.canvas}` with no border.
-- Avatar circles in testimonial cards use `{rounded.full}` at 32–40px sizes.
-
-## Components
-
-### Buttons
-
-**`button-primary`** — Lavender CTA. The default primary CTA across all pages.
-- Background `{colors.primary}`, text `{colors.on-primary}`, type `{typography.button}`, padding 8px 14px, rounded `{rounded.md}`.
-- Pressed state lives in `button-primary-pressed` (background shifts to `{colors.primary-focus}`).
-- Hover state lives in `button-primary-hover` (background shifts to `{colors.primary-hover}` lighter lavender).
-
-**`button-secondary`** — Charcoal button. Used for secondary CTAs ("Sign in", "Read changelog").
-- Background `{colors.surface-1}`, text `{colors.ink}`, type `{typography.button}`, padding 8px 14px, rounded `{rounded.md}`. 1px `{colors.hairline}` border.
-
-**`button-tertiary`** — Plain text button.
-- Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.button}`, rounded `{rounded.md}`, padding 8px 14px.
-
-**`button-inverse`** — White-on-dark inverse CTA.
-- Background `{colors.inverse-canvas}`, text `{colors.inverse-ink}`, type `{typography.button}`, rounded `{rounded.md}`, padding 8px 14px.
-
-### Pricing Tabs
-
-**`pricing-tab-default`** + **`pricing-tab-selected`** — Pill-toggle on `/pricing`.
-- Default: `{colors.canvas}` background, `{colors.ink-subtle}` text, rounded `{rounded.pill}`, padding 6px 14px.
-- Selected: `{colors.surface-2}` background, `{colors.ink}` text — selected = surface lift.
-
-### Cards & Containers
-
-**`pricing-card`** — Each tier on `/pricing`.
-- Background `{colors.surface-1}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.lg}`, padding 24px. 1px `{colors.hairline}` border.
-
-**`pricing-card-featured`** — Recommended tier — surface lift to surface-2.
-- Background `{colors.surface-2}`, otherwise identical structure.
-
-**`feature-card`** — Generic feature highlight tile.
-- Background `{colors.surface-1}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.lg}`, padding 24px.
-
-**`product-screenshot-card`** — The dominant card type — frames a high-fidelity Linear app UI screenshot.
-- Background `{colors.surface-1}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.xl}`, padding 24px.
-
-**`testimonial-card`** — Customer quote with avatar + name + role.
-- Background `{colors.surface-1}`, text `{colors.ink}`, type `{typography.body-lg}`, rounded `{rounded.lg}`, padding 32px.
-
-**`customer-logo-tile`** — Small tile in the customer marquee.
-- Background `{colors.canvas}`, text `{colors.ink-subtle}`, type `{typography.caption}`, rounded `{rounded.xs}`, padding 16px.
-
-**`cta-banner`** — Closing CTA panel near page bottom.
-- Background `{colors.surface-1}`, text `{colors.ink}`, type `{typography.headline}`, rounded `{rounded.lg}`, padding 48px.
-
-### Inputs & Forms
-
-**`text-input`** + **`text-input-focused`** — Form fields on `/contact/sales` and signup overlays.
-- Background `{colors.surface-1}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.md}`, padding 8px 12px.
-- Focused state retains the same surface; the focus ring is a 2px `{colors.primary-focus}` outline at 50% opacity.
-
-### Status & Build Page
-
-**`changelog-row`** — Each row in `/build` (changelog page) listing version, date, and changes.
-- Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.xs}`, padding 24px 0. 1px `{colors.hairline}` bottom rule.
-
-**`status-badge`** — Small status pill.
-- Background `{colors.surface-2}`, text `{colors.ink-muted}`, type `{typography.caption}`, rounded `{rounded.pill}`, padding 2px 8px.
-
-### Navigation
-
-**`top-nav`** — Sticky dark bar with the Linear wordmark left, primary nav links centered, and a `button-secondary` ("Sign in") + `button-primary` ("Get started") pair right.
-- Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.body-sm}`, height 56px.
-
-### Footer
-
-**`footer`** — Dense link grid on `{colors.canvas}` with the Linear wordmark left.
-- Background `{colors.canvas}`, text `{colors.ink-subtle}`, type `{typography.caption}`, padding 64px 32px.
-
-## Do's and Don'ts
-
-### Do
-
-- Reserve `{colors.canvas}` (#010102) as the system's anchor surface — the faint blue tint is intentional.
-- Use `{colors.primary}` lavender ONLY for: brand mark, primary CTA, focus ring, link emphasis.
-- Use the four-step surface ladder for hierarchy. Avoid skipping levels.
-- Pair display weight 600 with body weight 400 — Linear resists 700+ display weights.
-- Apply negative letter-spacing aggressively on display.
-- Use product UI screenshots as the protagonist of every section.
-- Compose CTAs as `{rounded.md}` 8px corners.
-
-### Don't
-
-- Don't ship a light-mode marketing page.
-- Don't use lavender as a section background or card fill.
-- Don't introduce a second chromatic accent (orange, pink, green for marketing).
-- Don't add atmospheric gradients or spotlight cards.
-- Don't pill-round CTAs.
-- Don't use `#000000` true black as the canvas.
-- Don't combine multiple bright accents in product screenshot mockups.
-
-## Responsive Behavior
-
-### Breakpoints
-
-| Name | Width | Key Changes |
-|---|---|---|
-| Desktop-XL | 1440px | Default desktop layout |
-| Desktop | 1280px | Card grid 3-up maintained |
-| Tablet | 1024px | Card grid 3-up → 2-up |
-| Mobile-Lg | 768px | Pricing comparison becomes accordion; nav hamburger |
-| Mobile | 480px | Single-column; display-xl scales 80px → ~36px |
-
-### Touch Targets
-
-- CTAs hold ≥40px tap height across viewports.
-- Pricing tab pills hold ≥36px tap height; touch viewports grow to ≥44px.
-- Form inputs hold ≥44px tap target on touch.
-
-### Collapsing Strategy
-
-- **Top nav**: links collapse to hamburger below 768px.
-- **Card grids**: 3-up → 2-up at 1024px → 1-up below 768px.
-- **Pricing comparison**: per-tier accordion below 768px.
-- **Display type**: `{typography.display-xl}` 80px scales toward `{typography.display-md}` 40px on mobile.
-
-### Image Behavior
-
-- Product UI screenshots maintain aspect ratio and never crop.
-- Customer logos in the marquee may collapse from 6-up to 3-up below 768px.
-
-## Iteration Guide
-
-1. Focus on ONE component at a time and reference it by its `components:` token name.
-2. When introducing a section, decide first which surface lift it lives on.
-3. Default body to `{typography.body}` at weight 400.
-4. Run `npx @google/design.md lint DESIGN.md` after edits.
-5. Add new variants as separate component entries.
-6. Treat lavender as scarce: brand mark, primary CTA, focus, link emphasis.
-7. Lead every section with a product UI screenshot.
-
-## Known Gaps
-
-- The four-step surface ladder values are extracted directly from Linear's `--color-bg-level-3`, `--color-line-tint`, etc. CSS variables; they are Linear's canonical surface spec.
-- Form-field error and validation styling is not visible on the inspected pages.
-- Light mode is not documented because the marketing site does not ship a light theme.
-- Linear's actual product UI uses a richer color-tag palette (red, orange, yellow, green, blue, purple) for issue priorities and project labels — those colors live in the in-product surfaces shown in mockups.
-- The custom display, text, and mono families are proprietary; an open-source substitute is acceptable.
+Semantic success/warning/danger/info có **foreground + background + border riêng cho từng theme**, map theo ý nghĩa trạng thái, không map nhầm mọi trạng thái sang accent. Ngưỡng nghiệm thu: chữ thường ≥4.5:1; chữ lớn ≥3:1; đường bao/focus cần thiết ≥3:1 với nền liền kề. Không coi disabled opacity là cách làm nội dung hướng dẫn biến mất.
+
+### 5.3. Typography, spacing và density
+
+| Thành phần              | Quy chuẩn                                                                                                                                            |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Font                    | Dùng system sans hiện có, hỗ trợ dấu tiếng Việt; không dùng Linear Display/Text độc quyền, không tải font mới chỉ để đổi style                       |
+| Tiêu đề trang           | 24/32px, weight 600; một h1 trong main                                                                                                               |
+| Tiêu đề section         | 18/26px, weight 600; cấp nhỏ 16/24px                                                                                                                 |
+| Nội dung / bảng / field | 14/22px; label 14/20px; caption 12/18px chỉ cho thông tin phụ                                                                                        |
+| Số tiền / lượng / ngày  | tabular numerals khi cần đối chiếu; số tiền căn phải; đơn vị và kỳ hiển thị rõ                                                                       |
+| Spacing                 | 4, 8, 12, 16, 24, 32px; page padding 24 desktop / 16 mobile; gap section 24                                                                          |
+| Radius                  | control 6px; panel/table 8px; dialog 10px; pill chỉ cho badge/avatar phù hợp                                                                         |
+| Elevation               | panel phẳng + viền; shadow nhẹ cho lớp nổi; bỏ glow/gradient/hover nhấc cả card nghiệp vụ                                                            |
+| Control desktop         | input/select/button cùng hàng cao 36px; icon-button vùng bấm ≥32px; không thu nhỏ vùng bấm bằng kích thước icon                                      |
+| Touch                   | control/action chính ≥44px; tăng bằng media phù hợp, không làm chữ nhỏ để nhét vừa                                                                   |
+| Bảng                    | body 14px; hàng thường tối thiểu 44px, wrap thì tăng; header rõ, căn số phải; action có tên; không ép mọi bảng vào cùng một mật độ nếu nội dung khác |
+
+### 5.4. Pattern bắt buộc
+
+- **Shell:** giữ sidebar 240px ở desktop, đường dẫn và context mùa hiện có; chọn nav bằng nền nhẹ + chỉ báo, không glow. Mobile drawer đóng phải ra khỏi tab order; mở có tên, focus và Escape/close.
+- **Page header:** tiêu đề, mô tả, action chính rõ; reuse PageHeader, cho phép semantic heading phù hợp mà không phá consumer ngoài staff.
+- **Toolbar:** search/filter có label, chiều cao và baseline chung; wrap xuống dòng; giữ giá trị và hành vi submit hiện có.
+- **Table/list:** không giấu dữ liệu quan trọng bằng truncate không có cách đọc; action rõ ngữ cảnh. Chỉ scroll trong vùng table khi cần, không làm cả document tràn ngang.
+- **Form:** field required/hint/error rõ, nối `aria-describedby`, focus-visible có contrast; label không thay bằng placeholder. Form lỗi không bị reset, nút busy/disabled có phản hồi.
+- **Dialog/popover:** cùng theme portal; header/body/footer rõ; vùng cuộn và nút đóng sử dụng được ở 390px; Esc/focus trap/return-focus giữ đúng hành vi Radix.
+- **Chi tiết hồ sơ:** metadata và trạng thái ở đầu, từng section có tên và money rows dễ đối chiếu; hành động gắn đúng nhóm. Không đổi quyền, điều kiện hoặc payload action.
+- **Biểu đồ:** giữ legend, tooltip, đơn vị và phân biệt series ngoài hue; không biến thu–chi thành lợi nhuận vì lý do copy hoặc màu.
+- **States:** cùng component phải có normal/hover/focus/active/disabled/busy/error/empty; giảm motion theo lựa chọn hệ điều hành khi có transition.
+
+## 6. Bản đồ code và hướng xử lý
+
+| Nguồn hiện tại                                           | Vấn đề / cách migrate                                                                                                                             |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/index.css`                                          | Cả shadcn tokens và legacy variables/rules; staff override có scope trước, chưa xóa đại trà                                                       |
+| `tailwind.config.js`                                     | Có literal primary-50…700 và glow; giữ API token trong quá độ, đổi consumer staff sang semantic trước khi dọn                                     |
+| `src/context/ThemeContext.tsx`                           | Giữ API sáng/tối/system và lưu preference; không đổi default sang dark-only                                                                       |
+| `src/components/Layout/{Layout,Sidebar,Breadcrumbs}.tsx` | Shell/inline style/focus mobile; chuyển style vào token/class và sửa nhãn/semantics có kiểm chứng                                                 |
+| `src/components/ui/*`                                    | Reuse Button/Input/Select/Badge/DataTable/PageHeader/Modal/Dialog/DatePicker; bỏ hard-code accent theo từng primitive                             |
+| `src/utils/scheduleConstants.ts`                         | Tách ý nghĩa trạng thái khỏi lớp màu light-only; có variant theo theme                                                                            |
+| `src/components/customer/CustomerOrderControls.tsx`      | Adapter dùng chung: staff fallback và customer branch cần giữ riêng; không “đổi tên folder” hoặc đổi select native thành Radix trong một PR style |
+| `src/pages/BookingWorkflowDetailPage.tsx`                | Khoảng 3180 dòng; chỉ đổi presentation từng section, không gộp tái cấu trúc nghiệp vụ                                                             |
+| `src/pages/RentalDetailPage.tsx`                         | Khoảng 1312 dòng, dùng chung theo role; style staff phải có kiểm hồi quy customer                                                                 |
+| `src/pages/SchedulesPage.tsx`                            | Khoảng 1674 dòng, cả table/card/calendar/modal; pilot kiểm từng view, giữ card mobile                                                             |
+
+Số dòng chỉ mô tả working tree lúc audit, không phải chỉ tiêu cần giảm. Không đánh đồng mọi inline style với lỗi: màu avatar/series hoặc giá trị vị trí động có thể hợp lệ; ưu tiên hard-code theme và trạng thái tương tác.
+
+## 7. Kế hoạch refactor theo lát cắt
+
+**R01–R07 đã triển khai và kiểm tra; R08–R18 chưa triển khai.** Mỗi lát cắt là một thay đổi review riêng; không mass-replace class toàn dự án. Đường dẫn bên dưới tương đối với `frontend/`. File test bổ sung chỉ cho hành vi thực sự có nguy cơ thay đổi, không snapshot implementation hàng loạt.
+
+### Đợt A — nền tảng và vấn đề P1
+
+- [x] **R01 — Scope theme và alias tương thích.** Phụ thuộc: không. File chính: `src/styles/admin-staff.css` mới, `Layout.tsx`, `LoginPage.tsx`, boundary dùng chung nếu cần (≤4 file source). Nghiệm thu: marker có cleanup; overlay portal cùng theme; customer không nhận token staff. Kiểm: chuyển route hai chiều + modal/popover sáng/tối; CustomerScope và Sidebar tests hiện có.
+- [x] **R02 — Palette, contrast và status.** Phụ thuộc R01. File: staff CSS, `ui/button.tsx`, `ui/badge.tsx`, `utils/scheduleConstants.ts`. Nghiệm thu: A01/A02 hết lỗi ở normal/hover/focus; nút chính solid; lịch pending/confirmed/completed/cancelled đọc được ở hai theme. Kiểm: bảng contrast có background composite + ảnh 05/06 đối chiếu.
+- [x] **R03 — Shell và mobile focus.** Phụ thuộc R01. File: `Layout.tsx`, `Sidebar.tsx`, staff CSS, `Sidebar.test.tsx`. Nghiệm thu: menu đóng không focus được; mở/đóng/Escape/trả focus đúng; chọn mùa có label, brand không làm h1 trang. Kiểm: tái hiện Shift+Tab ở 390px, tab/Enter/Escape, role admin/photographer; giữ đường dẫn/nav state.
+
+**Checkpoint A:** chưa chuyển hàng loạt page. Pilot shell + một bảng + một modal phải có ảnh sáng/tối, keyboard pass và customer regression pass trước khi dùng cho các màn khác.
+
+Đã đạt checkpoint A ngày 29/10/2026: 93 kiểm thử liên quan pass, TypeScript/build pass, kiểm browser hai theme, drawer mobile và route customer; xem [QA foundation](docs/design/admin-staff-foundation-qa-2026-10-29.md). Search và action lớp đã được xử lý ở R07; action dòng lịch vẫn thuộc R08.
+
+### Đợt B — control và một màn pilot
+
+- [x] **R04 — Field/control thống nhất.** Phụ thuộc R01/R02. File: `ui/input.tsx`, `ui/select.tsx`, `ui/form-field.tsx`, `customer/CustomerOrderControls.tsx` (≤4 file source; rule staff tại CSS R01). Nghiệm thu: input/select cùng density; label/hint/error nối đúng; customer adapter giữ giao diện và native event contract. Kiểm: form 04 và 11, lỗi/disabled/busy, DailyRentalPricing + CustomerScope regression.
+- [x] **R05 — Header, bảng và action.** Phụ thuộc R02/R04. File: `ui/page-header.tsx`, `ui/data-table.tsx`, `ui/table.tsx`, `ui/pagination.tsx`. Nghiệm thu: heading hợp lý, số/tiền align, wrap/scroll có chủ đích; API bảng cũ tương thích. Kiểm: dữ liệu dài, empty/loading, phân trang, bàn phím và 390/768/1440px.
+- [x] **R06 — Dialog và date/popover.** Phụ thuộc R01/R04. File: `ui/dialog.tsx`, `ui/modal.tsx`, `ui/date-picker.tsx`, `ui/popover.tsx`, hook style trong `ui/calendar.tsx`. Nghiệm thu: portal đúng theme; focus/close/clear-date có tên và vùng bấm; không cắt footer ở mobile. Kiểm: Tab/Shift+Tab/Escape, chọn/xóa ngày, overflow nội dung dài.
+- [x] **R07 — Pilot danh sách lớp + modal.** Phụ thuộc R03–R06. File: `pages/CustomersPage.tsx`, `ui/search-input.tsx`, staff CSS và focused tests. Nghiệm thu: search có tên, action dòng đủ vùng bấm và ngữ cảnh, CTA/header/form đồng bộ; không đổi schema/default dữ liệu. Kiểm: search/pagination/open/close/validation, ảnh 03/04 và customer smoke.
+
+**Checkpoint B đã đạt ngày 29/10/2026:** 113/113 tests liên quan, TypeScript/build pass; kiểm pilot sáng/tối, 320/390/768/1280/1440px, cuộn bảng bằng bàn phím, modal dài và catalog khách. Xem [QA control và pilot](docs/design/admin-staff-controls-qa-2026-10-29.md). API pattern đã có; rollout semantics/field wiring tại các trang còn lại tiếp tục theo R08–R18.
+
+### Đợt C — lịch, kho và số liệu
+
+- [ ] **R08 — Lịch chụp.** Phụ thuộc R07. File: `SchedulesPage.tsx`, staff CSS, focused a11y test nếu cần. Nghiệm thu: A01/A03 được sửa ở table; card mobile giữ đủ nội dung; calendar/modal cùng token. Kiểm: table/calendar, lọc/reset, action names, mobile menu và tình trạng lịch; không gửi thao tác ghi trên DB đang dùng.
+- [ ] **R09 — Kho và danh mục.** Phụ thuộc R07. File: `CostumesPage.tsx`, `CostumeTypesPage.tsx`, `PackagesPage.tsx`, `CategoriesPage.tsx`. Nghiệm thu: table/form/badge cùng pattern, giá/ngày–tồn tốt–tình trạng tách rõ; không diễn giải tồn tốt thành khả dụng theo kỳ. Kiểm: mở form/nhập lỗi/đóng, danh sách dài và size, dữ liệu test cho lưu/sửa.
+- [ ] **R10 — Dashboard theo vai trò.** Phụ thuộc R08. File: `DashboardPage.tsx`, `ui/stat-card.tsx`, staff CSS nếu cần. Nghiệm thu: KPI/link/status đọc được sáng/tối; chart giữ legend/đơn vị; không hiện thêm quyền hoặc KPI cho photographer. Kiểm: admin/photographer, trạng thái chart ổn định, 02/14, reduced-motion.
+- [ ] **R11 — Tài chính và báo cáo.** Phụ thuộc R05/R10. File: `FinancePage.tsx`, `ReportsPage.tsx`. Nghiệm thu: filter/control/table/money thống nhất; giữ nguyên cách tính, nhãn dòng tiền/giá trị/cọc/công nợ và link hồ sơ. Kiểm: cùng kỳ/data trước–sau, tab report, pagination, kế toán/admin; số liệu không đổi vì đổi style.
+
+**Checkpoint C:** pilot mở rộng đạt các viewport 390/768/1280/1440 và hai theme; tồn kho, lọc ngày và số liệu không thay đổi. Không coi ảnh đẹp là kiểm chứng số liệu.
+
+### Đợt D — hồ sơ dịch vụ và các màn còn lại
+
+- [ ] **R12 — Intake và danh sách quy trình.** Phụ thuộc R07/R11. File: `BookingsPage.tsx`, `BookingWorkflowListPage.tsx`. Nghiệm thu: header/list/status/empty/error đồng bộ; giữ phân trang và entry tới hồ sơ. Kiểm: mở hồ sơ, back, pending/rejected/approved/completed trên fixture, không xét duyệt hồ sơ đang dùng.
+- [ ] **R13 — Chi tiết quy trình chụp.** Phụ thuộc R04/R06/R12. File: `BookingWorkflowDetailPage.tsx`, staff CSS, focused regression test nếu cần. Nghiệm thu: metadata/quote/payment/resources/delivery/history cùng hierarchy; sửa nested main; customer branch giữ nguyên. Kiểm: các role liên quan, quote/thu–hoàn/thành viên/bàn giao/change states trên DB test; ảnh 10/11 đối chiếu.
+- [ ] **R14 — Đơn thuê staff.** Phụ thuộc R13. File: `RentalListPage.tsx`, `RentalDetailPage.tsx`, staff CSS nếu cần. Nghiệm thu: chung vocabulary với hồ sơ chụp; cọc/tiền thuê/hoàn/giao nhận phân biệt; không thay điều kiện action hoặc default-open rental. Kiểm: requested/quoted/confirmed/checked_out/returned/completed/cancelled trên fixture; DailyRentalPricing và customer detail regression.
+- [ ] **R15 — Lớp và thành viên chi tiết.** Phụ thuộc R09/R13. File: `CustomerDetailPage.tsx`, `CustomerSizePage.tsx`. Nghiệm thu: form/bảng/size/actions dùng pattern đã chốt; tên dài và trường tiếng Việt đọc được. Kiểm: phân trang/tab/validation và link form public; dữ liệu thành viên không đổi.
+- [ ] **R16 — Quản trị phụ trợ.** Phụ thuộc R09/R11. File: `UsersPage.tsx`, `SeasonPage.tsx`, `FeedbackPage.tsx`. Nghiệm thu: không còn style riêng về header/control/badge; quyền và trạng thái duyệt giữ nguyên. Kiểm: admin thường/superadmin, modal dài/empty/error; không thêm thao tác cấp quyền trong audit.
+- [ ] **R17 — Auth và profile staff.** Phụ thuộc R03/R04/R06. File: `LoginPage.tsx`, `RegisterRequestPage.tsx`, `ProfilePage.tsx`. Nghiệm thu: bỏ trang trí marketing, entry nhân sự đúng ngữ cảnh; đổi theme/profile/password không thay contract; customer auth/profile không đổi. Kiểm: login/logout, form lỗi, tab order và redirect; kiểm password bằng tài khoản test, không đổi mật khẩu người dùng.
+
+### Đợt E — đóng vòng và dọn có điều kiện
+
+- [ ] **R18 — Regression, evidence và dọn legacy đã hết consumer.** Phụ thuộc R08–R17. File: staff CSS, `index.css`, `tailwind.config.js`, tài liệu QA; chỉ chỉnh phần xác nhận không còn dùng. Nghiệm thu: mọi route trong ma trận có kết quả; customer baseline không lệch; không còn P1 mở, P2 còn lại phải ghi rõ. Kiểm: type/lint/build, các test liên quan, E2E bằng DB test và capture cuối. Không đặt mục tiêu xóa toàn bộ legacy khi public/customer vẫn còn consumer.
+
+**Checkpoint hoàn tất:** từng task có diff review được, evidence và kết quả kiểm thực tế. Checklist chỉ đánh dấu khi đạt; không dùng “đã đọc code” thay cho “đã kiểm màn”.
+
+## 8. Ma trận nghiệm thu refactor
+
+| Trục            | Tối thiểu phải kiểm khi triển khai                                                                                      |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Role            | superadmin, admin, sale, photographer, cộng tác viên sale, kế toán; route không có quyền vẫn bị chặn                    |
+| Theme           | light/dark/system; refresh; đổi theme khi dialog/popover mở; staff ↔ customer                                           |
+| Viewport        | 390, 768, 1280, 1440px; bổ sung 320px và zoom 200% cho reflow; bảng được scroll nội bộ khi hợp lý                       |
+| Keyboard        | Tab/Shift+Tab, Enter/Space, Escape; menu đóng không nhận focus; focus không mất/ra ngoài màn                            |
+| States          | loading, empty, error+retry, long text, disabled, busy, required/validation; không phải tạo mọi state bằng dữ liệu thật |
+| Money/inventory | nhãn/số tiền/ngày/size không đổi; hành vi giữ kho và các action nghiệp vụ hồi quy trên DB test                          |
+| Customer guard  | login, booking wizard, orders, catalog, rental form/detail, public member intake và các overlay giữ style hiện hành     |
+| Visual          | trước/sau cùng role/theme/data/viewport; screenshot ổn định, không chart animation/loading; inspect file đã lưu         |
+
+Lệnh dự kiến, chạy từ `frontend/` khi refactor:
+
+```powershell
+node ../node_modules/typescript/bin/tsc --noEmit
+node ../node_modules/eslint/bin/eslint.js <cac-file-da-sua>
+node ../node_modules/prettier/bin/prettier.cjs --check <cac-file-da-sua>
+node ../node_modules/vitest/vitest.mjs run src/components/Layout/Sidebar.test.tsx src/components/Layout/Breadcrumbs.test.tsx src/components/customer/CustomerScope.test.tsx src/pages/DailyRentalPricing.test.tsx
+node ../node_modules/vite/bin/vite.js build
+```
+
+Đây là lệnh dự kiến, **không phải kết quả pass của lượt audit**. E2E chọn các hành trình thực sự bị ảnh hưởng trong harness hiện có; không chạy setup/teardown vào `studio_db`. Nếu runtime yêu cầu quyền đọc ngoài sandbox, ghi đúng kết quả thay vì gọi lỗi khởi động là test failure nghiệp vụ.
+
+## 9. Rủi ro và quyết định cần giữ
+
+| Rủi ro                                           | Kiểm soát                                                                         |
+| ------------------------------------------------ | --------------------------------------------------------------------------------- |
+| Sửa primitive làm customer đổi style             | staff root marker, customer regression và route-transition trước rollout          |
+| Radix portal không kế thừa token wrapper         | scope có chủ đích ở root; test modal/select/popover/toast                         |
+| File detail lớn bị trộn style với refactor logic | R13/R14 chỉ presentation, diff nhỏ theo section, giữ payload/guards               |
+| Xóa legacy còn consumer                          | kiểm usage và route; chỉ xóa selector đã chứng minh hết dùng                      |
+| Giảm mật độ quá mức hoặc làm mọi thứ thành card  | pilot bằng dữ liệu dài/bảng thực; giữ table desktop và card mobile nơi đã phù hợp |
+| Màu đẹp nhưng không đủ contrast                  | đo foreground/background composite ở từng state, giữ text/icon cho semantic       |
+| Tài liệu khiến người đọc tưởng đã refactor       | giữ `status` đúng tiến độ; chỉ đánh dấu task có evidence triển khai               |
+
+Bước tiếp theo: **R08 → R09 → R10/R11**, áp dụng pattern vào lịch chụp, kho và dashboard/báo cáo trên nền R01–R07 đã có. Không thay class hàng loạt hoặc viết lại logic trang hồ sơ lớn trong PR style.

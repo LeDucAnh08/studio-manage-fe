@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { clientRentalEnabled } from '../../config/features';
+import { clientPortalEnabled } from '../../config/features';
 
 export function CustomerAccountTabs() {
   return (
@@ -7,7 +7,7 @@ export function CustomerAccountTabs() {
       <NavLink to="/account/bookings" className="customer-nav-link">
         Chụp ảnh
       </NavLink>
-      {clientRentalEnabled && (
+      {clientPortalEnabled && (
         <NavLink to="/account/rentals" className="customer-nav-link">
           Đơn thuê
         </NavLink>

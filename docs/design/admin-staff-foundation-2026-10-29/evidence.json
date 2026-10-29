@@ -1,0 +1,132 @@
+{
+  "date": "2026-10-29",
+  "timezone": "Asia/Bangkok",
+  "milestone": "R01-R03",
+  "captureMethod": "Native in-app browser screenshots; original bytes saved without image alteration",
+  "viewports": [
+    {
+      "width": 1440,
+      "height": 1000,
+      "purpose": "desktop light/dark and portals"
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "purpose": "mobile drawer, keyboard and theme portal"
+    },
+    {
+      "purpose": "resize open mobile drawer into desktop sidebar",
+      "width": 768
+    },
+    {
+      "width": 1280,
+      "height": 900,
+      "purpose": "desktop sidebar and document overflow check"
+    }
+  ],
+  "roles": ["superadmin", "photographer"],
+  "businessWrites": false,
+  "automatedTests": {
+    "files": 7,
+    "total": 93,
+    "passed": 93,
+    "failed": 0
+  },
+  "browserChecks": [
+    "mobile drawer closed is unmounted",
+    "Tab and Shift+Tab stay in drawer",
+    "Escape and navigation close drawer and return focus",
+    "theme dropdown portal works inside drawer",
+    "resize to 768px releases modal pointer lock",
+    "staff-customer-staff route transition removes and restores root scope",
+    "modal and select portal inherit tokens",
+    "1280px document width does not exceed viewport"
+  ],
+  "console": {
+    "warnings": [
+      "Two missing DialogContent description warnings while checking the existing class form; deferred to form refactor"
+    ],
+    "errorsObserved": 0
+  },
+  "limitations": [
+    "R04-R18 are not complete",
+    "No automated Playwright E2E run",
+    "Not a full WCAG or all-role/state acceptance audit",
+    "Some screenshots omit browser scrollbar pixels; CSS viewport and raster dimensions may differ",
+    "Existing dashboard KPI/chart colors and table action sizing remain for later tasks"
+  ],
+  "images": [
+    {
+      "file": "01-dashboard-dark.jpg",
+      "width": 1434,
+      "height": 996,
+      "format": "JPEG",
+      "bytes": 81975,
+      "visuallyInspected": true
+    },
+    {
+      "file": "02-schedules-dark.jpg",
+      "width": 1440,
+      "height": 1000,
+      "format": "JPEG",
+      "bytes": 177930,
+      "visuallyInspected": true
+    },
+    {
+      "file": "03-schedules-light.jpg",
+      "width": 1440,
+      "height": 1000,
+      "format": "JPEG",
+      "bytes": 179145,
+      "visuallyInspected": true
+    },
+    {
+      "file": "04-mobile-drawer-dark.jpg",
+      "width": 390,
+      "height": 844,
+      "format": "JPEG",
+      "bytes": 25112,
+      "visuallyInspected": true
+    },
+    {
+      "file": "05-modal-dark.jpg",
+      "width": 1440,
+      "height": 1000,
+      "format": "JPEG",
+      "bytes": 47453,
+      "visuallyInspected": true
+    },
+    {
+      "file": "06-modal-light.jpg",
+      "width": 1440,
+      "height": 1000,
+      "format": "JPEG",
+      "bytes": 48788,
+      "visuallyInspected": true
+    },
+    {
+      "file": "07-select-portal-light.jpg",
+      "width": 1440,
+      "height": 1000,
+      "format": "JPEG",
+      "bytes": 52150,
+      "visuallyInspected": true
+    },
+    {
+      "file": "08-customer-guard.jpg",
+      "width": 1440,
+      "height": 1000,
+      "format": "JPEG",
+      "bytes": 70542,
+      "visuallyInspected": true
+    },
+    {
+      "file": "09-photographer-light.jpg",
+      "width": 1440,
+      "height": 1000,
+      "format": "JPEG",
+      "bytes": 62257,
+      "visuallyInspected": true
+    }
+  ]
+}

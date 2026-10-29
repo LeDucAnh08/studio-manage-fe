@@ -123,11 +123,20 @@ function validateStepOne(draft: BookingDraft, packages: Package[]): WizardErrors
     : { packageId: 'Vui lòng chọn một gói dịch vụ còn khả dụng.' };
 }
 
+function validatePhone(value: string): string | undefined {
+  const phone = value.trim();
+  if (!phone) return 'Vui lòng nhập số điện thoại.';
+  if (phone.length > 25 || !/^(?:0|\+84)[1-9]\d{8}$/.test(phone.replace(/[ ().-]/g, ''))) {
+    return 'Nhập số điện thoại gồm 10 chữ số bắt đầu bằng 0 hoặc dạng +84 (ví dụ: 0901234567).';
+  }
+}
+
 function validateStepTwo(draft: BookingDraft): WizardErrors {
   const errors: WizardErrors = {};
   if (!draft.className.trim()) errors.className = 'Nhập tên lớp hoặc nhóm.';
   if (!draft.contactName.trim()) errors.contactName = 'Nhập tên người liên hệ.';
-  if (!/^[+\d() .-]{8,25}$/.test(draft.phone.trim())) errors.phone = 'Nhập số điện thoại hợp lệ.';
+  const phoneError = validatePhone(draft.phone);
+  if (phoneError) errors.phone = phoneError;
   const members = Number(draft.members);
   if (!/^\d+$/.test(draft.members.trim()) || members < 1 || members > 1000) {
     errors.members = 'Nhập số thành viên là số nguyên từ 1 đến 1.000.';
@@ -697,10 +706,20 @@ export default function BookingWizardPage() {
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
+                  placeholder="Ví dụ: 0901234567"
                   maxLength={25}
                   value={draft.phone}
                   aria-invalid={!!errors.phone}
-                  onChange={(event) => updateDraft({ phone: event.target.value })}
+                  onBlur={() =>
+                    setErrors((current) => ({ ...current, phone: validatePhone(draft.phone) }))
+                  }
+                  onChange={(event) => {
+                    const phone = event.target.value;
+                    updateDraft({ phone });
+                    if (errors.phone) {
+                      setErrors((current) => ({ ...current, phone: validatePhone(phone) }));
+                    }
+                  }}
                 />
               </Field>
               <Field id="members" label="Số thành viên dự kiến" error={errors.members}>

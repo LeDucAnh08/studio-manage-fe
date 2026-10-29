@@ -12,10 +12,12 @@ import {
   Button,
   ConfirmDialog,
   DataTable,
+  EmptyState,
   FormField,
   Input,
   Modal,
   PageHeader,
+  Pagination,
   SearchInput,
   Select,
   SelectContent,
@@ -28,11 +30,13 @@ import {
 import type { Column } from '@/components/ui';
 
 type FormValues = Omit<Customer, '_id' | 'createdAt'>;
+const classDescription = (customer: Customer) =>
+  [customer.className, customer.school].filter(Boolean).join(', ');
 
 const CustomersPage = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { list: customers, total, loading } = useAppSelector((s) => s.customers);
+  const { list: customers, total, loading, error } = useAppSelector((s) => s.customers);
   const { list: seasons, selectedSeasonId } = useAppSelector((s) => s.seasons);
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
@@ -116,21 +120,29 @@ const CustomersPage = () => {
     setAppliedSearch(search);
   };
 
+  const pagination = {
+    page,
+    pageSize,
+    total,
+    onPageChange: setPage,
+    onPageSizeChange: (size: number) => {
+      setPageSize(size);
+      setPage(1);
+    },
+  };
+
   return (
-    <div>
+    <div className="staff-customers">
       <PageHeader
-        kicker="Customers"
-        title="Khách hàng (Lớp)"
+        as="h1"
+        title="Danh sách lớp học"
         description="Danh sách lớp học, trường và thông tin liên hệ."
-        action={
-          <Button variant="gradient" onClick={openCreate}>
-            + Thêm lớp
-          </Button>
-        }
+        action={<Button onClick={openCreate}>+ Thêm lớp</Button>}
       />
 
-      <div className="mb-4">
+      <div className="staff-toolbar mb-4">
         <SearchInput
+          aria-label="Tìm kiếm lớp hoặc trường"
           placeholder="Tìm kiếm lớp, trường…"
           value={search}
           onChange={setSearch}
@@ -144,26 +156,35 @@ const CustomersPage = () => {
       </div>
 
       {loading ? (
-        <TableSkeleton cols={6} />
+        <div role="status" aria-label="Đang tải danh sách lớp">
+          <TableSkeleton cols={6} />
+        </div>
+      ) : error ? (
+        <div className="rounded-lg border bg-card p-6" role="alert">
+          <p className="font-medium">Không tải được danh sách lớp.</p>
+          <Button
+            className="mt-3"
+            variant="outline"
+            onClick={() => dispatch(fetchCustomers(buildParams(appliedSearch, page, pageSize)))}
+          >
+            Thử lại
+          </Button>
+        </div>
       ) : (
         <>
           {/* Desktop table */}
           <div className="hidden md:block">
             <DataTable<Customer>
               data={customers}
+              aria-label="Danh sách lớp học"
+              className="staff-customers-table"
               keyExtractor={(c) => c._id}
-              emptyTitle="Chưa có dữ liệu"
+              emptyTitle={appliedSearch ? 'Không tìm thấy lớp' : 'Chưa có dữ liệu'}
+              emptyDescription={appliedSearch ? 'Thử từ khóa khác hoặc xóa tìm kiếm.' : undefined}
               onRowClick={(c) => navigate(`/customers/${c._id}`)}
               pagination={{
                 serverSide: true,
-                page,
-                pageSize,
-                total,
-                onPageChange: setPage,
-                onPageSizeChange: (size: number) => {
-                  setPageSize(size);
-                  setPage(1);
-                },
+                ...pagination,
               }}
               columns={[
                 {
@@ -191,6 +212,7 @@ const CustomersPage = () => {
                 {
                   key: 'contactPhone',
                   header: 'SĐT',
+                  className: 'whitespace-nowrap',
                   render: (c) => <span>{c.contactPhone}</span>,
                 },
                 {
@@ -218,25 +240,21 @@ const CustomersPage = () => {
                   key: 'notes',
                   header: 'Ghi chú',
                   render: (c) => (
-                    <span
-                      className="block max-w-[240px] truncate text-muted-foreground"
-                      title={c.notes || ''}
-                    >
-                      {c.notes || '-'}
-                    </span>
+                    <span className="block text-muted-foreground">{c.notes || '-'}</span>
                   ),
                 },
                 {
                   key: 'actions',
-                  header: '',
+                  header: 'Thao tác',
                   align: 'right',
                   className: 'whitespace-nowrap',
                   render: (c) => (
-                    <span className="space-x-2">
+                    <span className="staff-row-actions">
                       <Button
                         variant="link"
                         size="sm"
-                        className="h-auto p-0 text-xs"
+                        className="staff-row-action"
+                        aria-label={`Sửa lớp ${classDescription(c)}`}
                         onClick={() => openEdit(c)}
                       >
                         Sửa
@@ -244,7 +262,8 @@ const CustomersPage = () => {
                       <Button
                         variant="link"
                         size="sm"
-                        className="h-auto p-0 text-xs text-destructive"
+                        className="staff-row-action text-destructive"
+                        aria-label={`Xoá lớp ${classDescription(c)}`}
                         onClick={() => setConfirmId(c._id)}
                       >
                         Xoá
@@ -259,32 +278,28 @@ const CustomersPage = () => {
           {/* Mobile cards */}
           <div className="md:hidden space-y-3">
             {customers.map((c) => (
-              <div key={c._id} className="rounded-xl border bg-card p-4">
+              <div key={c._id} className="rounded-lg border bg-card p-4">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="min-w-0">
                     <Link
                       to={`/customers/${c._id}`}
-                      className="font-semibold text-primary hover:underline text-base block truncate"
+                      className="font-semibold text-primary hover:underline text-base block break-words"
                     >
                       {c.className}
                     </Link>
                     {c.school && (
-                      <div className="text-sm text-muted-foreground inline-flex items-center gap-1.5 mt-0.5">
-                        <School className="h-4 w-4 text-sky-500 shrink-0" />
-                        <span className="truncate">{c.school}</span>
+                      <div className="text-sm text-muted-foreground flex items-start gap-1.5 mt-0.5">
+                        <School aria-hidden="true" className="h-4 w-4 shrink-0" />
+                        <span className="break-words">{c.school}</span>
                       </div>
                     )}
                   </div>
                   {c.total != null && (
-                    <Badge
-                      variant="outline"
-                      className="border-transparent bg-primary/15 text-primary"
-                    >
+                    <Badge variant="outline" className="shrink-0">
                       {c.total} hs
                       {(c.totalMale != null || c.totalFemale != null) && (
-                        <span className="font-normal opacity-70 ml-1">
-                          (<span className="text-blue-500">{c.totalMale ?? 0}</span>/
-                          <span className="text-pink-500">{c.totalFemale ?? 0}</span>)
+                        <span className="font-normal ml-1">
+                          ({c.totalMale ?? 0} nam / {c.totalFemale ?? 0} nữ)
                         </span>
                       )}
                     </Badge>
@@ -299,9 +314,9 @@ const CustomersPage = () => {
                     {c.contactPhone && (
                       <a
                         href={`tel:${c.contactPhone}`}
-                        className="text-sm text-muted-foreground inline-flex items-center gap-1.5 hover:text-emerald-500"
+                        className="staff-contact-link text-sm inline-flex items-center gap-1.5"
                       >
-                        <Phone className="h-4 w-4 text-emerald-500" />
+                        <Phone aria-hidden="true" className="h-4 w-4" />
                         <span>{c.contactPhone}</span>
                       </a>
                     )}
@@ -312,7 +327,8 @@ const CustomersPage = () => {
                   <Button
                     variant="link"
                     size="sm"
-                    className="h-auto p-0 text-xs"
+                    className="staff-row-action"
+                    aria-label={`Sửa lớp ${classDescription(c)}`}
                     onClick={() => openEdit(c)}
                   >
                     Sửa
@@ -320,7 +336,8 @@ const CustomersPage = () => {
                   <Button
                     variant="link"
                     size="sm"
-                    className="h-auto p-0 text-xs text-destructive"
+                    className="staff-row-action text-destructive"
+                    aria-label={`Xoá lớp ${classDescription(c)}`}
                     onClick={() => setConfirmId(c._id)}
                   >
                     Xoá
@@ -329,9 +346,15 @@ const CustomersPage = () => {
               </div>
             ))}
             {customers.length === 0 && (
-              <div className="rounded-xl border bg-card py-10 text-center text-muted-foreground">
-                Chưa có dữ liệu
+              <div className="rounded-lg border bg-card">
+                <EmptyState
+                  title={appliedSearch ? 'Không tìm thấy lớp' : 'Chưa có dữ liệu'}
+                  description={appliedSearch ? 'Thử từ khóa khác hoặc xóa tìm kiếm.' : undefined}
+                />
               </div>
+            )}
+            {customers.length > 0 && (
+              <Pagination {...pagination} className="rounded-lg border bg-card" />
             )}
           </div>
         </>
@@ -349,15 +372,20 @@ const CustomersPage = () => {
         open={modalOpen}
         onOpenChange={setModalOpen}
         title={editing ? 'Sửa lớp' : 'Thêm lớp mới'}
+        description="Nhập thông tin lớp và người liên hệ. Các trường có dấu * là bắt buộc."
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          aria-busy={isSubmitting}
+          className="staff-customer-form space-y-4"
+        >
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
             <FormField
               label="Tên lớp"
               required
               htmlFor="className"
               error={errors.className?.message}
-              className="col-span-2 sm:col-span-1"
+              className="col-span-2"
             >
               <Input
                 id="className"
@@ -369,7 +397,7 @@ const CustomersPage = () => {
               required
               htmlFor="school"
               error={errors.school?.message}
-              className="col-span-2"
+              className="col-span-2 sm:col-span-4"
             >
               <Input id="school" {...register('school', { required: 'Vui lòng nhập trường' })} />
             </FormField>
@@ -378,7 +406,7 @@ const CustomersPage = () => {
               required
               htmlFor="total"
               error={errors.total?.message}
-              className="col-span-2 sm:col-span-1"
+              className="col-span-2"
             >
               <Input
                 id="total"
@@ -391,6 +419,7 @@ const CustomersPage = () => {
               required
               htmlFor="totalMale"
               error={errors.totalMale?.message}
+              className="sm:col-span-2"
             >
               <Input
                 id="totalMale"
@@ -407,6 +436,7 @@ const CustomersPage = () => {
               required
               htmlFor="totalFemale"
               error={errors.totalFemale?.message}
+              className="sm:col-span-2"
             >
               <Input
                 id="totalFemale"
@@ -423,7 +453,7 @@ const CustomersPage = () => {
               required
               htmlFor="contactName"
               error={errors.contactName?.message}
-              className="sm:col-span-2"
+              className="col-span-2 sm:col-span-3"
             >
               <Input
                 id="contactName"
@@ -435,6 +465,7 @@ const CustomersPage = () => {
               required
               htmlFor="contactPhone"
               error={errors.contactPhone?.message}
+              className="col-span-2 sm:col-span-3"
             >
               <Input
                 id="contactPhone"
@@ -452,46 +483,48 @@ const CustomersPage = () => {
               required
               htmlFor="contactAddress"
               error={errors.contactAddress?.message}
-              className="col-span-2 sm:col-span-3"
+              className="col-span-2 sm:col-span-6"
             >
               <Input
                 id="contactAddress"
                 {...register('contactAddress', { required: 'Vui lòng nhập địa chỉ' })}
               />
             </FormField>
-            <FormField label="Mùa chụp" htmlFor="season" className="col-span-2 sm:col-span-1">
-              <Controller
-                name="season"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value ?? ''}
-                    onValueChange={(v) => field.onChange(v || null)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="-- Chọn mùa --" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {seasons.map((s) => (
-                        <SelectItem key={s._id} value={s._id}>
-                          {s.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
+            <FormField label="Mùa chụp" htmlFor="season" className="col-span-2 sm:col-span-3">
+              {(controlProps) => (
+                <Controller
+                  name="season"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value ?? ''}
+                      onValueChange={(v) => field.onChange(v || null)}
+                    >
+                      <SelectTrigger {...controlProps} ref={field.ref} onBlur={field.onBlur}>
+                        <SelectValue placeholder="-- Chọn mùa --" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {seasons.map((s) => (
+                          <SelectItem key={s._id} value={s._id}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              )}
             </FormField>
-            <FormField label="Ghi chú" htmlFor="notes" className="col-span-2 sm:col-span-3">
+            <FormField label="Ghi chú" htmlFor="notes" className="col-span-2 sm:col-span-6">
               <Textarea id="notes" rows={2} {...register('notes')} />
             </FormField>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="staff-modal-footer flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
               Huỷ
             </Button>
-            <Button type="submit" variant="gradient" disabled={isSubmitting}>
-              Lưu
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Đang lưu…' : 'Lưu'}
             </Button>
           </div>
         </form>

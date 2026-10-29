@@ -351,6 +351,64 @@ describe('NewBookingPage', () => {
     expect(bookingService.create).not.toHaveBeenCalled();
   });
 
+  it('validates phone on blur and blocks review for blank, malformed or incorrectly sized numbers', async () => {
+    render(
+      <MemoryRouter initialEntries={['/account/bookings/new']}>
+        <NewBookingPage />
+      </MemoryRouter>,
+    );
+    await choosePackage();
+    fillDetails();
+    const phone = screen.getByLabelText('Số điện thoại');
+    for (const value of [
+      '',
+      '        ',
+      '........',
+      'abcdefgh',
+      '12345678',
+      '0000000000',
+      '090123456',
+      '09012345678',
+      '+840901234567',
+      '090123456a',
+      '09+01234567',
+    ]) {
+      fireEvent.change(phone, { target: { value } });
+      fireEvent.blur(phone);
+      expect(phone).toHaveAttribute('aria-invalid', 'true');
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        value.trim() ? 'Nhập số điện thoại gồm 10 chữ số' : 'Vui lòng nhập số điện thoại.',
+      );
+      fireEvent.click(screen.getByRole('button', { name: /Xem lại yêu cầu/ }));
+      expect(
+        screen.queryByRole('heading', { name: 'Kiểm tra trước khi gửi' }),
+      ).not.toBeInTheDocument();
+      expect(bookingService.create).not.toHaveBeenCalled();
+    }
+    fireEvent.change(phone, { target: { value: '0901234567' } });
+    expect(phone).toHaveAttribute('aria-invalid', 'false');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    await reviewRequest();
+  });
+
+  it.each(['0901234567', '+84901234567', '090 123 4567', '(+84) 90.123.4567'])(
+    'accepts and submits the valid phone format %s',
+    async (phone) => {
+      render(
+        <MemoryRouter initialEntries={['/account/bookings/new']}>
+          <NewBookingPage />
+        </MemoryRouter>,
+      );
+      await choosePackage();
+      fillDetails();
+      fireEvent.change(screen.getByLabelText('Số điện thoại'), { target: { value: phone } });
+      await reviewRequest();
+      fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu tới Yume' }));
+      await waitFor(() => expect(bookingService.create).toHaveBeenCalledTimes(1));
+      expect(vi.mocked(bookingService.create).mock.calls[0][0].phone).toBe(phone);
+    },
+  );
+
   it('allows clearing and restoring member text, validates whole numbers and submits a numeric member count', async () => {
     const page = render(
       <MemoryRouter initialEntries={['/account/bookings/new']}>

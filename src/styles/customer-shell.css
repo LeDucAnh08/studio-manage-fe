@@ -134,6 +134,14 @@
 .customer-header--public .customer-header__utilities {
   display: flex;
 }
+.customer-header--notifications .customer-header__utilities {
+  flex-shrink: 0;
+}
+@media (max-width: 419px) {
+  .customer-header--notifications .customer-brand__name {
+    display: none;
+  }
+}
 .customer-header--guest .customer-header__booking {
   display: inline-flex;
 }

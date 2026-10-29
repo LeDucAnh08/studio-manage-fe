@@ -3,9 +3,9 @@ import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CustomerAppearanceContext } from '../components/customer/CustomerAppearance';
 import CustomerOrdersPage from './CustomerOrdersPage';
+import CustomerHeader from '../components/Layout/CustomerHeader';
 import type { BookingWorkflowDto } from '../services/bookingWorkflowService';
 const mocks = vi.hoisted(() => ({
-  rental: true,
   bookings: vi.fn(),
   rentals: vi.fn(),
   notifications: vi.fn(),
@@ -13,11 +13,11 @@ const mocks = vi.hoisted(() => ({
   read: vi.fn(),
 }));
 vi.mock('../config/features', () => ({
-  get clientRentalEnabled() {
-    return mocks.rental;
-  },
+  clientPortalEnabled: true,
 }));
-vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: { roles: [6] } }) }));
+vi.mock('../context/AuthContext', () => ({
+  useAuth: () => ({ user: { roles: [6] }, isAuthenticated: true }),
+}));
 vi.mock('../services/bookingService', () => ({
   bookingLabels: { pending: 'Chờ duyệt', rejected: 'Đã từ chối' },
   bookingService: { notifications: mocks.notifications, read: mocks.read },
@@ -53,7 +53,6 @@ function open(search = '') {
 describe('Unified orders tabs', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.rental = true;
     mocks.bookings.mockResolvedValue({ data: [], pagination: { total: 0 } });
     mocks.rentals.mockResolvedValue({ data: [], pagination: { total: 0 } });
     mocks.notifications.mockResolvedValue([]);
@@ -90,17 +89,13 @@ describe('Unified orders tabs', () => {
       '/rental/start',
     );
   });
-  it.each(['?tab=unknown', '?tab=rentals'])(
-    'normalizes %s when rentals are disabled',
-    async (search) => {
-      mocks.rental = false;
-      open(search);
-      await screen.findByText(/Bạn chưa có đơn chụp ảnh/);
-      expect(screen.queryByRole('tab', { name: 'Thuê trang phục' })).not.toBeInTheDocument();
-      expect(screen.getByTestId('url')).toHaveTextContent('?tab=bookings');
-      expect(mocks.rentals).not.toHaveBeenCalled();
-    },
-  );
+  it('normalizes an unknown tab while keeping rentals available', async () => {
+    open('?tab=unknown');
+    await screen.findByText(/Bạn chưa có đơn chụp ảnh/);
+    expect(screen.getByRole('tab', { name: 'Thuê trang phục' })).toBeInTheDocument();
+    expect(screen.getByTestId('url')).toHaveTextContent('?tab=bookings');
+    expect(mocks.rentals).not.toHaveBeenCalled();
+  });
   it('retries a failed booking request independently', async () => {
     mocks.bookings.mockRejectedValueOnce(new Error('offline'));
     open();
@@ -178,7 +173,6 @@ describe('Unified orders tabs', () => {
   }
 
   it('selects orders, uses confirmed schedule details, links to the full record and discards a late response', async () => {
-    mocks.rental = false;
     mocks.bookings.mockResolvedValue({
       data: [summary(), summary('order-2', 'completed')],
       pagination: { total: 2 },
@@ -193,7 +187,7 @@ describe('Unified orders tabs', () => {
     );
     open();
     const list = await screen.findByRole('list', { name: 'Danh sách đơn chụp ảnh' });
-    expect(screen.queryByRole('tab', { name: 'Chụp ảnh' })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Chụp ảnh' })).toHaveAttribute('aria-selected', 'true');
     fireEvent.click(within(list).getByRole('button', { name: /Sân trường/ }));
     const preview = await screen.findByRole('region', { name: 'Sân trường' });
     expect(await within(preview).findByText('Đã hoàn tất dịch vụ')).toBeInTheDocument();
@@ -248,8 +242,25 @@ describe('Unified orders tabs', () => {
         unread: true,
       },
     ]);
-    open();
+    render(
+      <MemoryRouter initialEntries={['/account/orders']}>
+        <CustomerAppearanceContext.Provider value={true}>
+          <CustomerHeader />
+          <main>
+            <CustomerOrdersPage />
+          </main>
+        </CustomerAppearanceContext.Provider>
+      </MemoryRouter>,
+    );
     const bell = await screen.findByRole('button', { name: 'Thông báo (1 chưa đọc)' });
+    const header = screen.getByRole('button', { name: 'Tài khoản' }).closest('header')!;
+    expect(within(header).getByRole('button', { name: /Thông báo/ })).toBe(bell);
+    expect(
+      within(screen.getByRole('heading', { name: 'Đơn của tôi' }).closest('header')!).queryByRole(
+        'link',
+        { name: 'Đặt dịch vụ' },
+      ),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('Studio đã phản hồi')).not.toBeInTheDocument();
     fireEvent.click(bell);
     expect(await screen.findByRole('link', { name: /Studio đã phản hồi/ })).toHaveAttribute(

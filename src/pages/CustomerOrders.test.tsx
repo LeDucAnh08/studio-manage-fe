@@ -27,7 +27,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../context/AuthContext', () => ({ useAuth: () => mocks.auth }));
-vi.mock('../config/features', () => ({ clientRentalEnabled: true }));
+vi.mock('../config/features', () => ({ clientPortalEnabled: true }));
 vi.mock('../services/bookingWorkflowService', async () => ({
   ...(await vi.importActual('../services/bookingWorkflowService')),
   bookingWorkflowService: { get: mocks.workflowGet, act: mocks.workflowAct },

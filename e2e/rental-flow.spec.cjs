@@ -69,9 +69,9 @@ test('guest rental draft completes quote, handover, damage return and deposit se
   const card = page
     .getByRole('article')
     .filter({ has: page.getByRole('heading', { name, exact: true }) });
-  await expect(card.getByRole('link', { name: 'Thuê riêng mẫu này', exact: true })).toBeVisible();
+  await expect(card.getByRole('link', { name: /^Chọn mẫu / })).toBeVisible();
   await page.screenshot({ path: path.join(captures, '01-period-selection.png') });
-  await card.getByRole('link', { name: 'Thuê riêng mẫu này', exact: true }).click();
+  await card.getByRole('link', { name: /^Chọn mẫu / }).click();
   await expect(page).toHaveURL(/\/login$/);
   await page.getByLabel('Tên đăng nhập').fill(`rental.client.${suffix}`);
   await page.getByLabel('Mật khẩu', { exact: true }).fill(password);

@@ -6,15 +6,15 @@ import { costumeService } from '../services/costumeService';
 import type { RentalCatalogItem } from '../types';
 import RentalCatalogPage from './RentalCatalogPage';
 
-const flags = vi.hoisted(() => ({ rental: true }));
+const flags = vi.hoisted(() => ({ portal: true }));
 
 vi.mock('../components/Layout/PublicSiteLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <main>{children}</main>,
 }));
 
 vi.mock('../config/features', () => ({
-  get clientRentalEnabled() {
-    return flags.rental;
+  get clientPortalEnabled() {
+    return flags.portal;
   },
 }));
 
@@ -93,7 +93,7 @@ function catalogUrl() {
 describe('date-first rental catalog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    flags.rental = true;
+    flags.portal = true;
     vi.mocked(costumeService.getPublicCatalog).mockResolvedValue([item]);
   });
 
@@ -274,8 +274,8 @@ describe('date-first rental catalog', () => {
     ]);
     renderCatalog(periodQuery);
     const card = (await screen.findByRole('heading', { name: item.name })).closest('article')!;
-    expect(within(card).getByText('M · còn 3')).toBeInTheDocument();
-    expect(within(card).queryByText('S · còn 0')).not.toBeInTheDocument();
+    expect(within(card).getByText('M: 3')).toBeInTheDocument();
+    expect(within(card).queryByText('S: 0')).not.toBeInTheDocument();
     expect(within(card).getByText('120.000 ₫')).toBeInTheDocument();
     expect(within(card).getByText('360.000 ₫')).toBeInTheDocument();
     expect(screen.getByText('Liên hệ báo giá')).toBeInTheDocument();
@@ -320,10 +320,38 @@ describe('date-first rental catalog', () => {
     expect(catalogUrl().searchParams.has('kind')).toBe(false);
     expect(catalogUrl().searchParams.has('category')).toBe(false);
     await screen.findByRole('heading', { name: item.name });
-    fireEvent.click(screen.getAllByRole('link', { name: 'Thuê riêng mẫu này' })[0]);
+    fireEvent.click(screen.getByRole('link', { name: `Chọn mẫu ${item.name}` }));
     expect(screen.getByTestId('location')).toHaveTextContent(
       `/rental/start?item=outfit-1&${periodQuery}`,
     );
+  });
+
+  it('applies the price sliders through the period action and rejects inverted numeric bounds without fetching', async () => {
+    renderCatalog(periodQuery);
+    await screen.findByRole('heading', { name: item.name });
+    fireEvent.change(screen.getByLabelText('Giá tối thiểu'), { target: { value: '100000' } });
+    fireEvent.change(screen.getByLabelText('Giá tối đa'), { target: { value: '150000' } });
+    expect(screen.getByLabelText('Giá/ngày từ (đ)')).toHaveValue(100000);
+    expect(screen.getByLabelText('Giá/ngày đến (đ)')).toHaveValue(150000);
+    fireEvent.click(screen.getByRole('button', { name: 'Xem mẫu còn trống' }));
+    await waitFor(() =>
+      expect(costumeService.getPublicCatalog).toHaveBeenLastCalledWith({
+        receiveDate,
+        returnDate,
+        minPrice: 100000,
+        maxPrice: 150000,
+      }),
+    );
+    await screen.findByRole('heading', { name: item.name });
+    const requests = vi.mocked(costumeService.getPublicCatalog).mock.calls.length;
+    fireEvent.change(screen.getByLabelText('Giá/ngày từ (đ)'), { target: { value: '200000' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Xem mẫu còn trống' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('giá từ không được lớn hơn giá đến');
+    expect(costumeService.getPublicCatalog).toHaveBeenCalledTimes(requests);
+    fireEvent.click(screen.getByRole('button', { name: 'Xoá lọc', hidden: true }));
+    expect(screen.getByLabelText('Giá/ngày từ (đ)')).toHaveValue(null);
+    expect(screen.getByLabelText('Giá/ngày đến (đ)')).toHaveValue(null);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('opens a standalone rental request with the chosen period without a photography package', async () => {
@@ -337,14 +365,25 @@ describe('date-first rental catalog', () => {
     expect(url.searchParams.has('package')).toBe(false);
   });
 
-  it('keeps the selected period but hides rental actions when online submission is disabled', async () => {
-    flags.rental = false;
+  it('offers both request creation and card selection by default', async () => {
     renderCatalog(periodQuery);
     await screen.findByRole('heading', { name: item.name });
     expect(screen.getByLabelText(/Ngày nhận/)).toHaveValue(receiveDate);
-    expect(screen.queryByRole('link', { name: 'Tạo yêu cầu thuê riêng' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Tạo yêu cầu thuê riêng' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Liên hệ thuê riêng' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Thuê riêng mẫu này' })).not.toBeInTheDocument();
+    const select = screen.getByRole('link', { name: `Chọn mẫu ${item.name}` });
+    expect(select).toHaveAttribute('href', `/rental/start?item=${item._id}&${periodQuery}`);
+    fireEvent.click(select);
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      `/rental/start?item=${item._id}&${periodQuery}`,
+    );
+  });
+
+  it('does not offer selection when the client portal and its rental route are disabled', async () => {
+    flags.portal = false;
+    renderCatalog(periodQuery);
+    await screen.findByRole('heading', { name: item.name });
+    expect(screen.queryByRole('link', { name: /^Chọn mẫu / })).not.toBeInTheDocument();
   });
 
   it('hides previous results immediately on date change and ignores stale responses', async () => {

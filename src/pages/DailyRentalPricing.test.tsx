@@ -9,7 +9,6 @@ import RentalDetailPage from './RentalDetailPage';
 import CostumesPage from './CostumesPage';
 
 const mocks = vi.hoisted(() => ({
-  rentalEnabled: true,
   catalog: vi.fn(),
   get: vi.fn(),
   create: vi.fn(),
@@ -17,11 +16,6 @@ const mocks = vi.hoisted(() => ({
   costumes: vi.fn(),
   updateCostume: vi.fn(),
   auth: { user: { _id: 'customer-1', roles: [6] } as { _id: string; roles: number[] } | null },
-}));
-vi.mock('../config/features', () => ({
-  get clientRentalEnabled() {
-    return mocks.rentalEnabled;
-  },
 }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => mocks.auth }));
 vi.mock('../services/costumeService', () => ({
@@ -138,41 +132,79 @@ function renderDetail(order: RentalOrder) {
 }
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.rentalEnabled = true;
   sessionStorage.clear();
   mocks.auth.user = { _id: 'customer-1', roles: [6] };
   mocks.catalog.mockResolvedValue([item]);
 });
+afterEach(() => vi.unstubAllEnvs());
 
 describe('date-first daily rental form', () => {
+  it('adds a catalog model to an existing draft once, preserves prior quantities, and does not re-add a removed model after repricing', async () => {
+    const second = { ...item, _id: 'costume-2', name: 'Vest xanh' };
+    mocks.catalog.mockResolvedValue([item, second]);
+    storePreviewDraft();
+    const selectedPath = `${path}&item=${second._id}`;
+    const page = renderNew(selectedPath);
+    await screen.findByLabelText('Mẫu thuê 2');
+    expect(
+      screen.queryByRole('heading', { name: 'Kiểm tra yêu cầu thuê' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Mẫu thuê 1')).toHaveValue(item._id);
+    expect(screen.getByLabelText('Số lượng 1')).toHaveValue(2);
+    expect(screen.getByLabelText('Người liên hệ')).toHaveValue('Khách thuê');
+    expect(screen.getByLabelText('Mẫu thuê 2')).toHaveValue(second._id);
+    expect(screen.getByLabelText('Kích cỡ 2')).toHaveValue('');
+    expect(screen.getByLabelText('Số lượng 2')).toHaveValue(1);
+    page.unmount();
+    renderNew(selectedPath);
+    await screen.findByLabelText('Mẫu thuê 2');
+    expect(screen.queryByLabelText('Mẫu thuê 3')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Bỏ món 2' }));
+    fireEvent.change(screen.getByLabelText('Ngày trả'), { target: { value: '2099-10-13' } });
+    await waitFor(() =>
+      expect(mocks.catalog).toHaveBeenLastCalledWith({
+        receiveDate: receive,
+        returnDate: '2099-10-13',
+      }),
+    );
+    await screen.findByLabelText('Mẫu thuê 1');
+    expect(screen.queryByLabelText('Mẫu thuê 2')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Số lượng 1')).toHaveValue(2);
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
   it.each([true, false])(
-    'keeps the form and draft available without sending or login redirects when paused (authenticated=%s)',
+    'allows submission by default and preserves guest login drafts (authenticated=%s)',
     async (authenticated) => {
-      mocks.rentalEnabled = false;
+      vi.stubEnv('VITE_CLIENT_RENTAL_ENABLED', 'false');
       mocks.auth.user = authenticated ? { _id: 'customer-1', roles: [6] } : null;
-      renderNew(`${path}&item=${item._id}`);
+      mocks.create.mockResolvedValue({ _id: 'rental-1' });
+      renderNew(path);
       await choose();
-      expect(screen.getByLabelText('Mẫu thuê 1')).toHaveValue(item._id);
-      const period = screen.getByRole('region', { name: 'Kỳ thuê' });
-      expect(within(period).getByLabelText('Ngày nhận')).toHaveValue(receive);
-      expect(within(period).getByLabelText('Ngày trả')).toHaveValue(returned);
-      expect(document.querySelectorAll('input[type="date"]')).toHaveLength(2);
+      expect(screen.queryByText(/Studio tạm ngưng/)).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' }));
       await screen.findByRole('heading', { name: 'Kiểm tra yêu cầu thuê' });
       const send = screen.getByRole('button', {
         name: authenticated ? 'Gửi yêu cầu thuê' : 'Đăng nhập để gửi yêu cầu thuê',
       });
-      expect(send).toBeDisabled();
+      expect(send).toBeEnabled();
       fireEvent.click(send);
-      expect(mocks.create).not.toHaveBeenCalled();
-      expect(screen.getByTestId('location')).toHaveTextContent('/rental/start?');
-      expect(screen.getByTestId('location')).not.toHaveTextContent('/login');
-      expect(JSON.parse(sessionStorage.getItem(RENTAL_DRAFT_KEY)!)).toMatchObject({
-        contactName: 'Khách thuê',
-        phone: '0901234567',
-        receiveDate: receive,
-        returnDate: returned,
-      });
+      if (authenticated) {
+        await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
+        await waitFor(() =>
+          expect(screen.getByTestId('location')).toHaveTextContent('/account/rentals/rental-1'),
+        );
+      } else {
+        expect(mocks.create).not.toHaveBeenCalled();
+        expect(screen.getByTestId('location')).toHaveTextContent('/login?returnTo=');
+        expect(JSON.parse(sessionStorage.getItem(RENTAL_DRAFT_KEY)!)).toMatchObject({
+          contactName: 'Khách thuê',
+          phone: '0901234567',
+          receiveDate: receive,
+          returnDate: returned,
+          lines: [{ costumeId: item._id, size: 'M', quantity: '2' }],
+        });
+      }
     },
   );
 

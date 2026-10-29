@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout/Layout';
+import StaffScope from './components/Layout/StaffScope';
 import LoginPage from './pages/LoginPage';
 import RegisterRequestPage from './pages/RegisterRequestPage';
 import ClientRegisterPage from './pages/ClientRegisterPage';
@@ -28,7 +29,7 @@ import CustomerToastContainer from './components/customer/CustomerToastContainer
 import 'react-toastify/dist/ReactToastify.css';
 import { usePageTitle } from './hooks/usePageTitle';
 import { TooltipProvider } from '@/components/ui';
-import { clientPortalEnabled, clientRentalEnabled } from './config/features';
+import { clientPortalEnabled } from './config/features';
 
 function PageTitleManager() {
   usePageTitle();
@@ -145,8 +146,6 @@ function App() {
           <BrowserRouter>
             <PageTitleManager />
             <Routes>
-              <Route path="/staff/login" element={<LoginPage />} />
-              <Route path="/staff-register" element={<RegisterRequestPage />} />
               <Route element={<CustomerScope />}>
                 <Route path="/login" element={<LoginPage />} />
                 <Route
@@ -195,20 +194,9 @@ function App() {
                     <Route path="profile" element={<ProfilePage />} />
                     <Route
                       path="rentals"
-                      element={
-                        <Navigate
-                          to={
-                            clientRentalEnabled
-                              ? '/account/orders?tab=rentals'
-                              : '/account/orders?tab=bookings'
-                          }
-                          replace
-                        />
-                      }
+                      element={<Navigate to="/account/orders?tab=rentals" replace />}
                     />
-                    {clientRentalEnabled && (
-                      <Route path="rentals/:id" element={<RentalDetailPage />} />
-                    )}
+                    <Route path="rentals/:id" element={<RentalDetailPage />} />
                   </Route>
                 )}
                 <Route path="/portfolio" element={<PortfolioEntry />} />
@@ -241,46 +229,50 @@ function App() {
                 <Route path="/feedback" element={<FeedbackFormPage />} />
                 <Route path="/feedback/:customer" element={<FeedbackFormPage />} />
               </Route>
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute allowedRoles={[0, 1, 2, 3, 4, 5]}>
-                    <Layout />
-                  </ProtectedRoute>
-                }
-              >
-                {[...navItems, ...adminItems].map(renderRouteItem)}
-                <Route path="profile" element={<ProfilePage />} />
-                {clientRentalEnabled && (
-                  <Route
-                    path="rental-orders/:id"
-                    element={
-                      <ProtectedRoute allowedRoles={[0, 1, 2, 4, 5]}>
-                        <RentalDetailPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                )}
-                {clientPortalEnabled && (
-                  <Route
-                    path="workflow-bookings/:id"
-                    element={
-                      <ProtectedRoute allowedRoles={[0, 1, 3, 5]}>
-                        <BookingWorkflowDetailPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                )}
-                {clientPortalEnabled && (
-                  <Route
-                    path="booking-requests/:id"
-                    element={
-                      <ProtectedRoute allowedRoles={[0, 1]}>
-                        <BookingWorkflowDetailPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                )}
+              <Route element={<StaffScope />}>
+                <Route path="/staff/login" element={<LoginPage />} />
+                <Route path="/staff-register" element={<RegisterRequestPage />} />
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute allowedRoles={[0, 1, 2, 3, 4, 5]}>
+                      <Layout />
+                    </ProtectedRoute>
+                  }
+                >
+                  {[...navItems, ...adminItems].map(renderRouteItem)}
+                  <Route path="profile" element={<ProfilePage />} />
+                  {clientPortalEnabled && (
+                    <Route
+                      path="rental-orders/:id"
+                      element={
+                        <ProtectedRoute allowedRoles={[0, 1, 2, 4, 5]}>
+                          <RentalDetailPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                  )}
+                  {clientPortalEnabled && (
+                    <Route
+                      path="workflow-bookings/:id"
+                      element={
+                        <ProtectedRoute allowedRoles={[0, 1, 3, 5]}>
+                          <BookingWorkflowDetailPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                  )}
+                  {clientPortalEnabled && (
+                    <Route
+                      path="booking-requests/:id"
+                      element={
+                        <ProtectedRoute allowedRoles={[0, 1]}>
+                          <BookingWorkflowDetailPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                  )}
+                </Route>
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

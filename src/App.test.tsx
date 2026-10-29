@@ -6,7 +6,7 @@ import type { User } from './types';
 import App from './App';
 const mocks = vi.hoisted(() => ({
   auth: { user: null as User | null, isBootstrapping: false, logout: vi.fn() },
-  flags: { portal: true, rental: true },
+  flags: { portal: true },
 }));
 vi.mock('./context/AuthContext', () => ({
   AuthProvider: ({ children }: { children: ReactNode }) => children,
@@ -18,9 +18,6 @@ vi.mock('./context/ThemeContext', () => ({
 vi.mock('./config/features', () => ({
   get clientPortalEnabled() {
     return mocks.flags.portal;
-  },
-  get clientRentalEnabled() {
-    return mocks.flags.portal && mocks.flags.rental;
   },
 }));
 vi.mock('./config/navItems', () => ({ navItems: [], adminItems: [] }));
@@ -73,7 +70,6 @@ describe('Public discovery and customer workspace', () => {
     mocks.auth.user = null;
     mocks.auth.isBootstrapping = false;
     mocks.flags.portal = true;
-    mocks.flags.rental = true;
     window.scrollTo = vi.fn();
   });
   it('shows only portfolio entry controls without guest navigation and gates booking with its source', () => {

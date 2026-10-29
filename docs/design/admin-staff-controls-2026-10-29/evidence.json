@@ -1,0 +1,166 @@
+{
+  "date": "2026-10-29",
+  "timezone": "Asia/Bangkok",
+  "milestone": "R04-R07",
+  "captureMethod": "Original native in-app browser screenshot bytes; no image alteration",
+  "businessWrites": false,
+  "automatedTests": {
+    "files": 11,
+    "failed": 0,
+    "passed": 113,
+    "total": 113
+  },
+  "build": {
+    "seconds": 49.1,
+    "passed": true
+  },
+  "typescript": "passed",
+  "eslint": {
+    "note": "Existing CustomersPage useEffect/buildParams dependency warning",
+    "errors": 0,
+    "warnings": 1
+  },
+  "measurements": {
+    "customerCatalog": {
+      "font": "Inter Customer",
+      "staffMarker": null,
+      "dateControlHeight": 48
+    },
+    "desktopRowAction": {
+      "height": 32,
+      "width": 48
+    },
+    "reflowWidths": [320, 390, 768, 1280, 1440],
+    "mobileRowAction": {
+      "height": 44,
+      "width": 48
+    },
+    "tabletTable": {
+      "keyboardScrollBefore": 0,
+      "keyboardScrollAfter": 40,
+      "contentWidth": 1120,
+      "regionWidth": 472,
+      "viewportWidth": 768
+    },
+    "desktopControls": 36,
+    "mobileControls": 44,
+    "mobileDialog": {
+      "scrollHeightWithErrors": 1077,
+      "viewportHeight": 844,
+      "width": 358,
+      "maxHeight": 812,
+      "viewportWidth": 390
+    }
+  },
+  "browserChecks": [
+    "search empty and clear",
+    "modal required errors retain state and prevent invalid submit",
+    "Tab/Shift+Tab trap and footer reachable",
+    "Escape returns focus to opener",
+    "date selection and keyboard clear",
+    "tablet header wrapping and keyboard table scroll",
+    "mobile pagination visible",
+    "native payment selects and inputs same height",
+    "customer catalog scope smoke"
+  ],
+  "limitations": [
+    "R08-R18 pending",
+    "No automated E2E or full-role/state coverage",
+    "No 200% zoom or screen reader acceptance",
+    "Some pixels for scrollbars excluded from raster capture",
+    "Class notes now wrap fully and increase row height",
+    "Controller field wiring and heading migration continue per page"
+  ],
+  "images": [
+    {
+      "file": "01-classes-dark.jpg",
+      "width": 1434,
+      "height": 996,
+      "format": "JPEG",
+      "bytes": 125049,
+      "nativeCaptureReviewed": true,
+      "savedFileReviewed": true
+    },
+    {
+      "file": "02-modal-dark.jpg",
+      "width": 1440,
+      "height": 1000,
+      "format": "JPEG",
+      "bytes": 53956,
+      "nativeCaptureReviewed": true,
+      "savedFileReviewed": true
+    },
+    {
+      "file": "03-mobile-validation.jpg",
+      "width": 390,
+      "height": 844,
+      "format": "JPEG",
+      "bytes": 32587,
+      "nativeCaptureReviewed": true,
+      "savedFileReviewed": false
+    },
+    {
+      "file": "04-classes-mobile.jpg",
+      "width": 384,
+      "height": 831,
+      "format": "JPEG",
+      "bytes": 29702,
+      "nativeCaptureReviewed": true,
+      "savedFileReviewed": true
+    },
+    {
+      "file": "05-classes-light.jpg",
+      "width": 1434,
+      "height": 996,
+      "format": "JPEG",
+      "bytes": 122221,
+      "nativeCaptureReviewed": true,
+      "savedFileReviewed": false
+    },
+    {
+      "file": "06-date-popover-light.jpg",
+      "width": 1440,
+      "height": 1000,
+      "format": "JPEG",
+      "bytes": 175539,
+      "nativeCaptureReviewed": true,
+      "savedFileReviewed": false
+    },
+    {
+      "file": "07-payment-controls-light.jpg",
+      "width": 1434,
+      "height": 996,
+      "format": "JPEG",
+      "bytes": 94680,
+      "nativeCaptureReviewed": true,
+      "savedFileReviewed": false
+    },
+    {
+      "file": "08-classes-tablet.jpg",
+      "width": 762,
+      "height": 992,
+      "format": "JPEG",
+      "bytes": 65770,
+      "nativeCaptureReviewed": true,
+      "savedFileReviewed": false
+    },
+    {
+      "file": "09-mobile-pagination.jpg",
+      "width": 384,
+      "height": 831,
+      "format": "JPEG",
+      "bytes": 27113,
+      "nativeCaptureReviewed": true,
+      "savedFileReviewed": true
+    },
+    {
+      "file": "10-customer-catalog.jpg",
+      "width": 1274,
+      "height": 717,
+      "format": "JPEG",
+      "bytes": 55062,
+      "nativeCaptureReviewed": true,
+      "savedFileReviewed": false
+    }
+  ]
+}
