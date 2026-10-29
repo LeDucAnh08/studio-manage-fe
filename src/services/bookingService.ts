@@ -34,6 +34,8 @@ export const bookingLabels: Record<BookingStatus, string> = {
   rejected: 'Đã từ chối',
 };
 export interface Booking {
+  assignedPhotographer?: { _id: string; name: string } | null;
+  assignedSupportPhotographers?: { _id: string; name: string }[];
   _id: string;
   packageName: string;
   className?: string;

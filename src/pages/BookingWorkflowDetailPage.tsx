@@ -37,6 +37,13 @@ import {
 } from '../services/bookingWorkflowService';
 import { userService } from '../services/userService';
 import type { User } from '../types';
+import { BookingPhotographer } from '../components/BookingPhotographer';
+import { PhotographerAvailabilityPicker } from '../components/PhotographerAvailabilityPicker';
+import {
+  photographerWindow,
+  availabilityKey,
+  type AvailabilityResult,
+} from '../services/photographerService';
 
 type Workflow = BookingWorkflowDto['workflow'];
 type QuoteLineInput = { label: string; quantity: string; unitPrice: string };
@@ -262,6 +269,9 @@ export default function BookingWorkflowDetailPage() {
   const [legacyBooking, setLegacyBooking] = useState<Booking | null>(null);
   const [photographers, setPhotographers] = useState<User[]>([]);
   const [photographerError, setPhotographerError] = useState('');
+  const [allocationAvailability, setAllocationAvailability] = useState<AvailabilityResult | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
@@ -447,7 +457,16 @@ export default function BookingWorkflowDetailPage() {
     setQuoteTerms(workflow.quote?.terms.join('\n') ?? '');
     setMemberDraft(workflow.members.map(defaultMemberInput));
     setLinkOpen(workflow.memberEntry?.opened ?? false);
-    setSelectedPhotographerIds(workflow.resources?.photographers ?? []);
+    setSelectedPhotographerIds(
+      workflow.resources?.photographers.length
+        ? workflow.resources.photographers
+        : workflow.assignedPhotographer
+          ? [
+              workflow.assignedPhotographer._id,
+              ...(workflow.assignedSupportPhotographers ?? []).map((row) => row._id),
+            ]
+          : [],
+    );
     setAllocationRows(
       workflow.resources?.costumes.map((item) => ({
         costumeId: item.costumeId,
@@ -663,6 +682,10 @@ export default function BookingWorkflowDetailPage() {
 
   const submitAllocation = async () => {
     if (!workflow?.quote) return;
+    if (!workflow.assignedPhotographer || !allocationReady) {
+      setError('Gắn thợ phụ trách và kiểm tra lịch trống hiện tại trước khi xác nhận.');
+      return;
+    }
     const costumes = allocationRows
       .filter((row) => row.costumeId && row.size)
       .map((row) => ({
@@ -802,13 +825,6 @@ export default function BookingWorkflowDetailPage() {
       ),
     );
   };
-  const togglePhotographer = (photographerId: string) => {
-    setSelectedPhotographerIds((current) =>
-      current.includes(photographerId)
-        ? current.filter((item) => item !== photographerId)
-        : [...current, photographerId],
-    );
-  };
 
   const timeline = useMemo(
     () =>
@@ -859,6 +875,21 @@ export default function BookingWorkflowDetailPage() {
       </DetailContainer>
     );
 
+  const allocationWindow = workflow.quote
+    ? photographerWindow(workflow.quote.proposedSchedule)
+    : null;
+  const allocationReady =
+    !!allocationWindow &&
+    allocationAvailability?.key ===
+      availabilityKey(
+        allocationWindow.startAt,
+        allocationWindow.endAt,
+        booking._id,
+        workflow.version,
+      ) &&
+    selectedPhotographerIds.every((id) =>
+      allocationAvailability.rows.some((row) => row._id === id && row.status === 'available'),
+    );
   const quoteAccepted = !!workflow.quote?.acceptedAt;
   const quoteCanBeAccepted =
     isClient && booking.status === 'approved' && !!workflow.quote && !quoteAccepted;
@@ -901,6 +932,10 @@ export default function BookingWorkflowDetailPage() {
       <CustomerBookingIntake
         booking={booking}
         title={title}
+        assignedPhotographerName={workflow.assignedPhotographer?.name}
+        assignedSupportPhotographerNames={workflow.assignedSupportPhotographers?.map(
+          (row) => row.name,
+        )}
         sentAt={legacyBooking?.createdAt || workflow.createdAt}
         requestedTime={requestedTime}
         note={booking.note || legacyBooking?.note}
@@ -997,13 +1032,13 @@ export default function BookingWorkflowDetailPage() {
               : 'grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4'
           }
         >
-          {(isAdmin || isClient) && (
+          {(isAdmin || isClient || isPhotographer) && (
             <p>
               <span className="text-muted-foreground">Người liên hệ: </span>
               {booking.contactName || 'Chưa có'}
             </p>
           )}
-          {(isAdmin || isClient) && (
+          {(isAdmin || isClient || isPhotographer) && (
             <p>
               <span className="text-muted-foreground">Điện thoại: </span>
               {booking.phone || 'Chưa có'}
@@ -1056,6 +1091,27 @@ export default function BookingWorkflowDetailPage() {
         )}
       </header>
 
+      <BookingPhotographer
+        record={record!}
+        admin={isAdmin}
+        busy={busy !== ''}
+        onAssign={(photographerIds) => runAction('photographer.assign', { photographerIds })}
+      />
+
+      {isPhotographer && !workflow.resources?.scheduleId && workflow.proposedSchedule && (
+        <section className="space-y-2 rounded-2xl border p-5">
+          <h2 className="font-semibold">Lịch dự kiến studio</h2>
+          <p>
+            {formatDateOnly(workflow.proposedSchedule.shootDate)} ·{' '}
+            {workflow.proposedSchedule.startTime}–{workflow.proposedSchedule.endTime}
+          </p>
+          <p>{workflow.proposedSchedule.location}</p>
+          <p className="text-sm text-muted-foreground">
+            Lịch dự kiến chưa giữ giờ; admin sẽ kiểm tra lại khi xác nhận.
+          </p>
+        </section>
+      )}
+
       {(isAdmin || isClient) && (
         <BookingCostumeDetails
           booking={booking}
@@ -1064,7 +1120,7 @@ export default function BookingWorkflowDetailPage() {
         />
       )}
 
-      {(isAdmin || isClient) && (booking.note || legacyBooking?.note) && (
+      {(isAdmin || isClient || isPhotographer) && (booking.note || legacyBooking?.note) && (
         <section className={customer ? 'customer-order-surface' : 'rounded-2xl border p-5'}>
           <h2 className={customer ? 'customer-section-title' : 'font-semibold'}>
             Thông tin khách đã gửi
@@ -2195,28 +2251,21 @@ export default function BookingWorkflowDetailPage() {
               {photographerError}
             </p>
           )}
-          <fieldset className="space-y-2">
-            <legend className="font-medium">Thợ chụp được phân công</legend>
-            {photographers.length ? (
-              <div className={customer ? 'customer-order-summary' : 'grid gap-2 sm:grid-cols-2'}>
-                {photographers.map((photographer) => (
-                  <label
-                    key={photographer._id}
-                    className="flex min-h-11 items-center gap-3 rounded-lg border px-3"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedPhotographerIds.includes(photographer._id)}
-                      onChange={() => togglePhotographer(photographer._id)}
-                    />
-                    <span>{photographer.name || photographer.username}</span>
-                  </label>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Chưa có thợ chụp đang hoạt động.</p>
-            )}
-          </fieldset>
+          {!workflow.assignedPhotographer && (
+            <p className="text-sm text-destructive">
+              Gắn thợ phụ trách ở đầu hồ sơ trước khi xác nhận lịch.
+            </p>
+          )}
+          <PhotographerAvailabilityPicker
+            {...photographerWindow(workflow.quote.proposedSchedule)}
+            bookingId={booking._id}
+            version={workflow.version}
+            selected={selectedPhotographerIds}
+            onChange={setSelectedPhotographerIds}
+            primaryId={workflow.assignedPhotographer?._id}
+            multiple
+            onLoaded={setAllocationAvailability}
+          />
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
@@ -2361,6 +2410,8 @@ export default function BookingWorkflowDetailPage() {
             disabled={
               busy !== '' ||
               workflow.members.length !== booking.members ||
+              !workflow.assignedPhotographer ||
+              !allocationReady ||
               !selectedPhotographerIds.length ||
               !effectivePayment.netReceived ||
               effectivePayment.netReceived < workflow.quote.depositRequired

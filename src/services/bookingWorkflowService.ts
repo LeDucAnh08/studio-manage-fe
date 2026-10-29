@@ -1,6 +1,7 @@
 import api from './api';
 import type { ApiResponse, PaginatedApiResponse } from '../types';
 import type { Booking } from './bookingService';
+import type { AssignedPhotographer } from './photographerService';
 
 export type BookingWorkflowLifecycle =
   | 'intake'
@@ -18,6 +19,7 @@ export type BookingWorkflowLifecycle =
   | 'cancelled';
 
 export type BookingWorkflowAction =
+  | 'photographer.assign'
   | 'quote.propose'
   | 'quote.accept'
   | 'payment.record'
@@ -97,6 +99,14 @@ export interface BookingWorkflowDto {
     bookingId: string;
     version: number;
     lifecycle: BookingWorkflowLifecycle;
+    assignedPhotographer?: AssignedPhotographer | null;
+    assignedSupportPhotographers?: AssignedPhotographer[];
+    proposedSchedule?: {
+      shootDate: string;
+      startTime: string;
+      endTime: string;
+      location: string;
+    } | null;
     quote: null | {
       version: number;
       currency: string;
@@ -196,6 +206,8 @@ export interface BookingWorkflowDto {
 }
 
 export interface WorkflowSummary {
+  assignedPhotographer?: AssignedPhotographer | null;
+  assignedSupportPhotographers?: AssignedPhotographer[];
   bookingId: string;
   version: number;
   lifecycle: BookingWorkflowLifecycle;

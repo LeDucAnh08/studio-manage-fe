@@ -7,6 +7,7 @@ import {
   type WorkflowSummary,
 } from '../services/bookingWorkflowService';
 import { useAuth } from '../context/AuthContext';
+import { PhotographerUnavailability } from '../components/PhotographerUnavailability';
 
 const lifecycleLabels: Record<BookingWorkflowLifecycle, string> = {
   intake: 'Mới tiếp nhận',
@@ -65,6 +66,7 @@ export default function BookingWorkflowListPage() {
 
   const isAccountant = !!user?.roles.includes(5);
   const isPhotographer = !!user?.roles.includes(3);
+  const isAdmin = !!user?.roles.some((role) => role === 0 || role === 1);
 
   return (
     <main className="space-y-6">
@@ -75,7 +77,7 @@ export default function BookingWorkflowListPage() {
             {isAccountant
               ? 'Theo dõi các khoản thu, cọc và số dư của hồ sơ dịch vụ.'
               : isPhotographer
-                ? 'Theo dõi những buổi chụp được phân công và cập nhật tiến độ bàn giao.'
+                ? 'Chăm sóc những đơn được giao, theo dõi lịch chụp và cập nhật tiến độ bàn giao.'
                 : 'Theo dõi báo giá, thành viên, lịch chụp, thanh toán và bàn giao.'}
           </p>
         </div>
@@ -87,6 +89,10 @@ export default function BookingWorkflowListPage() {
           Tải lại
         </Button>
       </header>
+
+      {(isAdmin || isPhotographer) && user && (
+        <PhotographerUnavailability userId={user._id} admin={isAdmin} />
+      )}
 
       {loading ? (
         <p role="status" className="rounded-xl border p-5 text-sm text-muted-foreground">
@@ -128,6 +134,15 @@ export default function BookingWorkflowListPage() {
                 <p className="mt-1 text-sm text-muted-foreground">
                   {item.className ? item.packageName + ' · ' : ''}Gói dịch vụ
                 </p>
+                <p className="mt-1 text-sm">
+                  Thợ phụ trách: {item.assignedPhotographer?.name || 'Chưa phân công'}
+                </p>
+                {!!item.assignedSupportPhotographers?.length && (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Thợ hỗ trợ:{' '}
+                    {item.assignedSupportPhotographers.map((row) => row.name).join(', ')}
+                  </p>
+                )}
                 <p className="mt-2 text-xs text-muted-foreground">
                   {item.shootDate ? 'Ngày chụp: ' + date(item.shootDate) : 'Chưa chốt ngày chụp'}
                   {' · '}Cập nhật {date(item.updatedAt)}

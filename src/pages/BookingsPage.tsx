@@ -241,6 +241,16 @@ export default function BookingsPage({
                   {item.contactName} · {item.phone}
                 </p>
               )}
+              {admin && (
+                <p className="text-sm">
+                  Thợ phụ trách: {item.assignedPhotographer?.name || 'Chưa phân công'}
+                </p>
+              )}
+              {admin && !!item.assignedSupportPhotographers?.length && (
+                <p className="text-sm text-muted-foreground">
+                  Thợ hỗ trợ: {item.assignedSupportPhotographers.map((row) => row.name).join(', ')}
+                </p>
+              )}
               <p className="text-sm">
                 {date(item.startAt)} — {date(item.endAt)}
               </p>

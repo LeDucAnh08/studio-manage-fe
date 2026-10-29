@@ -10,6 +10,8 @@ import '../../styles/customer-booking-intake.css';
 interface CustomerBookingIntakeProps {
   booking: BookingWorkflowDto['booking'];
   title: string;
+  assignedPhotographerName?: string;
+  assignedSupportPhotographerNames?: string[];
   sentAt?: string;
   requestedTime: string;
   note?: string;
@@ -25,6 +27,8 @@ interface CustomerBookingIntakeProps {
 export function CustomerBookingIntake({
   booking,
   title,
+  assignedPhotographerName,
+  assignedSupportPhotographerNames,
   sentAt,
   requestedTime,
   note,
@@ -72,6 +76,12 @@ export function CustomerBookingIntake({
         <p className="customer-booking-intake__subtitle">
           {booking.packageName} · {booking.members} thành viên
         </p>
+        <p className="mt-2 text-sm">
+          Thợ phụ trách: {assignedPhotographerName || 'Studio đang phân công'}
+        </p>
+        {!!assignedSupportPhotographerNames?.length && (
+          <p className="mt-2 text-sm">Thợ hỗ trợ: {assignedSupportPhotographerNames.join(', ')}</p>
+        )}
       </header>
 
       <div className="customer-booking-intake__progress">
