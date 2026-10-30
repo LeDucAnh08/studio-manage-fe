@@ -79,7 +79,7 @@ const Sidebar = ({ isOpen, onClose, triggerRef }: SidebarProps) => {
   const handleLogout = () => {
     logout();
     onClose();
-    navigate('/staff/login');
+    navigate('/login', { replace: true });
   };
 
   const themeOptions: Array<{ mode: ThemeMode; label: string; icon: JSX.Element }> = [

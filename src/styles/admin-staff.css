@@ -35,6 +35,10 @@ html:root[data-app-surface='staff'] {
   --staff-danger-ink: #991b1b;
   --staff-danger-bg: #fef2f2;
   --staff-danger-border: #efb7bd;
+  --staff-chart-income: #047857;
+  --staff-chart-expense: #be123c;
+  --staff-chart-difference: #1d4ed8;
+  --staff-chart-cumulative: #6d28d9;
   color-scheme: light;
 
   /* Compatibility aliases: one palette for both existing UI systems. */
@@ -109,6 +113,10 @@ html:root[data-app-surface='staff'] {
   --staff-danger-ink: #fca5a5;
   --staff-danger-bg: #3c1d24;
   --staff-danger-border: #87434e;
+  --staff-chart-income: #34d399;
+  --staff-chart-expense: #fb7185;
+  --staff-chart-difference: #60a5fa;
+  --staff-chart-cumulative: #a78bfa;
   --modal-shadow: 0 16px 48px rgb(0 0 0 / 40%);
   color-scheme: dark;
 }
@@ -433,6 +441,224 @@ html:root[data-app-surface='staff'] {
   text-decoration: underline;
 }
 
+:root[data-app-surface='staff'] .staff-ink-success {
+  color: var(--staff-success-ink);
+}
+:root[data-app-surface='staff'] .staff-ink-danger {
+  color: var(--staff-danger-ink);
+}
+:root[data-app-surface='staff'] .staff-ink-warning {
+  color: var(--staff-warning-ink);
+}
+:root[data-app-surface='staff'] .staff-ink-info {
+  color: var(--staff-info-ink);
+}
+
+:root[data-app-surface='staff'] .staff-icon-action {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 6px;
+  border-radius: 6px;
+}
+
+:root[data-app-surface='staff'] .staff-schedule-open,
+:root[data-app-surface='staff'] .staff-small-disclosure {
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.staff-schedule-open:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.staff-small-disclosure {
+  display: list-item;
+  padding-block: 5px;
+  color: var(--staff-link);
+}
+.staff-small-disclosure:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+.staff-person-avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--staff-selection);
+  color: var(--staff-link);
+  font-size: 12px;
+  font-weight: 600;
+}
+.staff-detail-summary {
+  padding: 16px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  background: hsl(var(--secondary));
+}
+.staff-schedules-table table {
+  min-width: 1120px;
+  table-layout: fixed;
+}
+.staff-schedules-table :is(th, td):nth-child(1) {
+  width: 9%;
+}
+.staff-schedules-table :is(th, td):nth-child(2) {
+  width: 13%;
+}
+.staff-schedules-table :is(th, td):nth-child(3) {
+  width: 10%;
+}
+.staff-schedules-table :is(th, td):nth-child(4) {
+  width: 10%;
+}
+.staff-schedules-table :is(th, td):nth-child(5) {
+  width: 10%;
+}
+.staff-schedules-table :is(th, td):nth-child(6) {
+  width: 12%;
+}
+.staff-schedules-table :is(th, td):nth-child(7) {
+  width: 8%;
+}
+.staff-schedules-table :is(th, td):nth-child(8) {
+  width: 16%;
+}
+.staff-schedules-table :is(th, td):nth-child(9) {
+  width: 12%;
+}
+.staff-calendar-day {
+  min-width: 0;
+  min-height: 88px;
+  padding: 8px;
+  border-right: 1px solid hsl(var(--border));
+  border-bottom: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+  text-align: left;
+  vertical-align: top;
+  background: hsl(var(--card));
+}
+.staff-calendar-day:hover:not(:disabled) {
+  background: hsl(var(--secondary));
+}
+.staff-calendar-day--selected {
+  background: var(--staff-selection);
+  box-shadow: inset 0 3px var(--staff-link);
+}
+.staff-calendar-day--today {
+  color: var(--staff-link);
+  font-weight: 600;
+}
+.staff-calendar-day:focus-visible {
+  outline-offset: -3px;
+}
+.staff-calendar-day:disabled {
+  background: hsl(var(--secondary));
+}
+.staff-inventory-table table {
+  min-width: 760px;
+}
+.staff-packages-table table {
+  min-width: 1040px;
+}
+.staff-inventory-table td:first-child {
+  max-width: 360px;
+}
+.staff-finance-table table {
+  min-width: 1040px;
+}
+.staff-finance-table :is(th, td):nth-child(1) {
+  min-width: 108px;
+  white-space: nowrap;
+}
+.staff-finance-table :is(th, td):nth-child(2) {
+  min-width: 64px;
+  white-space: nowrap;
+}
+.staff-finance [data-ui='table'] tfoot :is(td, th) {
+  padding: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.staff-finance [data-ui='table'] td[data-align='right'] {
+  white-space: nowrap;
+}
+.staff-reports [data-ui='table-scroll'] {
+  border-radius: 8px;
+}
+.staff-reports [data-ui='table'] thead {
+  background: hsl(var(--secondary));
+}
+
+html:root[data-app-surface='staff'] input[type='date']::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 1;
+}
+:root[data-app-surface='staff'] .staff-reports [data-ui='table'] tbody th {
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+}
+:root[data-app-surface='staff'] .staff-reports [data-ui='table'] tbody tr.font-semibold th {
+  font-weight: 600;
+}
+.staff-form section {
+  border-radius: 8px;
+}
+.staff-form label:has([type='checkbox']) {
+  min-height: 36px;
+}
+.staff-costume-picker label:focus-within {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+:root[data-app-surface='staff'] [data-ui='stat-card'] {
+  height: 100%;
+  min-width: 0;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: none;
+  transition: none;
+}
+:root[data-app-surface='staff'] [data-ui='stat-card'] > :nth-child(2) {
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+:root[data-app-surface='staff'] a:has(> [data-ui='stat-card']) {
+  min-width: 0;
+  border-radius: 8px;
+}
+:root[data-app-surface='staff'] a:hover > [data-ui='stat-card'] {
+  border-color: var(--staff-link);
+}
+.staff-chart-key {
+  display: inline-block;
+  width: 12px;
+  height: 10px;
+  border-radius: 2px;
+}
+.staff-chart-key--income {
+  background: var(--staff-chart-income);
+}
+.staff-chart-key--expense {
+  background: var(--staff-chart-expense);
+}
+.staff-chart-key--difference {
+  height: 0;
+  border-top: 2px dashed var(--staff-chart-difference);
+}
+.staff-chart-key--cumulative {
+  height: 0;
+  border-top: 2px solid var(--staff-chart-cumulative);
+}
+
 .staff-main {
   flex: 1;
   min-width: 0;
@@ -622,6 +848,29 @@ html:root[data-app-surface='staff'] {
 }
 
 @media (max-width: 767px) {
+  :root[data-app-surface='staff'] .staff-icon-action {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    min-width: 44px;
+  }
+  :root[data-app-surface='staff'] .staff-schedule-open {
+    min-height: 44px;
+  }
+  .staff-calendar-day {
+    min-height: 80px;
+    padding: 4px;
+  }
+  .staff-costume-picker :is(button, label) {
+    min-height: 44px;
+  }
+  .staff-money-grid > div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
   :root[data-app-surface='staff']
     :is(
       [data-ui='input']:not([type='checkbox']):not([type='radio']),

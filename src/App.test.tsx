@@ -87,6 +87,21 @@ describe('Public discovery and customer workspace', () => {
     expect(window.location.pathname).toBe(path);
     expect(screen.getByRole('heading', { name: path.slice(1) })).toBeInTheDocument();
   });
+  it.each([true, false])(
+    'redirects the old staff login to the shared customer login with portal %s',
+    (portal) => {
+      mocks.flags.portal = portal;
+      open('/staff/login?returnTo=%2Faccount%2Forders#login');
+
+      expect(window.location.pathname).toBe('/login');
+      expect(window.location.search).toBe('?returnTo=%2Faccount%2Forders');
+      expect(window.location.hash).toBe('#login');
+      expect(
+        screen.getByRole('heading', { name: 'Đăng nhập' }).closest('.customer-ui'),
+      ).not.toBeNull();
+      expect(document.querySelector('.staff-ui')).toBeNull();
+    },
+  );
   it.each(['/costumes', '/rental-catalog?type=ao-dai'])('allows guests to browse %s', (path) => {
     open(path);
     expect(screen.getByRole('heading', { name: 'Kho trang phục' })).toBeInTheDocument();

@@ -64,12 +64,8 @@ test('guest signs in before booking and continues through studio review', async 
   await page.getByLabel('Số điện thoại').fill('0901234567');
   await page.getByLabel('Số thành viên dự kiến').fill('1');
   await page.getByLabel('Địa điểm mong muốn').fill('Hà Nội');
-  await page
-    .getByLabel('Ngày và giờ bắt đầu mong muốn (giờ Việt Nam)')
-    .fill(vietnamInputAfter(30, 10));
-  await page
-    .getByLabel('Ngày và giờ kết thúc mong muốn (giờ Việt Nam)')
-    .fill(vietnamInputAfter(30, 12));
+  await page.getByLabel('Ngày và giờ bắt đầu mong muốn').fill(vietnamInputAfter(30, 10));
+  await page.getByLabel('Ngày và giờ kết thúc mong muốn').fill(vietnamInputAfter(30, 12));
   await page.getByLabel('Điều Yume nên biết thêm').fill('Luồng E2E với bản nháp qua đăng nhập.');
   await page.getByRole('button', { name: 'Xem lại yêu cầu' }).click();
   await expect(page.getByRole('heading', { name: 'Kiểm tra trước khi gửi' })).toBeVisible();

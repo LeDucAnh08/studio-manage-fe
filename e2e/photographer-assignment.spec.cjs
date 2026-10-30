@@ -10,6 +10,7 @@ const Booking = require(path.join(backendRoot, 'src/models/Booking')).default;
 const Schedule = require(path.join(backendRoot, 'src/models/Schedule')).default;
 
 let bookingId;
+let expiredBookingId;
 test.beforeAll(async () => {
   await mongoose.connect(isolatedMongoUri());
   if (mongoose.connection.name !== TEST_DATABASE) throw new Error('Wrong test database');
@@ -44,6 +45,15 @@ test.beforeAll(async () => {
     status: 'pending',
   });
   bookingId = String(booking._id);
+  const expired = await Booking.create({
+    ...booking.toObject(),
+    _id: new mongoose.Types.ObjectId(),
+    className: '12A0 Quá hạn',
+    startAt: new Date(Date.now() - 2 * 86400000),
+    endAt: new Date(Date.now() - 2 * 86400000 + 3600000),
+    createdAt: new Date(Date.now() - 3 * 86400000),
+  });
+  expiredBookingId = String(expired._id);
   await Schedule.create({
     customer: new mongoose.Types.ObjectId(),
     shootDate: '2027-02-01T00:00:00+07:00',
@@ -77,7 +87,53 @@ test('admin assigns an available photographer; staff manages busy time; customer
   await fs.mkdir(evidence, { recursive: true });
   await page.setViewportSize({ width: 1280, height: 900 });
   await login(page, 'phase1.admin', 'E2eAdmin123!');
+  await page.goto('/booking-requests?view=pending');
+  await expect(page).toHaveURL(/\/workflow-bookings\?view=pending$/);
+  await expect(page.getByRole('heading', { name: 'Đơn chụp ảnh', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Đơn chụp ảnh', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('link', { name: 'Yêu cầu đặt dịch vụ', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Quy trình dịch vụ', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('combobox', { name: 'Trạng thái đơn' })).toHaveValue('pending');
+  const statusFilter = page.getByRole('combobox', { name: 'Trạng thái đơn' });
+  await expect(statusFilter).toHaveCSS('appearance', 'none');
+  await expect(statusFilter).toHaveCSS('padding-right', '40px');
+  await expect(statusFilter).not.toHaveCSS('background-image', 'none');
+  await statusFilter.screenshot({ path: path.join(evidence, '07-status-filter-light.png') });
+  await page.evaluate(() => document.documentElement.classList.add('dark'));
+  await statusFilter.focus();
+  await expect(statusFilter).toHaveCSS('appearance', 'none');
+  await expect(statusFilter).not.toHaveCSS('background-image', 'none');
+  await statusFilter.screenshot({ path: path.join(evidence, '08-status-filter-dark.png') });
+  await page.evaluate(() => document.documentElement.classList.remove('dark'));
+  await page.getByRole('combobox', { name: 'Trạng thái đơn' }).selectOption('active');
+  await expect(page.getByRole('heading', { name: 'Chưa có đơn chụp ảnh phù hợp' })).toBeVisible();
+  await page.getByRole('combobox', { name: 'Trạng thái đơn' }).selectOption('cancelled');
+  await page.getByRole('link', { name: /12A0 Quá hạn/ }).click();
+  await expect(page.getByText(/Tự động hủy vì đã quá ngày chụp dự kiến/).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Duyệt yêu cầu', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Gắn thợ', exact: true })).toHaveCount(0);
+  await page.getByRole('link', { name: '← Quay lại danh sách' }).click();
+  await expect(page).toHaveURL(/\/workflow-bookings\?view=cancelled$/);
+  await page.getByRole('combobox', { name: 'Trạng thái đơn' }).selectOption('pending');
+  await expect(page.getByRole('heading', { name: '12A1 Phân công' })).toBeVisible();
+  await noHorizontalOverflow(page);
+  await page.screenshot({
+    path: path.join(evidence, '05-unified-orders-desktop.png'),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 360, height: 800 });
+  await noHorizontalOverflow(page);
+  await page.screenshot({
+    path: path.join(evidence, '06-unified-orders-mobile.png'),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.getByRole('link', { name: /12A1 Phân công/ }).click();
+  await expect(page).toHaveURL(new RegExp(`/workflow-bookings/${bookingId}$`));
+  await page.getByRole('link', { name: '← Quay lại danh sách' }).click();
+  await expect(page).toHaveURL(/\/workflow-bookings\?view=pending$/);
   await page.goto(`/booking-requests/${bookingId}`);
+  await expect(page).toHaveURL(new RegExp(`/workflow-bookings/${bookingId}$`));
   await page.getByRole('button', { name: 'Gắn thợ' }).click();
   await expect(page.getByRole('checkbox', { name: /Minh/ })).toBeEnabled();
   await expect(page.getByRole('checkbox', { name: /Hà/ })).toBeDisabled();
@@ -125,4 +181,10 @@ test('admin assigns an available photographer; staff manages busy time; customer
   await expect(page.getByText('Thợ hỗ trợ: Lan · thợ hỗ trợ', { exact: true })).toBeVisible();
   await noHorizontalOverflow(page);
   await page.screenshot({ path: path.join(evidence, '04-customer-mobile.png'), fullPage: true });
+  await page.goto(`/account/bookings/${expiredBookingId}`);
+  await expect(page.getByText(/Tự động hủy vì đã quá ngày chụp dự kiến/).first()).toBeVisible();
+  await page.screenshot({
+    path: path.join(evidence, '09-expired-intake-customer.png'),
+    fullPage: true,
+  });
 });

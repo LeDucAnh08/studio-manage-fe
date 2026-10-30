@@ -22,12 +22,16 @@ import { fetchDashboardStats } from '../store/slices/dashboardSlice';
 import { fetchUsers } from '../store/slices/usersSlice';
 import {
   Badge,
+  Button,
   Card,
   CardContent,
   Combobox,
   DataTable,
+  FormField,
+  PageHeader,
   PageLoader,
   SegmentedControl,
+  StatCard,
 } from '@/components/ui';
 import type { Column } from '@/components/ui';
 import { cn } from '@/lib/utils';
@@ -39,13 +43,23 @@ const DashboardPage = () => {
   const showFinance = user?.roles.some((r) => r === 0 || r === 1 || r === 2 || r === 5) ?? false;
 
   const dispatch = useAppDispatch();
-  const { stats } = useAppSelector((s) => s.dashboard);
+  const { stats, error } = useAppSelector((s) => s.dashboard);
   const { list: users } = useAppSelector((s) => s.users);
   const { selectedSeasonId, list: seasons } = useAppSelector((s) => s.seasons);
 
   const [scheduleViewMode, setScheduleViewMode] = useState<'table' | 'calendar'>('table');
   const [filterUserId, setFilterUserId] = useState('');
   const [chartView, setChartView] = useState<'day' | 'month'>('month');
+  const [reducedMotion, setReducedMotion] = useState(
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(media.matches);
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
 
   const selectedSeason = useMemo(
     () => seasons.find((s) => s._id === selectedSeasonId),
@@ -78,7 +92,24 @@ const DashboardPage = () => {
     [stats?.upcomingSchedules],
   );
 
-  if (!stats) return <PageLoader />;
+  const retryStats = () =>
+    dispatch(
+      fetchDashboardStats({
+        userId: filterUserId || undefined,
+        season: selectedSeasonId || undefined,
+      }),
+    );
+  if (!stats)
+    return error ? (
+      <div role="alert" className="rounded-lg border bg-card p-4 space-y-3">
+        <p>Không tải được dashboard.</p>
+        <Button variant="outline" onClick={retryStats}>
+          Thử lại
+        </Button>
+      </div>
+    ) : (
+      <PageLoader />
+    );
 
   const { totals, daily, customerCount, scheduleCount, showSchedules, upcomingSchedules } = stats;
 
@@ -138,35 +169,35 @@ const DashboardPage = () => {
     {
       label: 'Lớp mới',
       value: customerCount,
-      color: 'text-blue-600',
+      color: 'text-foreground',
       link: '/customers',
       show: showTotalCustomers,
     },
     {
       label: 'Lịch chụp',
       value: scheduleCount,
-      color: 'text-violet-600',
+      color: 'text-foreground',
       link: '/schedules',
       show: showSchedules,
     },
     {
       label: 'Tổng thu',
       value: formatCurrency(totals.income),
-      color: 'text-emerald-600',
+      color: 'staff-ink-success',
       link: '/manage/finance',
       show: showFinance,
     },
     {
       label: 'Tổng chi',
       value: formatCurrency(totals.expense),
-      color: 'text-rose-600',
+      color: 'staff-ink-danger',
       link: '/manage/finance',
       show: showFinance,
     },
     {
       label: 'Chênh lệch thu–chi',
       value: formatCurrency(totals.profit),
-      color: totals.profit >= 0 ? 'text-emerald-600' : 'text-rose-600',
+      color: totals.profit >= 0 ? 'staff-ink-success' : 'staff-ink-danger',
       link: '/manage/finance',
       show: showFinance,
     },
@@ -227,10 +258,22 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div role="alert" className="rounded-lg border bg-card p-4 space-y-3">
+          <p>Chưa cập nhật được số liệu. Đang hiển thị lần tải gần nhất.</p>
+          <Button variant="outline" onClick={retryStats}>
+            Thử lại
+          </Button>
+        </div>
+      )}
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold">Xin chào, {displayName}!</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Chúc bạn một ngày làm việc tốt lành!</p>
+        <PageHeader
+          as="h1"
+          title={`Xin chào, ${displayName}!`}
+          description="Chúc bạn một ngày làm việc tốt lành!"
+          className="mb-1"
+        />
         <p className="text-sm text-muted-foreground mt-0.5">
           {new Date().toLocaleDateString('vi-VN', {
             weekday: 'long',
@@ -243,8 +286,8 @@ const DashboardPage = () => {
 
       {/* Season banner */}
       {selectedSeason ? (
-        <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 px-4 py-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="text-sm font-semibold text-blue-600">{selectedSeason.name}</span>
+        <div className="rounded-lg border bg-card px-4 py-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="text-sm font-semibold">{selectedSeason.name}</span>
           <span className="text-xs text-muted-foreground">
             {formatDate(selectedSeason.startDate)} – {formatDate(selectedSeason.endDate)}
           </span>
@@ -258,20 +301,24 @@ const DashboardPage = () => {
       {/* Admin user filter */}
       {isAdmin && (
         <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">
-              Xem theo người:
-            </span>
-            <div className="flex-1 max-w-xs">
+          <CardContent className="p-4 flex flex-wrap items-end gap-3">
+            <FormField
+              label="Xem theo người"
+              htmlFor="dashboard-user"
+              className="w-full sm:max-w-xs"
+            >
               <Combobox
+                id="dashboard-user"
                 options={users.map((u) => ({ value: u._id, label: u.name ?? u.username }))}
                 value={filterUserId}
                 onChange={setFilterUserId}
                 placeholder="Tất cả"
               />
-            </div>
+            </FormField>
             {selectedUserName && (
-              <span className="text-sm text-blue-600 font-medium">— {selectedUserName}</span>
+              <span className="text-sm text-muted-foreground font-medium">
+                — {selectedUserName}
+              </span>
             )}
           </CardContent>
         </Card>
@@ -282,19 +329,7 @@ const DashboardPage = () => {
         {cards
           .filter((c) => c.show)
           .map((c) => (
-            <Link
-              key={c.label}
-              to={c.link}
-              className="rounded-xl border bg-card px-4 py-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group"
-            >
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide leading-none">
-                {c.label}
-              </p>
-              <p className={cn('text-2xl font-bold mt-2 tabular-nums', c.color)}>{c.value}</p>
-              <div className="mt-2 text-xs text-muted-foreground/60 group-hover:text-muted-foreground/80 transition-colors">
-                Xem chi tiết →
-              </div>
-            </Link>
+            <StatCard key={c.label} to={c.link} label={c.label} value={c.value} color={c.color} />
           ))}
       </div>
 
@@ -303,7 +338,7 @@ const DashboardPage = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <h3 className="text-base font-semibold">Biểu đồ thu chi</h3>
+              <h2 className="text-lg font-semibold">Biểu đồ thu chi</h2>
               <SegmentedControl
                 value={chartView}
                 onChange={setChartView}
@@ -317,19 +352,19 @@ const DashboardPage = () => {
             {/* Legend */}
             <div className="mb-3 flex flex-wrap items-center gap-4 px-1">
               <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="h-2.5 w-2.5 rounded-sm bg-emerald-400" />
+                <span className="staff-chart-key staff-chart-key--income" />
                 Thu
               </span>
               <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="h-2.5 w-2.5 rounded-sm bg-rose-400" />
+                <span className="staff-chart-key staff-chart-key--expense" />
                 Chi
               </span>
               <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="h-2.5 w-2.5 rounded-full bg-blue-400" />
+                <span className="staff-chart-key staff-chart-key--difference" />
                 Chênh lệch thu–chi
               </span>
               <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="h-2.5 w-2.5 rounded-full bg-violet-400" />
+                <span className="staff-chart-key staff-chart-key--cumulative" />
                 Chênh lệch lũy kế
               </span>
             </div>
@@ -339,26 +374,19 @@ const DashboardPage = () => {
                 Không có dữ liệu tài chính trong khoảng thời gian này.
               </p>
             ) : (
-              <div className="rounded-2xl p-3 border border-border/60 bg-gradient-to-br from-blue-500/5 via-transparent to-violet-500/5">
+              <div
+                className="staff-chart rounded-lg p-2 border"
+                aria-label="Biểu đồ thu, chi, chênh lệch và chênh lệch lũy kế"
+              >
                 <ResponsiveContainer width="100%" height={300}>
                   <ComposedChart
                     data={chartData}
                     margin={{ top: 12, right: 20, left: 8, bottom: 4 }}
                   >
-                    <defs>
-                      <linearGradient id="barIncome" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#34d399" />
-                        <stop offset="100%" stopColor="#10b981" />
-                      </linearGradient>
-                      <linearGradient id="barExpense" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#fb7185" />
-                        <stop offset="100%" stopColor="#ef4444" />
-                      </linearGradient>
-                    </defs>
                     <CartesianGrid
                       vertical={false}
                       strokeDasharray="3 8"
-                      stroke="rgba(148,163,184,0.22)"
+                      stroke="hsl(var(--border))"
                     />
                     <XAxis
                       dataKey="name"
@@ -396,43 +424,66 @@ const DashboardPage = () => {
                       }
                       cursor={{ fill: 'rgba(148,163,184,0.08)' }}
                       contentStyle={{
-                        background: 'rgba(15, 23, 42, 0.88)',
-                        border: '1px solid rgba(148,163,184,0.3)',
-                        borderRadius: '12px',
-                        boxShadow: '0 10px 28px rgba(15,23,42,0.4)',
-                        backdropFilter: 'blur(12px)',
+                        background: 'hsl(var(--popover))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: 'var(--modal-shadow)',
                       }}
-                      labelStyle={{ fontWeight: 700, color: '#e2e8f0' }}
-                      itemStyle={{ color: '#cbd5e1' }}
+                      labelStyle={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}
+                      itemStyle={{ color: 'hsl(var(--foreground))' }}
                     />
                     <Bar
                       dataKey="Thu"
-                      fill="url(#barIncome)"
+                      fill="var(--staff-chart-income)"
+                      isAnimationActive={!reducedMotion}
                       radius={[4, 4, 0, 0]}
                       maxBarSize={36}
                     />
                     <Bar
                       dataKey="Chi"
-                      fill="url(#barExpense)"
+                      fill="var(--staff-chart-expense)"
+                      isAnimationActive={!reducedMotion}
                       radius={[4, 4, 0, 0]}
                       maxBarSize={36}
                     />
                     <Line
                       type="monotone"
                       dataKey="Chênh lệch thu–chi"
-                      stroke="#60a5fa"
+                      stroke="var(--staff-chart-difference)"
+                      isAnimationActive={!reducedMotion}
                       strokeWidth={2.5}
                       strokeDasharray="5 3"
-                      dot={{ r: 3, strokeWidth: 1.5, stroke: '#60a5fa', fill: '#0f172a' }}
-                      activeDot={{ r: 5, strokeWidth: 2, stroke: '#60a5fa', fill: '#eff6ff' }}
+                      dot={{
+                        r: 3,
+                        strokeWidth: 1.5,
+                        stroke: 'var(--staff-chart-difference)',
+                        fill: 'hsl(var(--card))',
+                      }}
+                      activeDot={{
+                        r: 5,
+                        strokeWidth: 2,
+                        stroke: 'var(--staff-chart-difference)',
+                        fill: 'hsl(var(--card))',
+                      }}
                     />
                     <Line
                       type="monotone"
                       dataKey="Chênh lệch lũy kế"
-                      stroke="#a78bfa"
+                      stroke="var(--staff-chart-cumulative)"
+                      isAnimationActive={!reducedMotion}
                       strokeWidth={3}
-                      dot={{ r: 3, strokeWidth: 1.5, stroke: '#a78bfa', fill: '#0f172a' }}
-                      activeDot={{ r: 5, strokeWidth: 2, stroke: '#a78bfa', fill: '#f5f3ff' }}
+                      dot={{
+                        r: 3,
+                        strokeWidth: 1.5,
+                        stroke: 'var(--staff-chart-cumulative)',
+                        fill: 'hsl(var(--card))',
+                      }}
+                      activeDot={{
+                        r: 5,
+                        strokeWidth: 2,
+                        stroke: 'var(--staff-chart-cumulative)',
+                        fill: 'hsl(var(--card))',
+                      }}
                     />
                   </ComposedChart>
                 </ResponsiveContainer>
@@ -447,8 +498,8 @@ const DashboardPage = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-              <h3 className="text-base font-semibold">Lịch chụp sắp tới</h3>
-              <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold">Lịch chụp sắp tới</h2>
+              <div className="flex flex-wrap items-center gap-3">
                 <SegmentedControl
                   value={scheduleViewMode}
                   onChange={setScheduleViewMode}
@@ -465,7 +516,7 @@ const DashboardPage = () => {
                     },
                   ]}
                 />
-                <Link to="/schedules" className="text-sm text-blue-600 hover:underline">
+                <Link to="/schedules" className="text-sm text-primary hover:underline">
                   Xem tất cả →
                 </Link>
               </div>
@@ -479,6 +530,7 @@ const DashboardPage = () => {
               <>
                 <div className="hidden md:block overflow-x-auto">
                   <DataTable<UpcomingSchedule>
+                    aria-label="Lịch chụp sắp tới"
                     variant="plain"
                     data={upcomingSchedules as UpcomingSchedule[]}
                     keyExtractor={(s) => s._id}

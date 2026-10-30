@@ -1,6 +1,6 @@
 import api from './api';
 import type { ApiResponse, PaginatedApiResponse } from '../types';
-import type { Booking } from './bookingService';
+import type { Booking, BookingStatus } from './bookingService';
 import type { AssignedPhotographer } from './photographerService';
 
 export type BookingWorkflowLifecycle =
@@ -81,7 +81,9 @@ export interface AllowedWorkflowCostume {
 export interface BookingWorkflowDto {
   booking: Pick<Booking, 'costumeSelections' | 'costumeHold'> & {
     _id: string;
-    status: 'pending' | 'approved' | 'rejected';
+    status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+    cancelledAt?: string;
+    cancellationReason?: string;
     packageName: string;
     pricePerMember?: number;
     members: number;
@@ -217,7 +219,7 @@ export interface WorkflowSummary {
   startTime?: string;
   shootDate: string | null;
   updatedAt: string;
-  bookingStatus: 'pending' | 'approved' | 'rejected';
+  bookingStatus: 'pending' | 'approved' | 'rejected' | 'cancelled';
   progressStatus?: string;
   payment?: { netReceived: number; totalDue: number; refundDue?: number };
 }
@@ -255,11 +257,11 @@ export interface WorkflowPage {
 }
 
 export const bookingWorkflowService = {
-  list: (page = 1, limit = 20, view: CustomerOrderView = '') =>
+  list: (page = 1, limit = 20, view: CustomerOrderView = '', status: BookingStatus | '' = '') =>
     api
       .get<
         PaginatedApiResponse<WorkflowSummary>
-      >('/workflows', { params: { page, limit, ...(view ? { view } : {}) } })
+      >('/workflows', { params: { page, limit, ...(view ? { view } : {}), ...(status ? { status } : {}) } })
       .then((response) => response.data),
   get: (id: string) =>
     api

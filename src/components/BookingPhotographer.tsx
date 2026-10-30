@@ -31,7 +31,7 @@ export function BookingPhotographer({
   const key = availabilityKey(window.startAt, window.endAt, booking._id, workflow.version);
   const canEdit =
     admin &&
-    booking.status !== 'rejected' &&
+    !['rejected', 'cancelled'].includes(booking.status) &&
     ['intake', 'quoting', 'awaiting_deposit', 'ready_to_confirm', 'confirmed'].includes(
       workflow.lifecycle,
     ) &&
@@ -76,10 +76,16 @@ export function BookingPhotographer({
         )}
       </div>
       <p className="text-sm text-muted-foreground">
-        Thợ phụ trách chăm khách và làm thợ chính.{' '}
-        {workflow.resources?.scheduleId
-          ? 'Lịch chụp đã được xác nhận.'
-          : 'Phân công này chưa giữ khung giờ chụp; studio kiểm tra lại khi chốt lịch.'}
+        {booking.status === 'cancelled' || workflow.lifecycle === 'cancelled' ? (
+          'Đơn đã hủy. Thông tin phân công được giữ để tra cứu.'
+        ) : (
+          <>
+            Thợ phụ trách chăm khách và làm thợ chính.{' '}
+            {workflow.resources?.scheduleId
+              ? 'Lịch chụp đã được xác nhận.'
+              : 'Phân công này chưa giữ khung giờ chụp; studio kiểm tra lại khi chốt lịch.'}
+          </>
+        )}
       </p>
       {editing && canEdit && (
         <>

@@ -35,7 +35,7 @@ export function BookingCostumeSummary({
       </ul>
       {hold && (
         <p>
-          Khoảng ngày giữ: {day(hold.receiveDate)} – {day(hold.returnDate)} (giờ Việt Nam)
+          Khoảng ngày giữ: {day(hold.receiveDate)} – {day(hold.returnDate)}
         </p>
       )}
       {status === 'temporary' && hold?.expiresAt && (

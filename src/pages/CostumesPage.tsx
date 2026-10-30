@@ -24,7 +24,6 @@ import {
   Textarea,
 } from '@/components/ui';
 import type { Column } from '@/components/ui';
-import { cn } from '@/lib/utils';
 
 interface CostumeFormValues {
   name: string;
@@ -83,6 +82,7 @@ const CostumesPage = () => {
   const [costumes, setCostumes] = useState<CostumeResponse[]>([]);
   const [costumeTypes, setCostumeTypes] = useState<CostumeType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<CostumeResponse | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -100,9 +100,13 @@ const CostumesPage = () => {
   const isRentalEnabled = watch('isRentalItem');
 
   const load = async () => {
+    setLoading(true);
+    setLoadError(false);
     try {
       const data = await costumeService.getAll();
       setCostumes(data);
+    } catch {
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -200,9 +204,7 @@ const CostumesPage = () => {
             {c.type && <Badge variant="outline">{getTypeName(c.type)}</Badge>}
             <span className="text-xs text-muted-foreground">{GENDER_LABEL[c.gender] ?? '—'}</span>
           </div>
-          {c.description && (
-            <p className="line-clamp-1 text-xs text-muted-foreground">{c.description}</p>
-          )}
+          {c.description && <p className="text-sm text-muted-foreground">{c.description}</p>}
         </div>
       ),
     },
@@ -214,7 +216,7 @@ const CostumesPage = () => {
           <Badge variant={c.isRentalItem ? 'default' : 'outline'}>
             {c.isRentalItem ? 'Đang mở' : 'Nội bộ'}
           </Badge>
-          <p className="text-xs font-medium">
+          <p className="text-sm font-medium tabular-nums">
             {c.isRentalItem
               ? c.rentalDailyPrice
                 ? `${formatVnd(c.rentalDailyPrice)}/ngày`
@@ -226,20 +228,20 @@ const CostumesPage = () => {
     },
     {
       key: 'inventory',
-      header: 'Kích cỡ sẵn sàng',
+      header: 'Tồn tốt theo kích cỡ',
       render: (c) => (
         <div className="min-w-40 space-y-1">
           {(() => {
             const summary = summarizeInventory(c.inventory);
             return (
               <>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground tabular-nums">
                   {summary.ready.length
                     ? summary.ready.map((entry) => `${entry.size} × ${entry.quantity}`).join(' · ')
-                    : 'Chưa có cỡ sẵn sàng'}
+                    : 'Chưa có tồn tốt'}
                 </p>
                 {summary.needsCare > 0 && (
-                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                  <p className="text-sm staff-ink-warning">
                     {summary.needsCare} sản phẩm cần xử lý
                   </p>
                 )}
@@ -251,18 +253,25 @@ const CostumesPage = () => {
     },
     {
       key: 'actions',
-      header: '',
+      header: 'Thao tác',
       align: 'right',
       className: 'whitespace-nowrap',
       render: (c) => (
-        <span className="space-x-2">
-          <Button variant="outline" size="sm" className="min-h-10 px-3" onClick={() => openEdit(c)}>
+        <span className="staff-row-actions">
+          <Button
+            variant="link"
+            size="sm"
+            className="staff-row-action"
+            aria-label={`Sửa mặt hàng ${c.name}`}
+            onClick={() => openEdit(c)}
+          >
             Sửa
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="min-h-10 px-3 text-destructive"
+            className="staff-row-action text-destructive"
+            aria-label={`Xoá mặt hàng ${c.name}`}
             onClick={() => setConfirmId(c._id)}
           >
             Xoá
@@ -273,11 +282,11 @@ const CostumesPage = () => {
   ];
 
   return (
-    <div>
+    <div className="staff-inventory">
       <PageHeader
-        kicker="Settings"
+        as="h1"
         title="Trang phục & phụ kiện"
-        description="Quản lý danh mục dùng trong buổi chụp và thông tin cho thuê."
+        description="Quản lý mặt hàng, giá thuê/ngày và tồn theo tình trạng. Tồn tốt chưa trừ các phần giữ theo ngày."
         action={
           <Button variant="gradient" onClick={openCreate}>
             <Plus />
@@ -286,8 +295,19 @@ const CostumesPage = () => {
         }
       />
 
+      {loadError && (
+        <div role="alert" className="rounded-lg border bg-card p-4 mb-4">
+          <p>Không tải được danh sách mặt hàng.</p>
+          <Button className="mt-3" variant="outline" onClick={load}>
+            Thử lại
+          </Button>
+        </div>
+      )}
+
       <div className="hidden md:block">
         <DataTable<CostumeResponse>
+          aria-label="Kho trang phục và phụ kiện"
+          className="staff-inventory-table"
           loading={loading}
           data={costumes}
           keyExtractor={(c) => c._id}
@@ -310,21 +330,13 @@ const CostumesPage = () => {
           </div>
         ) : (
           costumes.map((c) => {
-            const genderStyle =
-              c.gender === 'male'
-                ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
-                : c.gender === 'female'
-                  ? 'bg-pink-500/15 text-pink-600 dark:text-pink-400'
-                  : 'bg-purple-500/15 text-purple-600 dark:text-purple-400';
             return (
               <div key={c._id} className="rounded-xl border bg-card p-4">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="min-w-0 flex-1">
-                    <div className="font-semibold truncate">{c.name}</div>
+                    <div className="font-semibold break-words">{c.name}</div>
                     <div className="flex flex-wrap gap-1.5 mt-1">
-                      <Badge variant="outline" className={cn('border-transparent', genderStyle)}>
-                        {GENDER_LABEL[c.gender] ?? '—'}
-                      </Badge>
+                      <Badge variant="outline">{GENDER_LABEL[c.gender] ?? '—'}</Badge>
                       {c.type && <Badge variant="outline">{getTypeName(c.type)}</Badge>}
                       <Badge variant="outline">{ITEM_KIND_LABEL[c.itemKind ?? 'clothing']}</Badge>
                       <Badge variant={c.isRentalItem ? 'default' : 'outline'}>
@@ -334,12 +346,12 @@ const CostumesPage = () => {
                   </div>
                 </div>
                 {c.isRentalItem && (
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-medium tabular-nums">
                     Giá thuê/ngày:{' '}
                     {c.rentalDailyPrice ? formatVnd(c.rentalDailyPrice) : 'Chờ báo giá theo ngày'}
                   </p>
                 )}
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-2 text-sm text-muted-foreground">
                   {c.inventory?.length
                     ? c.inventory
                         .map(
@@ -357,6 +369,7 @@ const CostumesPage = () => {
                     variant="outline"
                     size="sm"
                     className="min-h-11 flex-1"
+                    aria-label={`Sửa mặt hàng ${c.name}`}
                     onClick={() => openEdit(c)}
                   >
                     Sửa
@@ -384,9 +397,15 @@ const CostumesPage = () => {
           if (!open) setSubmitError('');
         }}
         title={editing ? 'Sửa trang phục / phụ kiện' : 'Thêm trang phục / phụ kiện'}
+        description="Thông tin mặt hàng, giá thuê và tồn kho. Số lượng giữ theo kỳ được kiểm tra khi phân bổ."
         size="lg"
       >
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          noValidate
+          aria-busy={isSubmitting}
+          className="staff-form space-y-4"
+        >
           {submitError && (
             <p
               role="alert"
@@ -671,7 +690,7 @@ const CostumesPage = () => {
               )}
             </div>
           </section>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="staff-modal-footer flex justify-end gap-2 pt-2">
             <Button
               type="button"
               variant="outline"
@@ -681,7 +700,7 @@ const CostumesPage = () => {
               Huỷ
             </Button>
             <Button type="submit" variant="gradient" className="min-h-11" disabled={isSubmitting}>
-              Lưu
+              {isSubmitting ? 'Đang lưu…' : 'Lưu'}
             </Button>
           </div>
         </form>

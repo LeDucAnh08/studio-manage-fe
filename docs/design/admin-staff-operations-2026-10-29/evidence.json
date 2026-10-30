@@ -1,0 +1,114 @@
+{
+  "date": "2026-10-29",
+  "source": "Native IAB screenshots, original JPEG bytes",
+  "images": [
+    {
+      "file": "01-schedules-dark.jpg",
+      "width": 1434,
+      "height": 996,
+      "bytes": 132523
+    },
+    {
+      "file": "02-schedule-detail-dark.jpg",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 56768
+    },
+    {
+      "file": "03-dashboard-dark.jpg",
+      "width": 1434,
+      "height": 996,
+      "bytes": 84627
+    },
+    {
+      "file": "04-finance-summary-dark.jpg",
+      "width": 1434,
+      "height": 996,
+      "bytes": 109979
+    },
+    {
+      "file": "05-reports-finance-dark.jpg",
+      "width": 1434,
+      "height": 996,
+      "bytes": 123656
+    },
+    {
+      "file": "06-reports-inventory-dark.jpg",
+      "width": 1434,
+      "height": 996,
+      "bytes": 105885
+    },
+    {
+      "file": "07-inventory-dark.jpg",
+      "width": 1434,
+      "height": 996,
+      "bytes": 141498
+    },
+    {
+      "file": "08-inventory-form-mobile.jpg",
+      "width": 390,
+      "height": 844,
+      "bytes": 36957
+    },
+    {
+      "file": "09-categories-mobile.jpg",
+      "width": 384,
+      "height": 831,
+      "bytes": 28469
+    },
+    {
+      "file": "10-calendar-mobile.jpg",
+      "width": 384,
+      "height": 831,
+      "bytes": 31065
+    },
+    {
+      "file": "11-calendar-light-1280.jpg",
+      "width": 1274,
+      "height": 995,
+      "bytes": 77618
+    },
+    {
+      "file": "12-dashboard-light-768.jpg",
+      "width": 762,
+      "height": 992,
+      "bytes": 57754
+    },
+    {
+      "file": "13-photographer-light.jpg",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 62152
+    },
+    {
+      "file": "14-accountant-finance-light.jpg",
+      "width": 1434,
+      "height": 996,
+      "bytes": 116126
+    },
+    {
+      "file": "15-reports-light-mobile.jpg",
+      "width": 384,
+      "height": 831,
+      "bytes": 38955
+    },
+    {
+      "file": "16-type-validation-light.jpg",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 37171
+    },
+    {
+      "file": "17-inventory-light.jpg",
+      "width": 1434,
+      "height": 996,
+      "bytes": 138834
+    },
+    {
+      "file": "18-customer-guard.jpg",
+      "width": 1434,
+      "height": 996,
+      "bytes": 69216
+    }
+  ]
+}

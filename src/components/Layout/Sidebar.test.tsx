@@ -1,13 +1,13 @@
 import { useRef, useState } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Sidebar from './Sidebar';
 
-const mocks = vi.hoisted(() => ({ dispatch: vi.fn(), roles: [0, 1] }));
+const mocks = vi.hoisted(() => ({ dispatch: vi.fn(), roles: [0, 1], logout: vi.fn() }));
 
 vi.mock('../../context/AuthContext', () => ({
-  useAuth: () => ({ user: { name: 'Quản trị viên', roles: mocks.roles }, logout: vi.fn() }),
+  useAuth: () => ({ user: { name: 'Quản trị viên', roles: mocks.roles }, logout: mocks.logout }),
 }));
 
 vi.mock('../../context/ThemeContext', () => ({
@@ -39,6 +39,24 @@ describe('Sidebar navigation', () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
+  it('logs the admin out and opens the shared customer login', () => {
+    const onClose = vi.fn();
+    render(
+      <MemoryRouter initialEntries={['/manage/finance']}>
+        <Routes>
+          <Route path="/manage/finance" element={<Sidebar isOpen onClose={onClose} />} />
+          <Route path="/login" element={<h1>Đăng nhập chung</h1>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng xuất →' }));
+
+    expect(mocks.logout).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'Đăng nhập chung' })).toBeInTheDocument();
+  });
+
   it('labels the season control and preserves the photographer navigation', () => {
     mocks.roles = [3];
     render(
@@ -52,6 +70,24 @@ describe('Sidebar navigation', () => {
     expect(screen.queryByRole('link', { name: 'Đơn thuê' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Yume Studio' })).not.toBeInTheDocument();
   });
+  it.each([{ roles: [0] }, { roles: [3] }, { roles: [5] }])(
+    'shows one photography workspace for roles $roles',
+    ({ roles }) => {
+      mocks.roles = roles;
+      render(
+        <MemoryRouter>
+          <Sidebar isOpen onClose={vi.fn()} />
+        </MemoryRouter>,
+      );
+      expect(screen.getAllByRole('link', { name: 'Đơn chụp ảnh' })).toHaveLength(1);
+      expect(screen.getByRole('link', { name: 'Đơn chụp ảnh' })).toHaveAttribute(
+        'href',
+        '/workflow-bookings',
+      );
+      expect(screen.queryByRole('link', { name: 'Yêu cầu đặt dịch vụ' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Quy trình dịch vụ' })).not.toBeInTheDocument();
+    },
+  );
 
   it('removes closed mobile navigation from the DOM, focuses the drawer and restores its trigger on Escape', async () => {
     vi.spyOn(window, 'matchMedia').mockImplementation((query) => ({

@@ -28,6 +28,7 @@ import {
   Label,
   Modal,
   PageHeader,
+  Pagination,
   Select,
   SelectContent,
   SelectItem,
@@ -65,7 +66,13 @@ const FinancePage = () => {
   const canRefund = user?.roles.some((r) => r === 5) ?? false;
 
   const dispatch = useAppDispatch();
-  const { list: transactions, total, summary, loading } = useAppSelector((s) => s.transactions);
+  const {
+    list: transactions,
+    total,
+    summary,
+    loading,
+    error,
+  } = useAppSelector((s) => s.transactions);
   const { list: customers } = useAppSelector((s) => s.customers);
   const { list: categories } = useAppSelector((s) => s.categories);
   const { list: users } = useAppSelector((s) => s.users);
@@ -84,7 +91,7 @@ const FinancePage = () => {
     reset,
     watch,
     control,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = useForm<Partial<Transaction>>();
 
   const selectedType = watch('type');
@@ -219,6 +226,18 @@ const FinancePage = () => {
     }),
     { income: 0, expense: 0, profit: 0 },
   );
+  const transactionDescription = (t: TransactionResponse) =>
+    [formatDate(t.date), t.categoryId?.name, formatCurrency(t.amount)].filter(Boolean).join(' · ');
+  const pagination = {
+    page,
+    pageSize,
+    total,
+    onPageChange: setPage,
+    onPageSizeChange: (size: number) => {
+      setPageSize(size);
+      setPage(1);
+    },
+  };
 
   const txColumns: Column<TransactionResponse>[] = [
     { key: 'date', header: 'Ngày', render: (t) => formatDate(t.date) },
@@ -230,9 +249,7 @@ const FinancePage = () => {
           variant="outline"
           className={cn(
             'border-transparent',
-            t.type === 'income'
-              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-              : 'bg-rose-500/15 text-rose-600 dark:text-rose-400',
+            t.type === 'income' ? 'staff-status--success' : 'staff-status--danger',
           )}
         >
           {t.type === 'income' ? 'Thu' : 'Chi'}
@@ -269,7 +286,10 @@ const FinancePage = () => {
       align: 'right',
       render: (t) => (
         <span
-          className={cn('font-medium', t.type === 'income' ? 'text-emerald-600' : 'text-rose-600')}
+          className={cn(
+            'font-medium tabular-nums whitespace-nowrap',
+            t.type === 'income' ? 'staff-ink-success' : 'staff-ink-danger',
+          )}
         >
           {t.type === 'expense' ? '-' : '+'}
           {formatCurrency(t.amount)}
@@ -282,6 +302,7 @@ const FinancePage = () => {
       align: 'center',
       render: (t) => (
         <Checkbox
+          aria-label={`Kế toán đã hoàn tiền: ${transactionDescription(t)}`}
           checked={!!t.accountantRefunded}
           disabled={!canRefund}
           onCheckedChange={(c) => toggleRefund(t, !!c)}
@@ -290,14 +311,15 @@ const FinancePage = () => {
     },
     {
       key: 'actions',
-      header: '',
+      header: 'Thao tác',
       align: 'right',
       render: (t) => (
-        <span className="space-x-2">
+        <span className="staff-row-actions">
           <Button
             variant="link"
             size="sm"
-            className="h-auto p-0 text-xs"
+            className="staff-row-action"
+            aria-label={`Sửa giao dịch ${transactionDescription(t)}`}
             onClick={() => openEdit(t)}
           >
             Sửa
@@ -305,7 +327,8 @@ const FinancePage = () => {
           <Button
             variant="link"
             size="sm"
-            className="h-auto p-0 text-xs text-destructive"
+            className="staff-row-action text-destructive"
+            aria-label={`Xoá giao dịch ${transactionDescription(t)}`}
             onClick={() => setConfirmId(t._id)}
           >
             Xoá
@@ -331,22 +354,24 @@ const FinancePage = () => {
     },
     {
       key: 'income',
-      header: <span className="text-emerald-600">Tổng thu</span>,
+      header: <span className="staff-ink-success">Tổng thu</span>,
       align: 'right',
-      render: (row) => <span className="text-emerald-600">{formatCurrency(row.income)}</span>,
+      render: (row) => <span className="staff-ink-success">{formatCurrency(row.income)}</span>,
     },
     {
       key: 'expense',
-      header: <span className="text-rose-600">Tổng chi</span>,
+      header: <span className="staff-ink-danger">Tổng chi</span>,
       align: 'right',
-      render: (row) => <span className="text-rose-600">{formatCurrency(row.expense)}</span>,
+      render: (row) => <span className="staff-ink-danger">{formatCurrency(row.expense)}</span>,
     },
     {
       key: 'profit',
       header: 'Lợi nhuận',
       align: 'right',
       render: (row) => (
-        <span className={cn('font-medium', row.profit >= 0 ? 'text-emerald-600' : 'text-rose-600')}>
+        <span
+          className={cn('font-medium', row.profit >= 0 ? 'staff-ink-success' : 'staff-ink-danger')}
+        >
           {formatCurrency(row.profit)}
         </span>
       ),
@@ -354,9 +379,9 @@ const FinancePage = () => {
   ];
 
   return (
-    <div>
+    <div className="staff-finance">
       <PageHeader
-        kicker="Finance"
+        as="h1"
         title="Quản lý Thu Chi"
         description="Theo dõi thu chi, lọc theo lớp, danh mục và khoảng thời gian."
         action={
@@ -366,15 +391,30 @@ const FinancePage = () => {
         }
       />
 
+      {error && (
+        <div role="alert" className="rounded-lg border bg-card p-4 mb-4">
+          <p>Chưa tải được dữ liệu thu chi mới.</p>
+          <Button
+            className="mt-3"
+            variant="outline"
+            onClick={() =>
+              dispatch(fetchTransactions(buildListParams(appliedFilter, page, pageSize)))
+            }
+          >
+            Thử lại
+          </Button>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="rounded-xl border bg-card p-4 mb-5 space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <FormField label="Loại giao dịch">
+          <FormField label="Loại giao dịch" htmlFor="finance-filter-type">
             <Select
               value={filter.type || ALL}
               onValueChange={(v) => setFilter((f) => ({ ...f, type: v === ALL ? '' : v }))}
             >
-              <SelectTrigger>
+              <SelectTrigger id="finance-filter-type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -384,8 +424,9 @@ const FinancePage = () => {
               </SelectContent>
             </Select>
           </FormField>
-          <FormField label="Lớp">
+          <FormField label="Lớp" htmlFor="finance-filter-class">
             <Combobox
+              id="finance-filter-class"
               options={[
                 { value: '', label: 'Tất cả lớp' },
                 ...customers.map((c) => ({
@@ -398,8 +439,13 @@ const FinancePage = () => {
               placeholder="Tất cả lớp"
             />
           </FormField>
-          <FormField label="Danh mục" className="col-span-2 md:col-span-1">
+          <FormField
+            label="Danh mục"
+            htmlFor="finance-filter-category"
+            className="col-span-2 md:col-span-1"
+          >
             <Combobox
+              id="finance-filter-category"
               options={[
                 { value: '', label: 'Tất cả danh mục' },
                 ...categories.map((c) => ({ value: c._id, label: c.name })),
@@ -413,8 +459,9 @@ const FinancePage = () => {
 
         {canRefund && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <FormField label="Người thực hiện">
+            <FormField label="Người thực hiện" htmlFor="finance-filter-user">
               <Combobox
+                id="finance-filter-user"
                 options={[
                   { value: '', label: 'Tất cả người thực hiện' },
                   ...users.map((u) => ({ value: u._id, label: u.name ?? u.username })),
@@ -428,15 +475,17 @@ const FinancePage = () => {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-3 items-end">
-          <FormField label="Từ ngày">
+          <FormField label="Từ ngày" htmlFor="finance-filter-from">
             <DatePicker
+              id="finance-filter-from"
               value={filter.dateFrom}
               onChange={(v) => setFilter((f) => ({ ...f, dateFrom: v ?? '' }))}
               placeholder="Từ ngày"
             />
           </FormField>
-          <FormField label="Đến ngày">
+          <FormField label="Đến ngày" htmlFor="finance-filter-to">
             <DatePicker
+              id="finance-filter-to"
               value={filter.dateTo}
               onChange={(v) => setFilter((f) => ({ ...f, dateTo: v ?? '' }))}
               placeholder="Đến ngày"
@@ -463,11 +512,16 @@ const FinancePage = () => {
 
       {/* Tabs */}
       <div className="flex gap-2 mb-4 flex-wrap">
-        <Button variant={tab === 'list' ? 'gradient' : 'outline'} onClick={() => setTab('list')}>
+        <Button
+          aria-pressed={tab === 'list'}
+          variant={tab === 'list' ? 'default' : 'outline'}
+          onClick={() => setTab('list')}
+        >
           Danh sách
         </Button>
         <Button
-          variant={tab === 'summary' ? 'gradient' : 'outline'}
+          variant={tab === 'summary' ? 'default' : 'outline'}
+          aria-pressed={tab === 'summary'}
           onClick={() => setTab('summary')}
         >
           Tổng hợp theo lớp
@@ -481,20 +535,15 @@ const FinancePage = () => {
           <>
             <div className="hidden md:block">
               <DataTable<TransactionResponse>
+                aria-label="Danh sách giao dịch"
+                className="staff-finance-table"
                 data={transactions}
                 keyExtractor={(t) => t._id}
                 emptyTitle="Chưa có dữ liệu"
                 columns={txColumns}
                 pagination={{
                   serverSide: true,
-                  page,
-                  pageSize,
-                  total,
-                  onPageChange: setPage,
-                  onPageSizeChange: (size: number) => {
-                    setPageSize(size);
-                    setPage(1);
-                  },
+                  ...pagination,
                 }}
               />
             </div>
@@ -524,17 +573,15 @@ const FinancePage = () => {
                         variant="outline"
                         className={cn(
                           'border-transparent',
-                          t.type === 'income'
-                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                            : 'bg-rose-500/15 text-rose-600 dark:text-rose-400',
+                          t.type === 'income' ? 'staff-status--success' : 'staff-status--danger',
                         )}
                       >
                         {t.type === 'income' ? 'Thu' : 'Chi'}
                       </Badge>
                       <div
                         className={cn(
-                          'font-semibold text-sm mt-1',
-                          t.type === 'income' ? 'text-emerald-500' : 'text-rose-500',
+                          'font-semibold text-sm mt-1 tabular-nums',
+                          t.type === 'income' ? 'staff-ink-success' : 'staff-ink-danger',
                         )}
                       >
                         {t.type === 'expense' ? '-' : '+'}
@@ -543,7 +590,7 @@ const FinancePage = () => {
                     </div>
                   </div>
                   <div className="flex gap-4 pt-2 border-t items-center">
-                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground mr-auto">
+                    <label className="flex min-h-11 items-center gap-1.5 text-xs text-muted-foreground mr-auto">
                       <Checkbox
                         checked={!!t.accountantRefunded}
                         disabled={!canRefund}
@@ -554,7 +601,8 @@ const FinancePage = () => {
                     <Button
                       variant="link"
                       size="sm"
-                      className="h-auto p-0 text-xs"
+                      className="staff-row-action"
+                      aria-label={`Sửa giao dịch ${transactionDescription(t)}`}
                       onClick={() => openEdit(t)}
                     >
                       Sửa
@@ -562,7 +610,8 @@ const FinancePage = () => {
                     <Button
                       variant="link"
                       size="sm"
-                      className="h-auto p-0 text-xs text-destructive"
+                      className="staff-row-action text-destructive"
+                      aria-label={`Xoá giao dịch ${transactionDescription(t)}`}
                       onClick={() => setConfirmId(t._id)}
                     >
                       Xoá
@@ -575,6 +624,9 @@ const FinancePage = () => {
                   Chưa có dữ liệu
                 </div>
               )}
+              {transactions.length > 0 && (
+                <Pagination {...pagination} className="rounded-lg border bg-card" />
+              )}
             </div>
           </>
         ))}
@@ -583,27 +635,28 @@ const FinancePage = () => {
         <>
           <div className="hidden md:block">
             <DataTable<SummaryRow>
+              aria-label="Tổng hợp thu chi theo lớp"
               data={summary}
               keyExtractor={(row) => row._id ?? 'unknown'}
               emptyTitle="Chưa có dữ liệu"
               columns={summaryColumns}
               pagination
-              footer={
+              tableFooter={
                 summary.length > 0 ? (
                   <tr className="border-t bg-muted/40 font-semibold">
                     <td className="px-3 py-2" colSpan={2}>
                       Tổng cộng
                     </td>
-                    <td className="px-3 py-2 text-right text-emerald-600">
+                    <td className="px-3 py-2 text-right staff-ink-success">
                       {formatCurrency(grandTotal.income)}
                     </td>
-                    <td className="px-3 py-2 text-right text-rose-600">
+                    <td className="px-3 py-2 text-right staff-ink-danger">
                       {formatCurrency(grandTotal.expense)}
                     </td>
                     <td
                       className={cn(
                         'px-3 py-2 text-right',
-                        grandTotal.profit >= 0 ? 'text-emerald-600' : 'text-rose-600',
+                        grandTotal.profit >= 0 ? 'staff-ink-success' : 'staff-ink-danger',
                       )}
                     >
                       {formatCurrency(grandTotal.profit)}
@@ -626,21 +679,25 @@ const FinancePage = () => {
                     <span>{row.customer.school}</span>
                   </div>
                 )}
-                <div className="grid grid-cols-3 gap-2 text-center text-sm">
+                <div className="staff-money-grid grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
                   <div>
                     <div className="text-xs text-muted-foreground">Thu</div>
-                    <div className="text-emerald-500 font-medium">{formatCurrency(row.income)}</div>
+                    <div className="staff-ink-success font-medium">
+                      {formatCurrency(row.income)}
+                    </div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Chi</div>
-                    <div className="text-rose-500 font-medium">{formatCurrency(row.expense)}</div>
+                    <div className="staff-ink-danger font-medium">
+                      {formatCurrency(row.expense)}
+                    </div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Lợi nhuận</div>
                     <div
                       className={cn(
                         'font-semibold',
-                        row.profit >= 0 ? 'text-emerald-500' : 'text-rose-500',
+                        row.profit >= 0 ? 'staff-ink-success' : 'staff-ink-danger',
                       )}
                     >
                       {formatCurrency(row.profit)}
@@ -652,16 +709,16 @@ const FinancePage = () => {
             {summary.length > 0 && (
               <div className="rounded-xl border bg-muted/40 p-4">
                 <div className="font-semibold mb-2">Tổng cộng</div>
-                <div className="grid grid-cols-3 gap-2 text-center text-sm">
+                <div className="staff-money-grid grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
                   <div>
                     <div className="text-xs text-muted-foreground">Thu</div>
-                    <div className="text-emerald-500 font-semibold">
+                    <div className="staff-ink-success font-semibold">
                       {formatCurrency(grandTotal.income)}
                     </div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Chi</div>
-                    <div className="text-rose-500 font-semibold">
+                    <div className="staff-ink-danger font-semibold">
                       {formatCurrency(grandTotal.expense)}
                     </div>
                   </div>
@@ -670,7 +727,7 @@ const FinancePage = () => {
                     <div
                       className={cn(
                         'font-semibold',
-                        grandTotal.profit >= 0 ? 'text-emerald-500' : 'text-rose-500',
+                        grandTotal.profit >= 0 ? 'staff-ink-success' : 'staff-ink-danger',
                       )}
                     >
                       {formatCurrency(grandTotal.profit)}
@@ -692,18 +749,19 @@ const FinancePage = () => {
         open={modalOpen}
         onOpenChange={setModalOpen}
         title={editing ? 'Sửa giao dịch' : 'Thêm giao dịch'}
+        description="Ngày, danh mục và số tiền của giao dịch; giữ nguyên liên kết hồ sơ hiện có."
         size="lg"
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+        <form onSubmit={handleSubmit(onSubmit)} aria-busy={isSubmitting} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="Loại" required>
+            <FormField label="Loại" required htmlFor="finance-type">
               <Controller
                 name="type"
                 control={control}
                 rules={{ required: true }}
                 render={({ field }) => (
                   <Select value={field.value ?? 'income'} onValueChange={field.onChange}>
-                    <SelectTrigger>
+                    <SelectTrigger id="finance-type" aria-required="true">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -714,49 +772,71 @@ const FinancePage = () => {
                 )}
               />
             </FormField>
-            <FormField label="Danh mục" required>
-              <Controller
-                name="categoryId"
-                control={control}
-                rules={{ required: true }}
-                render={({ field }) => {
-                  const value =
-                    typeof field.value === 'object' && field.value !== null
-                      ? (field.value as { _id: string })._id
-                      : ((field.value as string | undefined) ?? '');
-                  return (
-                    <Combobox
-                      options={filteredCategories.map((c) => ({ value: c._id, label: c.name }))}
-                      value={value}
-                      onChange={field.onChange}
-                      placeholder="-- Chọn danh mục --"
-                    />
-                  );
-                }}
-              />
+            <FormField
+              label="Danh mục"
+              required
+              htmlFor="finance-category"
+              error={errors.categoryId ? 'Vui lòng chọn danh mục.' : undefined}
+            >
+              {(controlProps) => (
+                <Controller
+                  name="categoryId"
+                  control={control}
+                  rules={{ required: true }}
+                  render={({ field }) => {
+                    const value =
+                      typeof field.value === 'object' && field.value !== null
+                        ? (field.value as { _id: string })._id
+                        : ((field.value as string | undefined) ?? '');
+                    return (
+                      <Combobox
+                        {...controlProps}
+                        ref={field.ref}
+                        options={filteredCategories.map((c) => ({ value: c._id, label: c.name }))}
+                        value={value}
+                        onChange={field.onChange}
+                        placeholder="-- Chọn danh mục --"
+                      />
+                    );
+                  }}
+                />
+              )}
             </FormField>
-            <FormField label="Số tiền" required htmlFor="amount">
+            <FormField
+              label="Số tiền"
+              required
+              htmlFor="amount"
+              error={errors.amount ? 'Vui lòng nhập số tiền không âm.' : undefined}
+            >
               <Input
                 id="amount"
                 type="number"
                 {...register('amount', { required: true, valueAsNumber: true, min: 0 })}
               />
             </FormField>
-            <FormField label="Ngày" required htmlFor="date">
-              <Controller
-                name="date"
-                control={control}
-                rules={{ required: true }}
-                render={({ field }) => (
-                  <DatePicker
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder="Chọn ngày"
-                  />
-                )}
-              />
+            <FormField
+              label="Ngày"
+              required
+              htmlFor="date"
+              error={errors.date ? 'Vui lòng chọn ngày.' : undefined}
+            >
+              {(controlProps) => (
+                <Controller
+                  name="date"
+                  control={control}
+                  rules={{ required: true }}
+                  render={({ field }) => (
+                    <DatePicker
+                      {...controlProps}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Chọn ngày"
+                    />
+                  )}
+                />
+              )}
             </FormField>
-            <FormField label="Lớp (tuỳ chọn)" className="sm:col-span-2">
+            <FormField label="Lớp (tuỳ chọn)" htmlFor="finance-class" className="sm:col-span-2">
               <Controller
                 name="customer"
                 control={control}
@@ -767,6 +847,7 @@ const FinancePage = () => {
                       : ((field.value as string | undefined) ?? '');
                   return (
                     <Combobox
+                      id="finance-class"
                       options={customers.map((c) => ({
                         value: c._id,
                         label: `${c.className} – ${c.school}`,
@@ -780,7 +861,7 @@ const FinancePage = () => {
               />
             </FormField>
             {isAdmin && (
-              <FormField label="Người thực hiện" className="sm:col-span-2">
+              <FormField label="Người thực hiện" htmlFor="finance-user" className="sm:col-span-2">
                 <Controller
                   name="createdBy"
                   control={control}
@@ -791,6 +872,7 @@ const FinancePage = () => {
                         : ((field.value as string | undefined) ?? '');
                     return (
                       <Combobox
+                        id="finance-user"
                         options={users.map((u) => ({
                           value: u._id,
                           label: u.name ?? u.username,
@@ -804,7 +886,7 @@ const FinancePage = () => {
                 />
               </FormField>
             )}
-            <FormField label="Mùa chụp">
+            <FormField label="Mùa chụp" htmlFor="finance-season">
               <Controller
                 name="season"
                 control={control}
@@ -813,7 +895,7 @@ const FinancePage = () => {
                     value={field.value ?? ''}
                     onValueChange={(v) => field.onChange(v || null)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="finance-season">
                       <SelectValue placeholder="-- Chọn mùa --" />
                     </SelectTrigger>
                     <SelectContent>
@@ -848,12 +930,12 @@ const FinancePage = () => {
               </div>
             )}
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="staff-modal-footer flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
               Huỷ
             </Button>
             <Button type="submit" variant="gradient" disabled={isSubmitting}>
-              Lưu
+              {isSubmitting ? 'Đang lưu…' : 'Lưu'}
             </Button>
           </div>
         </form>

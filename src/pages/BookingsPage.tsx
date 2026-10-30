@@ -118,7 +118,7 @@ export default function BookingsPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [refresh, setRefresh] = useState(0);
-  const base = admin ? '/booking-requests' : '/account/bookings';
+  const base = admin ? '/workflow-bookings' : '/account/bookings';
   const Heading = embedded ? 'h2' : 'h1';
   useEffect(() => {
     let active = true;
@@ -326,7 +326,7 @@ export function BookingDetailPage({ admin = false }: { admin?: boolean }) {
     <div className="space-y-5">
       <Link
         className="text-primary"
-        to={admin ? '/booking-requests' : '/account/orders?tab=bookings'}
+        to={admin ? '/workflow-bookings' : '/account/orders?tab=bookings'}
       >
         ← Danh sách yêu cầu
       </Link>
@@ -363,6 +363,9 @@ export function BookingDetailPage({ admin = false }: { admin?: boolean }) {
               chỗ và chưa thu tiền.
             </p>
             {item.note && <p className="whitespace-pre-wrap break-words">Ghi chú: {item.note}</p>}
+            {item.cancellationReason && (
+              <p className="rounded-lg bg-muted p-3 text-sm">{item.cancellationReason}</p>
+            )}
           </div>
           <BookingCostumeDetails
             booking={item}

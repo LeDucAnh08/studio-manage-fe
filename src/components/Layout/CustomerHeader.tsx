@@ -24,6 +24,7 @@ const publicLinks = [
 const clientLinks = [
   { to: '/account/bookings/new', label: 'Đặt dịch vụ' },
   { to: '/costumes', label: 'Trang phục' },
+  { to: '/pricing', label: 'Bảng giá' },
   { to: '/account/orders', label: 'Đơn của tôi' },
 ];
 
@@ -45,6 +46,7 @@ export default function CustomerHeader({ source = 'portfolio' }: { source?: stri
       className="customer-nav-link"
       aria-current={
         pathname === item.to ||
+        (item.to === '/pricing' && pathname.startsWith('/pricing/')) ||
         (item.to === '/costumes' && pathname === '/rental/start') ||
         (client &&
           item.to === '/account/orders' &&

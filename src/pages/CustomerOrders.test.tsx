@@ -245,6 +245,25 @@ describe('Customer order presentation preserves workflow contracts', () => {
     ]);
     mocks.rentalCreate.mockResolvedValue({ _id: 'created-rental' });
   });
+  it('shows automatic cancellation reason and time without allowing review or assignment', async () => {
+    const record = intakeFixture();
+    record.booking.status = 'cancelled';
+    record.booking.cancelledAt = '2026-10-18T00:00:00+07:00';
+    record.booking.cancellationReason =
+      'Tự động hủy vì đã quá ngày chụp dự kiến mà yêu cầu chưa được duyệt.';
+    record.workflow.lifecycle = 'cancelled';
+    mocks.workflowGet.mockResolvedValue(record);
+    renderBooking();
+    expect(await screen.findByText(/Tự động hủy vì đã quá ngày chụp dự kiến/)).toHaveTextContent(
+      'Hủy lúc',
+    );
+    expect(screen.getAllByText('Đã hủy').length).toBeGreaterThan(0);
+    expect(
+      screen.getByText('Đơn đã hủy. Thông tin phân công được giữ để tra cứu.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Duyệt yêu cầu' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Gắn thợ' })).not.toBeInTheDocument();
+  });
 
   it('takes the existing account booking action to the shared booking entry', async () => {
     renderPage(<BookingsPage />, '/account/bookings', '/account/bookings', false);
@@ -579,8 +598,8 @@ describe('Customer order presentation preserves workflow contracts', () => {
     const { container } = renderBooking(false);
     await screen.findByRole('heading', { name: 'Lớp 12A' });
     expect(container.querySelector('main')).toHaveClass('max-w-6xl');
-    expect(screen.getByLabelText('Ngày chụp (giờ Việt Nam)')).toHaveAttribute('type', 'date');
-    expect(screen.getByLabelText('Ngày chụp (giờ Việt Nam)')).not.toHaveClass('customer-control');
+    expect(screen.getByLabelText('Ngày chụp')).toHaveAttribute('type', 'date');
+    expect(screen.getByLabelText('Ngày chụp')).not.toHaveClass('customer-control');
     expect(screen.getByRole('button', { name: 'Gửi phiên bản báo giá mới' })).not.toHaveClass(
       'customer-button',
     );

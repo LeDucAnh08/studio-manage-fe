@@ -143,8 +143,7 @@ export function CustomerBookingIntake({
               <div>
                 <dt>Thời gian mong muốn</dt>
                 <dd>
-                  <time dateTime={booking.startAt}>{requestedTime}</time>{' '}
-                  <span className="customer-booking-intake__timezone">(UTC+7)</span>
+                  <time dateTime={booking.startAt}>{requestedTime}</time>
                 </dd>
               </div>
               <div>
@@ -181,8 +180,7 @@ export function CustomerBookingIntake({
                 <div>
                   <dt>Thời điểm gửi</dt>
                   <dd>
-                    <time dateTime={sentAt}>{formatDateTime(sentAt)}</time>{' '}
-                    <span className="customer-booking-intake__timezone">(UTC+7)</span>
+                    <time dateTime={sentAt}>{formatDateTime(sentAt)}</time>
                   </dd>
                 </div>
               </dl>
@@ -234,8 +232,7 @@ export function CustomerBookingIntake({
                         : 'Cập nhật hồ sơ'}
                     </span>
                     <time dateTime={event.at} className="customer-booking-intake__event-time">
-                      {formatDateTime(event.at)}{' '}
-                      <span className="customer-booking-intake__timezone">(UTC+7)</span>
+                      {formatDateTime(event.at)}
                     </time>
                   </div>
                   <p className="customer-booking-intake__event-message">

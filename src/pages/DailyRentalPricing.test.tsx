@@ -576,7 +576,7 @@ describe('separate daily rate in staff inventory', () => {
     ]);
     mocks.updateCostume.mockResolvedValue({});
     render(<CostumesPage />);
-    const edits = await screen.findAllByRole('button', { name: 'Sửa' });
+    const edits = await screen.findAllByRole('button', { name: `Sửa mặt hàng ${item.name}` });
     fireEvent.click(edits[0]);
     expect(screen.getByLabelText('Giá thuê kỳ cũ (đồng)')).toHaveValue(item.rentalPrice);
   }

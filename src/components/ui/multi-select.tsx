@@ -18,7 +18,10 @@ export interface MultiSelectOption {
   label: string;
 }
 
-interface MultiSelectProps {
+interface MultiSelectProps extends Pick<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  'id' | 'aria-label' | 'aria-labelledby' | 'aria-describedby' | 'aria-invalid' | 'aria-required'
+> {
   options: MultiSelectOption[];
   value: string[];
   onChange: (value: string[]) => void;
@@ -40,6 +43,7 @@ export const MultiSelect = ({
   disabled,
   className,
   maxBadges = 4,
+  ...controlProps
 }: MultiSelectProps) => {
   const [open, setOpen] = React.useState(false);
 
@@ -61,6 +65,7 @@ export const MultiSelect = ({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          {...controlProps}
           type="button"
           variant="outline"
           role="combobox"
@@ -85,6 +90,7 @@ export const MultiSelect = ({
                     {opt.label}
                     <span
                       role="button"
+                      aria-label={`Bỏ chọn ${opt.label}`}
                       tabIndex={-1}
                       onClick={(e) => remove(opt.value, e)}
                       className="ml-0.5 rounded-sm hover:bg-muted-foreground/20 p-0.5"

@@ -299,6 +299,9 @@ function PricingSection() {
                 featuredLabel="PHỔ BIẾN"
                 actions={
                   <>
+                    <CustomerButton asChild variant="secondary">
+                      <Link to={`/pricing/${encodeURIComponent(item.id)}`}>Xem chi tiết</Link>
+                    </CustomerButton>
                     {clientPortalEnabled && (
                       <CustomerButton asChild>
                         <Link

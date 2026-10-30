@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 
 const CategoriesPage = () => {
   const dispatch = useAppDispatch();
-  const { list: categories } = useAppSelector((s) => s.categories);
+  const { list: categories, error } = useAppSelector((s) => s.categories);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -32,7 +32,7 @@ const CategoriesPage = () => {
     handleSubmit,
     reset,
     control,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = useForm<Partial<Category>>();
 
   useEffect(() => {
@@ -89,10 +89,10 @@ const CategoriesPage = () => {
       list: income,
       icon: <ArrowDown className="h-4 w-4" />,
       classes: {
-        bg: 'bg-emerald-500/10',
-        text: 'text-emerald-600 dark:text-emerald-400',
-        ring: 'ring-emerald-500/20',
-        dot: 'bg-emerald-500',
+        bg: 'staff-status--success',
+        text: '',
+        ring: '',
+        dot: 'bg-current staff-ink-success',
       },
     },
     {
@@ -101,10 +101,10 @@ const CategoriesPage = () => {
       list: expense,
       icon: <ArrowUp className="h-4 w-4" />,
       classes: {
-        bg: 'bg-rose-500/10',
-        text: 'text-rose-600 dark:text-rose-400',
-        ring: 'ring-rose-500/20',
-        dot: 'bg-rose-500',
+        bg: 'staff-status--danger',
+        text: '',
+        ring: '',
+        dot: 'bg-current staff-ink-danger',
       },
     },
   ];
@@ -112,7 +112,7 @@ const CategoriesPage = () => {
   return (
     <div>
       <PageHeader
-        kicker="Settings"
+        as="h1"
         title="Danh mục thu / chi"
         description="Quản lý các danh mục khoản thu và khoản chi."
         action={
@@ -122,6 +122,15 @@ const CategoriesPage = () => {
           </Button>
         }
       />
+
+      {error && (
+        <div role="alert" className="rounded-lg border bg-card p-4 mb-4">
+          <p>Không tải được danh mục.</p>
+          <Button className="mt-3" variant="outline" onClick={() => dispatch(fetchCategories())}>
+            Thử lại
+          </Button>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-6">
         {groups.map(({ key, label, list, icon, classes }) => (
@@ -139,7 +148,7 @@ const CategoriesPage = () => {
                   {icon}
                 </span>
                 <div>
-                  <h3 className="text-sm font-semibold">{label}</h3>
+                  <h2 className="text-lg font-semibold">{label}</h2>
                   <p className="text-xs text-muted-foreground">{list.length} danh mục</p>
                 </div>
               </div>
@@ -153,19 +162,20 @@ const CategoriesPage = () => {
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <span className={cn('h-2 w-2 rounded-full flex-shrink-0', classes.dot)} />
-                    <span className="text-sm font-medium truncate">{c.name}</span>
+                    <span className="text-sm font-medium break-words">{c.name}</span>
                     {c.isDefault && (
                       <span className="text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                         Mặc định
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="staff-row-actions shrink-0">
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-blue-600 hover:bg-blue-500/10 dark:text-blue-400"
+                      className="staff-icon-action text-primary"
+                      aria-label={`Sửa danh mục ${c.name}`}
                       onClick={() => openEdit(c)}
                       title="Sửa"
                     >
@@ -176,7 +186,8 @@ const CategoriesPage = () => {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                        className="staff-icon-action text-destructive"
+                        aria-label={`Xoá danh mục ${c.name}`}
                         onClick={() => setConfirmId(c._id)}
                         title="Xoá"
                       >
@@ -201,20 +212,35 @@ const CategoriesPage = () => {
         open={modalOpen}
         onOpenChange={setModalOpen}
         title={editing ? 'Sửa danh mục' : 'Thêm danh mục'}
+        description="Phân loại khoản thu và khoản chi."
         size="sm"
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-          <FormField label="Tên danh mục" required htmlFor="name">
+        <form onSubmit={handleSubmit(onSubmit)} aria-busy={isSubmitting} className="space-y-4">
+          <FormField
+            label="Tên danh mục"
+            required
+            htmlFor="name"
+            error={errors.name ? 'Vui lòng nhập tên danh mục.' : undefined}
+          >
             <Input id="name" {...register('name', { required: true })} />
           </FormField>
-          <FormField label="Loại" required>
+          <FormField
+            label="Loại"
+            required
+            htmlFor="category-type"
+            error={errors.type ? 'Vui lòng chọn loại.' : undefined}
+          >
             <Controller
               name="type"
               control={control}
               rules={{ required: true }}
               render={({ field }) => (
                 <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                  <SelectTrigger>
+                  <SelectTrigger
+                    id="category-type"
+                    aria-required="true"
+                    aria-invalid={errors.type ? true : undefined}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -225,12 +251,12 @@ const CategoriesPage = () => {
               )}
             />
           </FormField>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="staff-modal-footer flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
               Huỷ
             </Button>
             <Button type="submit" variant="gradient" disabled={isSubmitting}>
-              Lưu
+              {isSubmitting ? 'Đang lưu…' : 'Lưu'}
             </Button>
           </div>
         </form>

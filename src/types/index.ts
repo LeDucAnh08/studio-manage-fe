@@ -93,6 +93,28 @@ export interface CostumeResponse extends Omit<Costume, 'type'> {
   type?: CostumeType;
 }
 
+export interface PackageImage {
+  id: string;
+  alt: string;
+  caption: string;
+  width: number;
+  height: number;
+}
+
+export interface PackageDetails {
+  audience: string;
+  benefits: string[];
+  exclusions: string[];
+  itinerary: Array<{ time: string; title: string; description: string }>;
+  process: Array<{ title: string; description: string }>;
+  extraCosts: Array<{ name: string; priceLabel: string; condition: string }>;
+  preparationNotes: string;
+  depositPolicy: string;
+  cancellationPolicy: string;
+  priceNotes: string;
+  gallery: PackageImage[];
+}
+
 export interface Package {
   _id: string;
   name: string;
@@ -105,6 +127,8 @@ export interface Package {
   studentsPerCrew?: number;
   description?: string;
   isPopular?: boolean;
+  details?: PackageDetails;
+  detailsVersion?: number;
   createdAt?: string;
 }
 

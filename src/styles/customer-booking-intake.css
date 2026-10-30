@@ -283,13 +283,6 @@
   overflow-wrap: anywhere;
 }
 
-.customer-ui .customer-booking-intake__timezone {
-  display: inline;
-  color: var(--customer-muted);
-  font: 400 var(--customer-caption-small-size)/var(--customer-caption-small-line)
-    var(--customer-font);
-}
-
 .customer-ui .customer-booking-intake__fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

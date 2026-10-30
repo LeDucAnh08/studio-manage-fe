@@ -81,8 +81,7 @@ export function PhotographerAvailabilityPicker({
       </legend>
       {validRange && (
         <p className="text-sm text-muted-foreground">
-          Kiểm tra {dateTime(startAt)} – {dateTime(endAt)} (giờ Việt Nam). Chừa 60 phút giữa hai
-          buổi chụp.
+          Kiểm tra {dateTime(startAt)} – {dateTime(endAt)}. Chừa 60 phút giữa hai buổi chụp.
         </p>
       )}
       {!error && (

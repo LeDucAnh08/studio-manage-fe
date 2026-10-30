@@ -61,10 +61,7 @@ const RegisterRequestPage = () => {
           <p className="mt-2 text-sm text-muted-foreground">
             Quản trị viên sẽ xét duyệt và cấp quyền truy cập cho bạn.
           </p>
-          <Link
-            to="/staff/login"
-            className="mt-6 inline-block text-sm text-primary hover:underline"
-          >
+          <Link to="/login" className="mt-6 inline-block text-sm text-primary hover:underline">
             Quay lại đăng nhập
           </Link>
         </section>
@@ -166,7 +163,7 @@ const RegisterRequestPage = () => {
           </Button>
         </form>
         <div className="mt-4 text-center text-sm">
-          <Link to="/staff/login" className="text-primary hover:underline">
+          <Link to="/login" className="text-primary hover:underline">
             Đã có tài khoản? Đăng nhập
           </Link>
         </div>

@@ -1,14 +1,14 @@
 ---
 version: '1.0-audit-plan'
 name: Yume-admin-staff-design
-status: refactor-in-progress-controls-complete
+status: refactor-in-progress-operations-complete
 updated: 2026-10-29
 scope: admin-and-staff
 ---
 
 # Admin/staff — audit và kế hoạch refactor style
 
-Audit thực hiện ngày **28–29/10/2026**, Asia/Bangkok, trên ứng dụng local hiện có. Tài liệu này là nguồn quy chuẩn và checklist triển khai cho giao diện nội bộ. **Đã hoàn thành R01–R07 ngày 29/10; R08–R18 còn lại.** Kết quả và bằng chứng: [QA foundation](docs/design/admin-staff-foundation-qa-2026-10-29.md), [QA control và pilot](docs/design/admin-staff-controls-qa-2026-10-29.md).
+Audit thực hiện ngày **28–29/10/2026**, Asia/Bangkok, trên ứng dụng local hiện có. Tài liệu này là nguồn quy chuẩn và checklist triển khai cho giao diện nội bộ. **Đã hoàn thành R01–R11 ngày 29/10; R12–R18 còn lại.** Kết quả và bằng chứng: [QA foundation](docs/design/admin-staff-foundation-qa-2026-10-29.md), [QA control và pilot](docs/design/admin-staff-controls-qa-2026-10-29.md), [QA lịch, kho và số liệu](docs/design/admin-staff-operations-qa-2026-10-29.md).
 
 Bản tham chiếu Linear ban đầu được lưu nguyên vẹn tại [admin-staff-reference-linear.md](docs/design/admin-staff-reference-linear.md). Bản đó là mô tả **marketing site**, không phải đặc tả dashboard nghiệp vụ. Những quy tắc về hero 56–80px, section 96px, pricing cards, footer marketing và dark-only không áp dụng nguyên xi vào Yume.
 
@@ -190,7 +190,7 @@ Số dòng chỉ mô tả working tree lúc audit, không phải chỉ tiêu c�
 
 **Checkpoint A:** chưa chuyển hàng loạt page. Pilot shell + một bảng + một modal phải có ảnh sáng/tối, keyboard pass và customer regression pass trước khi dùng cho các màn khác.
 
-Đã đạt checkpoint A ngày 29/10/2026: 93 kiểm thử liên quan pass, TypeScript/build pass, kiểm browser hai theme, drawer mobile và route customer; xem [QA foundation](docs/design/admin-staff-foundation-qa-2026-10-29.md). Search và action lớp đã được xử lý ở R07; action dòng lịch vẫn thuộc R08.
+Đã đạt checkpoint A ngày 29/10/2026: 93 kiểm thử liên quan pass, TypeScript/build pass, kiểm browser hai theme, drawer mobile và route customer; xem [QA foundation](docs/design/admin-staff-foundation-qa-2026-10-29.md). Search và action lớp đã được xử lý ở R07; action dòng lịch đã được xử lý ở R08.
 
 ### Đợt B — control và một màn pilot
 
@@ -203,12 +203,12 @@ Số dòng chỉ mô tả working tree lúc audit, không phải chỉ tiêu c�
 
 ### Đợt C — lịch, kho và số liệu
 
-- [ ] **R08 — Lịch chụp.** Phụ thuộc R07. File: `SchedulesPage.tsx`, staff CSS, focused a11y test nếu cần. Nghiệm thu: A01/A03 được sửa ở table; card mobile giữ đủ nội dung; calendar/modal cùng token. Kiểm: table/calendar, lọc/reset, action names, mobile menu và tình trạng lịch; không gửi thao tác ghi trên DB đang dùng.
-- [ ] **R09 — Kho và danh mục.** Phụ thuộc R07. File: `CostumesPage.tsx`, `CostumeTypesPage.tsx`, `PackagesPage.tsx`, `CategoriesPage.tsx`. Nghiệm thu: table/form/badge cùng pattern, giá/ngày–tồn tốt–tình trạng tách rõ; không diễn giải tồn tốt thành khả dụng theo kỳ. Kiểm: mở form/nhập lỗi/đóng, danh sách dài và size, dữ liệu test cho lưu/sửa.
-- [ ] **R10 — Dashboard theo vai trò.** Phụ thuộc R08. File: `DashboardPage.tsx`, `ui/stat-card.tsx`, staff CSS nếu cần. Nghiệm thu: KPI/link/status đọc được sáng/tối; chart giữ legend/đơn vị; không hiện thêm quyền hoặc KPI cho photographer. Kiểm: admin/photographer, trạng thái chart ổn định, 02/14, reduced-motion.
-- [ ] **R11 — Tài chính và báo cáo.** Phụ thuộc R05/R10. File: `FinancePage.tsx`, `ReportsPage.tsx`. Nghiệm thu: filter/control/table/money thống nhất; giữ nguyên cách tính, nhãn dòng tiền/giá trị/cọc/công nợ và link hồ sơ. Kiểm: cùng kỳ/data trước–sau, tab report, pagination, kế toán/admin; số liệu không đổi vì đổi style.
+- [x] **R08 — Lịch chụp.** Phụ thuộc R07. File: `SchedulesPage.tsx`, staff CSS, focused a11y test nếu cần. Nghiệm thu: A01/A03 được sửa ở table; card mobile giữ đủ nội dung; calendar/modal cùng token. Kiểm: table/calendar, lọc/reset, action names, mobile menu và tình trạng lịch; không gửi thao tác ghi trên DB đang dùng.
+- [x] **R09 — Kho và danh mục.** Phụ thuộc R07. File: `CostumesPage.tsx`, `CostumeTypesPage.tsx`, `PackagesPage.tsx`, `CategoriesPage.tsx`. Nghiệm thu: table/form/badge cùng pattern, giá/ngày–tồn tốt–tình trạng tách rõ; không diễn giải tồn tốt thành khả dụng theo kỳ. Kiểm: mở form/nhập lỗi/đóng, danh sách dài và size, dữ liệu test cho lưu/sửa.
+- [x] **R10 — Dashboard theo vai trò.** Phụ thuộc R08. File: `DashboardPage.tsx`, `ui/stat-card.tsx`, staff CSS nếu cần. Nghiệm thu: KPI/link/status đọc được sáng/tối; chart giữ legend/đơn vị; không hiện thêm quyền hoặc KPI cho photographer. Kiểm: admin/photographer, trạng thái chart ổn định, 02/14, reduced-motion.
+- [x] **R11 — Tài chính và báo cáo.** Phụ thuộc R05/R10. File: `FinancePage.tsx`, `ReportsPage.tsx`. Nghiệm thu: filter/control/table/money thống nhất; giữ nguyên cách tính, nhãn dòng tiền/giá trị/cọc/công nợ và link hồ sơ. Kiểm: cùng kỳ/data trước–sau, tab report, pagination, kế toán/admin; số liệu không đổi vì đổi style.
 
-**Checkpoint C:** pilot mở rộng đạt các viewport 390/768/1280/1440 và hai theme; tồn kho, lọc ngày và số liệu không thay đổi. Không coi ảnh đẹp là kiểm chứng số liệu.
+**Checkpoint C đã đạt ngày 29/10/2026:** 129/129 tests liên quan, TypeScript/build pass; browser sáng/tối/system ở 390/768/1280/1440px, admin/photographer/kế toán và customer guard. Đối chiếu số liệu và tồn kho đọc; sửa calendar cắt UTC sang ngày Việt Nam. Giới hạn: chưa chạy toàn bộ E2E ghi DB hoặc toàn ma trận vai trò; R18 vẫn mở. Xem [QA lịch, kho và số liệu](docs/design/admin-staff-operations-qa-2026-10-29.md).
 
 ### Đợt D — hồ sơ dịch vụ và các màn còn lại
 
@@ -262,4 +262,4 @@ node ../node_modules/vite/bin/vite.js build
 | Màu đẹp nhưng không đủ contrast                  | đo foreground/background composite ở từng state, giữ text/icon cho semantic       |
 | Tài liệu khiến người đọc tưởng đã refactor       | giữ `status` đúng tiến độ; chỉ đánh dấu task có evidence triển khai               |
 
-Bước tiếp theo: **R08 → R09 → R10/R11**, áp dụng pattern vào lịch chụp, kho và dashboard/báo cáo trên nền R01–R07 đã có. Không thay class hàng loạt hoặc viết lại logic trang hồ sơ lớn trong PR style.
+Bước tiếp theo: **R12 → R13 → R14**, áp dụng pattern vào intake, quy trình chụp và đơn thuê trên nền R01–R11 đã có. Giữ guards/payload và nhánh customer; R15–R18 tiếp tục sau đó.

@@ -1,7 +1,7 @@
 import api from './api';
 import type { ApiResponse, PaginatedApiResponse } from '../types';
 
-export type BookingStatus = 'pending' | 'approved' | 'rejected';
+export type BookingStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 export interface BookingCostumeInput {
   costumeId: string;
   size: string;
@@ -32,6 +32,7 @@ export const bookingLabels: Record<BookingStatus, string> = {
   pending: 'Chờ duyệt',
   approved: 'Đã duyệt yêu cầu',
   rejected: 'Đã từ chối',
+  cancelled: 'Đã hủy',
 };
 export interface Booking {
   assignedPhotographer?: { _id: string; name: string } | null;
@@ -50,6 +51,8 @@ export interface Booking {
   note: string;
   status: BookingStatus;
   reviewNote?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
   createdAt: string;
   events?: { _id?: string; message: string; at: string }[];
   costumeSelections?: BookingCostumeSelection[];

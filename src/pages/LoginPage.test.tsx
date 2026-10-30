@@ -67,7 +67,7 @@ describe('Login appearance preserves authentication and return contracts', () =>
   });
 
   it.each([true, false])(
-    'keeps labelled native credentials and login available with customer appearance %s',
+    'uses the shared customer login form with customer appearance %s',
     async (customer) => {
       renderLogin({ customer });
       const username = screen.getByLabelText(/^Tên đăng nhập/);
@@ -75,9 +75,7 @@ describe('Login appearance preserves authentication and return contracts', () =>
       expect(username).toHaveAttribute('autocomplete', 'username');
       expect(password).toHaveAttribute('type', 'password');
       expect(password).toHaveAttribute('autocomplete', 'current-password');
-      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-        customer ? 'Đăng nhập' : 'Yume Studio',
-      );
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Đăng nhập');
       fillCredentials();
       submitLogin();
       expect((await screen.findByTestId('destination')).textContent).toBe('/account/orders');

@@ -6,6 +6,7 @@ import {
   TableCell,
   TableHead,
   TableHeader,
+  TableFooter,
   TableRow,
 } from '@/components/ui/table';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -42,6 +43,7 @@ interface DataTableProps<T> {
   title?: ReactNode;
   className?: string;
   footer?: ReactNode;
+  tableFooter?: ReactNode;
   rowClassName?: (row: T, index: number) => string;
   rowStyle?: (row: T, index: number) => React.CSSProperties | undefined;
   stickyHeader?: boolean;
@@ -68,6 +70,7 @@ export function DataTable<T>({
   title,
   className,
   footer,
+  tableFooter,
   rowClassName,
   rowStyle,
   stickyHeader = false,
@@ -207,6 +210,7 @@ export function DataTable<T>({
           );
         })}
       </TableBody>
+      {tableFooter && <TableFooter>{tableFooter}</TableFooter>}
     </Table>
   );
 

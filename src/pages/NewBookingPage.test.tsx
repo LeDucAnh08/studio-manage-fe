@@ -92,10 +92,10 @@ function fillDetails(options: { endDays?: number } = {}) {
   fireEvent.change(screen.getByLabelText('Số điện thoại'), { target: { value: '0901234567' } });
   fireEvent.change(screen.getByLabelText('Số thành viên dự kiến'), { target: { value: '30' } });
   fireEvent.change(screen.getByLabelText('Địa điểm mong muốn'), { target: { value: 'Hà Nội' } });
-  fireEvent.change(screen.getByLabelText('Ngày và giờ bắt đầu mong muốn (giờ Việt Nam)'), {
+  fireEvent.change(screen.getByLabelText('Ngày và giờ bắt đầu mong muốn'), {
     target: { value: start },
   });
-  fireEvent.change(screen.getByLabelText('Ngày và giờ kết thúc mong muốn (giờ Việt Nam)'), {
+  fireEvent.change(screen.getByLabelText('Ngày và giờ kết thúc mong muốn'), {
     target: { value: endValue },
   });
   return { start, end: endValue };
@@ -179,9 +179,7 @@ describe('NewBookingPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Sửa thông tin' }));
     expect(screen.getByLabelText('Tên lớp / nhóm')).toHaveValue('12A1');
-    expect(screen.getByLabelText('Ngày và giờ bắt đầu mong muốn (giờ Việt Nam)')).toHaveValue(
-      times.start,
-    );
+    expect(screen.getByLabelText('Ngày và giờ bắt đầu mong muốn')).toHaveValue(times.start);
     fireEvent.click(screen.getByRole('button', { name: /Quay lại/ }));
     const comparison = screen.getByRole('region', { name: 'So sánh gói dịch vụ' });
     for (const name of ['Gói thử', 'Gói nâng cao', 'Gói trọn bộ']) {

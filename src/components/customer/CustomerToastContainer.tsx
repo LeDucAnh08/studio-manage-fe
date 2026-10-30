@@ -8,6 +8,7 @@ const publicPaths = [
   '/services',
   '/concepts',
   '/pricing',
+  '/pricing/:id',
   '/costumes',
   '/rental/start',
   '/form/:customer',

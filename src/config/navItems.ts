@@ -1,5 +1,4 @@
 import type { ComponentType } from 'react';
-import { createElement } from 'react';
 import {
   Banknote,
   BarChart3,
@@ -31,13 +30,10 @@ import CustomerSizePage from '../pages/CustomerSizePage';
 import PackagesPage from '../pages/PackagesPage';
 import FeedbackPage from '../pages/FeedbackPage';
 import SeasonPage from '@/pages/SeasonPage';
-import BookingsPage from '../pages/BookingsPage';
 import BookingWorkflowListPage from '../pages/BookingWorkflowListPage';
 import { clientPortalEnabled } from './features';
 import RentalListPage from '../pages/RentalListPage';
 import ReportsPage from '../pages/ReportsPage';
-
-const BookingRequests = () => createElement(BookingsPage, { admin: true });
 
 export type NavIcon = ComponentType<{ className?: string }>;
 
@@ -68,19 +64,8 @@ export const navItems: NavItem[] = [
   ...(clientPortalEnabled
     ? [
         {
-          to: '/booking-requests',
-          label: 'Yêu cầu đặt dịch vụ',
-          icon: Calendar,
-          allowedRoles: [0, 1] as UserRole[],
-          component: BookingRequests,
-        },
-      ]
-    : []),
-  ...(clientPortalEnabled
-    ? [
-        {
           to: '/workflow-bookings',
-          label: 'Quy trình dịch vụ',
+          label: 'Đơn chụp ảnh',
           icon: ClipboardList,
           allowedRoles: [0, 1, 3, 5] as UserRole[],
           component: BookingWorkflowListPage,

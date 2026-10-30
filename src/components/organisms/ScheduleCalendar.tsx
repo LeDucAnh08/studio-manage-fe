@@ -1,6 +1,13 @@
 import { useState, useMemo } from 'react';
 import { MapPin, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
-import { DOW_VN, SCHEDULE_STATUS_LABEL } from '../../utils/scheduleConstants';
+import {
+  DOW_VN,
+  SCHEDULE_STATUS_LABEL,
+  SCHEDULE_STATUS_COLOR,
+} from '../../utils/scheduleConstants';
+import { Badge, Button } from '@/components/ui';
+import { cn } from '@/lib/utils';
+import { vietnamCalendarDate } from '@/utils/vietnamCalendarDate';
 
 export interface CalendarScheduleItem {
   _id: string;
@@ -21,229 +28,192 @@ interface Props {
   onDelete?: (id: string) => void;
 }
 
-const STATUS_BADGE: Record<string, { bg: string; dot: string }> = {
-  pending: { bg: 'bg-amber-400/15 text-amber-300 dark:text-amber-300', dot: 'bg-amber-400' },
-  confirmed: { bg: 'bg-sky-400/15 text-sky-300 dark:text-sky-300', dot: 'bg-sky-400' },
-  completed: {
-    bg: 'bg-emerald-400/15 text-emerald-300 dark:text-emerald-300',
-    dot: 'bg-emerald-400',
-  },
-  cancelled: { bg: 'bg-red-400/15 text-red-300 dark:text-red-300', dot: 'bg-red-400' },
-};
-
 const ScheduleCalendar = ({ items, maxBadges = 3, onEdit, onDelete }: Props) => {
   const [calendarDate, setCalendarDate] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
   });
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-
   const calendarDays = useMemo(() => {
     const { year, month } = calendarDate;
-    const rawFirstDay = new Date(year, month, 1).getDay();
-    const firstDay = (rawFirstDay + 6) % 7;
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
     const days: (string | null)[] = Array(firstDay).fill(null);
-    for (let d = 1; d <= daysInMonth; d++) {
-      days.push(`${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    for (let d = 1; d <= new Date(year, month + 1, 0).getDate(); d++) {
+      days.push(year + '-' + String(month + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0'));
     }
     return days;
   }, [calendarDate]);
-
   const byDay = useMemo(() => {
     const map: Record<string, CalendarScheduleItem[]> = {};
     items.forEach((s) => {
-      const key = s.shootDate.slice(0, 10);
-      if (!map[key]) map[key] = [];
-      map[key].push(s);
+      const key = vietnamCalendarDate(s.shootDate);
+      (map[key] ??= []).push(s);
     });
     return map;
   }, [items]);
-
-  const today = new Date().toISOString().slice(0, 10);
+  const today = vietnamCalendarDate(new Date().toISOString());
 
   return (
-    <div className="rounded-2xl overflow-hidden border theme-card-border bg-[var(--card-bg)]">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 border-b theme-card-border">
-        <button
+    <div className="staff-schedule-calendar rounded-lg overflow-hidden border bg-card">
+      <div className="flex items-center justify-between px-3 py-3 border-b gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Tháng trước"
           onClick={() =>
             setCalendarDate(({ year, month }) =>
               month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 },
             )
           }
-          className="w-8 h-8 flex items-center justify-center rounded-lg theme-text-muted hover:bg-[var(--table-row-hover)] transition-colors"
         >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <span className="font-bold theme-text-primary text-base tracking-wide">
+          <ChevronLeft />
+        </Button>
+        <h2 className="text-base font-semibold" aria-live="polite">
           Tháng {calendarDate.month + 1} / {calendarDate.year}
-        </span>
-        <button
+        </h2>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Tháng sau"
           onClick={() =>
             setCalendarDate(({ year, month }) =>
               month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 },
             )
           }
-          className="w-8 h-8 flex items-center justify-center rounded-lg theme-text-muted hover:bg-[var(--table-row-hover)] transition-colors"
         >
-          <ChevronRight className="w-5 h-5" />
-        </button>
+          <ChevronRight />
+        </Button>
       </div>
-
-      {/* Day-of-week headers */}
-      <div className="grid grid-cols-7 border-b theme-card-border bg-[var(--table-head-bg)]">
-        {DOW_VN.map((d, i) => (
-          <div
-            key={d}
-            className={`text-center text-xs font-semibold py-2 ${
-              i >= 5 ? 'text-rose-400' : 'theme-text-faint'
-            }`}
-          >
+      <div className="grid grid-cols-7 border-b bg-muted/40">
+        {DOW_VN.map((d) => (
+          <div key={d} className="text-center text-xs font-medium py-2 text-muted-foreground">
             {d}
           </div>
         ))}
       </div>
-
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 divide-x divide-y divide-[color:var(--card-border)]">
+      <div className="grid grid-cols-7">
         {calendarDays.map((day, i) => {
           const dayItems = day ? (byDay[day] ?? []) : [];
           const isToday = day === today;
           const isSelected = day === selectedDay;
-          const dayNum = day ? parseInt(day.slice(8)) : 0;
-          const colIndex = i % 7;
-          const isWeekend = colIndex >= 5;
-
           return (
-            <div
-              key={i}
+            <button
+              type="button"
+              key={day ?? 'blank-' + i}
+              disabled={!day}
+              aria-hidden={!day || undefined}
+              aria-pressed={day ? isSelected : undefined}
+              aria-current={isToday ? 'date' : undefined}
+              aria-label={
+                day
+                  ? 'Ngày ' +
+                    day.split('-').reverse().join('/') +
+                    ', ' +
+                    dayItems.length +
+                    ' lịch chụp' +
+                    (dayItems.length ? ': ' + dayItems.map((s) => s.className).join(', ') : '')
+                  : undefined
+              }
               onClick={() => day && setSelectedDay(isSelected ? null : day)}
-              className={[
-                'min-h-[4.5rem] p-1.5 transition-colors relative',
-                !day
-                  ? 'bg-[var(--table-head-bg)] cursor-default'
-                  : isSelected
-                    ? 'cursor-pointer bg-amber-500/10'
-                    : isToday
-                      ? 'cursor-pointer bg-amber-500/5'
-                      : 'cursor-pointer hover:bg-[var(--table-row-hover)]',
-              ].join(' ')}
+              className={cn(
+                'staff-calendar-day',
+                isSelected && 'staff-calendar-day--selected',
+                isToday && 'staff-calendar-day--today',
+              )}
             >
-              {isSelected && <span className="absolute inset-x-0 top-0 h-0.5 bg-amber-400" />}
               {day && (
                 <>
-                  <div className="flex justify-end mb-1">
-                    <span
-                      className={[
-                        'text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full',
-                        isToday ? 'text-white' : isWeekend ? 'text-rose-400' : 'theme-text-primary',
-                      ].join(' ')}
-                      style={isToday ? { background: '#d97706' } : undefined}
-                    >
-                      {dayNum}
-                    </span>
-                  </div>
-                  <div className="space-y-0.5">
-                    {dayItems.slice(0, maxBadges).map((s) => {
-                      const badge = STATUS_BADGE[s.status] ?? STATUS_BADGE.pending;
-                      return (
-                        <div
-                          key={s._id}
-                          className={`flex items-center gap-1 text-[10px] truncate rounded px-1 py-0.5 leading-tight ${badge.bg}`}
-                          title={s.className}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${badge.dot}`} />
-                          <span className="truncate">{s.className}</span>
-                        </div>
-                      );
-                    })}
+                  <span className="block text-right mb-1 font-medium">{Number(day.slice(8))}</span>
+                  <span className="block space-y-1">
+                    {dayItems.slice(0, maxBadges).map((s) => (
+                      <span
+                        key={s._id}
+                        className={cn(
+                          'block truncate rounded px-1 py-0.5 text-[11px]',
+                          SCHEDULE_STATUS_COLOR[s.status],
+                        )}
+                      >
+                        {s.className}
+                      </span>
+                    ))}
                     {dayItems.length > maxBadges && (
-                      <div className="text-[10px] theme-text-faint pl-1">
-                        +{dayItems.length - maxBadges} more
-                      </div>
+                      <span className="block text-[11px] text-muted-foreground">
+                        +{dayItems.length - maxBadges} lịch
+                      </span>
                     )}
-                  </div>
+                  </span>
                 </>
               )}
-            </div>
+            </button>
           );
         })}
       </div>
-
-      {/* Selected day detail */}
-      {selectedDay && (byDay[selectedDay] ?? []).length > 0 && (
-        <div className="border-t theme-card-border p-4">
-          <p className="text-xs font-semibold theme-text-faint uppercase tracking-wider mb-3">
-            {parseInt(selectedDay.slice(8))} tháng {parseInt(selectedDay.slice(5, 7))},{' '}
+      {selectedDay && (
+        <section className="border-t p-4 space-y-3" aria-label={'Lịch ngày ' + selectedDay}>
+          <h3 className="font-semibold">
+            {Number(selectedDay.slice(8))} tháng {Number(selectedDay.slice(5, 7))},{' '}
             {selectedDay.slice(0, 4)}
-          </p>
-          <div className="space-y-2">
-            {(byDay[selectedDay] ?? []).map((s) => {
-              const badge = STATUS_BADGE[s.status] ?? STATUS_BADGE.pending;
-              return (
-                <div
-                  key={s._id}
-                  className="flex items-start justify-between rounded-xl border border-[color:var(--input-border)] bg-[var(--input-bg)] px-3 py-2.5 hover:bg-[var(--table-row-hover)] transition-colors"
-                >
-                  <div className="space-y-1 min-w-0">
-                    <div className="font-semibold text-sm theme-text-primary truncate">
-                      {s.className}
-                    </div>
-                    {(s.startTime || s.endTime) && (
-                      <div className="text-xs theme-text-muted flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                        {s.startTime}
-                        {s.endTime ? ` – ${s.endTime}` : ''}
-                      </div>
-                    )}
-                    {s.location && (
-                      <div className="text-xs theme-text-muted flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                        <span className="truncate">{s.location}</span>
-                      </div>
-                    )}
-                    {s.notes && (
-                      <div className="text-[11px] text-amber-400/80 mt-0.5">※ {s.notes}</div>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-2 ml-3 shrink-0">
-                    <span
-                      className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${badge.bg}`}
-                    >
-                      {SCHEDULE_STATUS_LABEL[s.status] ?? s.status}
-                    </span>
-                    {(onEdit || onDelete) && (
-                      <div className="flex gap-2">
-                        {onEdit && (
-                          <button
-                            onClick={() => onEdit(s._id)}
-                            className="text-xs theme-text-muted hover:text-amber-400 transition-colors"
-                          >
-                            Sửa
-                          </button>
-                        )}
-                        {onDelete && (
-                          <button
-                            onClick={() => onDelete(s._id)}
-                            className="text-xs theme-text-muted hover:text-red-400 transition-colors"
-                          >
-                            Xoá
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
+          </h3>
+          {(byDay[selectedDay] ?? []).map((s) => (
+            <div key={s._id} className="rounded-lg border p-3 space-y-3">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="min-w-0 space-y-1">
+                  <p className="font-semibold break-words">{s.className}</p>
+                  {(s.startTime || s.endTime) && (
+                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock size={16} aria-hidden="true" />
+                      {s.startTime}
+                      {s.endTime ? ' – ' + s.endTime : ''}
+                    </p>
+                  )}
+                  {s.location && (
+                    <p className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <MapPin size={16} className="shrink-0" aria-hidden="true" />
+                      <span className="break-words">{s.location}</span>
+                    </p>
+                  )}
+                  {s.notes && <p className="text-sm whitespace-pre-line">{s.notes}</p>}
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-      {selectedDay && (byDay[selectedDay] ?? []).length === 0 && (
-        <div className="border-t theme-card-border py-6 text-center theme-text-faint text-sm">
-          Không có lịch ngày này
-        </div>
+                <Badge variant="outline" className={SCHEDULE_STATUS_COLOR[s.status]}>
+                  {SCHEDULE_STATUS_LABEL[s.status] ?? s.status}
+                </Badge>
+              </div>
+              {(onEdit || onDelete) && (
+                <div className="staff-row-actions">
+                  {onEdit && (
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      className="staff-row-action"
+                      aria-label={'Sửa lịch ' + s.className}
+                      onClick={() => onEdit(s._id)}
+                    >
+                      Sửa
+                    </Button>
+                  )}
+                  {onDelete && (
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      className="staff-row-action text-destructive"
+                      aria-label={'Xoá lịch ' + s.className}
+                      onClick={() => onDelete(s._id)}
+                    >
+                      Xoá
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+          {!byDay[selectedDay]?.length && (
+            <p className="text-sm text-muted-foreground">Không có lịch ngày này</p>
+          )}
+        </section>
       )}
     </div>
   );

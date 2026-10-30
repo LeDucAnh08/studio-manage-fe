@@ -121,7 +121,12 @@ describe('Customer shared navigation', () => {
       );
 
       const navigation = screen.getByRole('navigation', { name: 'Tài khoản khách hàng' });
-      expect(navLabels(navigation)).toEqual(['Đặt dịch vụ', 'Trang phục', 'Đơn của tôi']);
+      expect(navLabels(navigation)).toEqual([
+        'Đặt dịch vụ',
+        'Trang phục',
+        'Bảng giá',
+        'Đơn của tôi',
+      ]);
       expect(within(navigation).getByRole('link', { name: 'Đặt dịch vụ' })).toHaveAttribute(
         'href',
         '/account/bookings/new',
@@ -130,12 +135,65 @@ describe('Customer shared navigation', () => {
         'href',
         '/costumes',
       );
+      expect(within(navigation).getByRole('link', { name: 'Bảng giá' })).toHaveAttribute(
+        'href',
+        '/pricing',
+      );
       expect(within(navigation).getByRole('link', { name: 'Đơn của tôi' })).toHaveAttribute(
         'href',
         '/account/orders',
       );
     },
   );
+
+  it.each(['/pricing', '/pricing/package-1'])(
+    'marks the shared pricing tab active at %s',
+    (pathname) => {
+      render(
+        <MemoryRouter initialEntries={[pathname]}>
+          <SharedCustomerHeader />
+        </MemoryRouter>,
+      );
+      const navigation = screen.getByRole('navigation', { name: 'Tài khoản khách hàng' });
+      expect(within(navigation).getByRole('link', { name: 'Bảng giá' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      );
+      expect(
+        within(navigation)
+          .getAllByRole('link')
+          .filter((link) => link.hasAttribute('aria-current')),
+      ).toHaveLength(1);
+    },
+  );
+
+  it('opens pricing from the signed-in mobile menu and closes the drawer', async () => {
+    render(
+      <MemoryRouter initialEntries={['/account/orders']}>
+        <SharedCustomerHeader />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Mở menu điều hướng' }));
+    const navigation = within(screen.getByRole('dialog')).getByRole('navigation', {
+      name: 'Điều hướng chính trên điện thoại',
+    });
+    expect(navLabels(navigation)).toEqual([
+      'Đặt dịch vụ',
+      'Trang phục',
+      'Bảng giá',
+      'Đơn của tôi',
+      'Hồ sơ',
+    ]);
+    fireEvent.click(within(navigation).getByRole('link', { name: 'Bảng giá' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByTestId('location')).toHaveTextContent('"pathname":"/pricing"');
+    expect(
+      within(screen.getByRole('navigation', { name: 'Tài khoản khách hàng' })).getByRole('link', {
+        name: 'Bảng giá',
+      }),
+    ).toHaveAttribute('aria-current', 'page');
+  });
 
   it('retains all primary links and updates the active item when moving between services and discovery', () => {
     renderHeader('/account/bookings/booking-1', 'account');

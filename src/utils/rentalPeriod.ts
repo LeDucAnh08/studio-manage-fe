@@ -32,7 +32,7 @@ export function validateRentalPeriod(receive: string, returned: string): string 
   if (calendarDay(receive) === null || calendarDay(returned) === null)
     return 'Ngày nhận hoặc ngày trả không hợp lệ.';
   if (returned < receive) return 'Ngày trả phải từ ngày nhận trở đi.';
-  if (receive < vietnamToday()) return 'Ngày nhận phải từ hôm nay trở đi (giờ Việt Nam).';
+  if (receive < vietnamToday()) return 'Ngày nhận phải từ hôm nay trở đi.';
   if (rentalDayCount(receive, returned) === null) return 'Thời gian thuê tối đa 366 ngày.';
   return '';
 }

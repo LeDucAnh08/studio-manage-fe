@@ -24,6 +24,7 @@ interface CostumeTypeFormValues {
 const CostumeTypesPage = () => {
   const [types, setTypes] = useState<CostumeType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<CostumeType | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -32,13 +33,17 @@ const CostumeTypesPage = () => {
     register,
     handleSubmit,
     reset,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = useForm<CostumeTypeFormValues>();
 
   const load = async () => {
+    setLoading(true);
+    setLoadError(false);
     try {
       const data = await costumeTypeService.getAll();
       setTypes(data);
+    } catch {
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -101,15 +106,16 @@ const CostumeTypesPage = () => {
     },
     {
       key: 'actions',
-      header: '',
+      header: 'Thao tác',
       align: 'right',
       className: 'whitespace-nowrap',
       render: (t) => (
-        <span className="space-x-2">
+        <span className="staff-row-actions">
           <Button
             variant="link"
             size="sm"
-            className="h-auto p-0 text-xs text-primary"
+            className="staff-row-action"
+            aria-label={`Sửa loại ${t.name}`}
             onClick={() => openEdit(t)}
           >
             Sửa
@@ -117,7 +123,8 @@ const CostumeTypesPage = () => {
           <Button
             variant="link"
             size="sm"
-            className="h-auto p-0 text-xs text-destructive"
+            className="staff-row-action text-destructive"
+            aria-label={`Xoá loại ${t.name}`}
             onClick={() => setConfirmId(t._id)}
           >
             Xoá
@@ -130,7 +137,7 @@ const CostumeTypesPage = () => {
   return (
     <div>
       <PageHeader
-        kicker="Settings"
+        as="h1"
         title="Loại trang phục"
         description="Phân loại trang phục theo nhóm và kiểu dáng."
         action={
@@ -141,8 +148,18 @@ const CostumeTypesPage = () => {
         }
       />
 
+      {loadError && (
+        <div role="alert" className="rounded-lg border bg-card p-4 mb-4">
+          <p>Không tải được loại trang phục.</p>
+          <Button className="mt-3" variant="outline" onClick={load}>
+            Thử lại
+          </Button>
+        </div>
+      )}
+
       <div className="hidden md:block">
         <DataTable<CostumeType>
+          aria-label="Loại trang phục"
           loading={loading}
           data={types}
           keyExtractor={(t) => t._id}
@@ -173,7 +190,8 @@ const CostumeTypesPage = () => {
                 <Button
                   variant="link"
                   size="sm"
-                  className="h-auto p-0 text-xs"
+                  className="staff-row-action"
+                  aria-label={`Sửa loại ${t.name}`}
                   onClick={() => openEdit(t)}
                 >
                   Sửa
@@ -181,7 +199,8 @@ const CostumeTypesPage = () => {
                 <Button
                   variant="link"
                   size="sm"
-                  className="h-auto p-0 text-xs text-destructive"
+                  className="staff-row-action text-destructive"
+                  aria-label={`Xoá loại ${t.name}`}
                   onClick={() => setConfirmId(t._id)}
                 >
                   Xoá
@@ -204,10 +223,16 @@ const CostumeTypesPage = () => {
         open={modalOpen}
         onOpenChange={setModalOpen}
         title={editing ? 'Sửa loại trang phục' : 'Thêm loại trang phục'}
+        description="Loại dùng để liên kết trang phục với gói chụp."
         size="sm"
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-          <FormField label="Tên loại" required htmlFor="name">
+        <form onSubmit={handleSubmit(onSubmit)} aria-busy={isSubmitting} className="space-y-4">
+          <FormField
+            label="Tên loại"
+            required
+            htmlFor="name"
+            error={errors.name ? 'Vui lòng nhập tên loại.' : undefined}
+          >
             <Input
               id="name"
               placeholder="VD: Cử nhân, Trang phục truyền thống..."
@@ -222,12 +247,12 @@ const CostumeTypesPage = () => {
               {...register('description')}
             />
           </FormField>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="staff-modal-footer flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
               Huỷ
             </Button>
             <Button type="submit" variant="gradient" disabled={isSubmitting}>
-              Lưu
+              {isSubmitting ? 'Đang lưu…' : 'Lưu'}
             </Button>
           </div>
         </form>

@@ -80,11 +80,11 @@ describe('API authentication failure redirects', () => {
     },
   );
 
-  it('sends an expired staff session to the legacy staff login', async () => {
+  it('sends an expired staff session to the shared login', async () => {
     const navigate = observeLocation('/profile?tab=password#change');
     await expect(api.get('/auth/me')).rejects.toBeInstanceOf(AxiosError);
     expect(navigate).toHaveBeenCalledTimes(1);
-    expect(navigate).toHaveBeenCalledWith('/staff/login');
+    expect(navigate).toHaveBeenCalledWith('/login');
     expect(localStorage.getItem('token')).toBeNull();
     expect(localStorage.getItem('user')).toBeNull();
   });

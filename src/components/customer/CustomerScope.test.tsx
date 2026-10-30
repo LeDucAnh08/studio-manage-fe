@@ -44,7 +44,6 @@ function GuardRoutes({ pathname }: { pathname: string }) {
         <Route path="/profile" element={<AuthSurface allowedRoles={[0]} />} />
         <Route path="/" element={<AuthSurface allowedRoles={[0]} />} />
         <Route path="/login" element={<p>Customer login destination</p>} />
-        <Route path="/staff/login" element={<p>Staff login destination</p>} />
         <Route path="/portfolio" element={<p>Public portfolio destination</p>} />
       </Routes>
     </MemoryRouter>
@@ -190,7 +189,7 @@ describe('Customer route appearance', () => {
 
   it.each([
     ['/account/bookings?source=portfolio', 'Customer login destination'],
-    ['/profile', 'Staff login destination'],
+    ['/profile', 'Customer login destination'],
     ['/', 'Public portfolio destination'],
   ])('keeps the correct guest destination for %s', async (pathname, destination) => {
     mocks.auth.isBootstrapping = false;

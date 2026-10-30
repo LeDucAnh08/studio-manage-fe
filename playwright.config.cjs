@@ -41,6 +41,7 @@ module.exports = defineConfig({
         CLIENT_WORKFLOW_ENABLED: 'true',
         TS_NODE_PROJECT: path.join(root, 'backend/tsconfig.json'),
         NODE_ENV: 'test',
+        UPLOAD_DIR: path.join(root, '.data/e2e-package-media'),
       },
     },
     {

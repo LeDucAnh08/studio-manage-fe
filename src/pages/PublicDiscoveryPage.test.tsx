@@ -60,6 +60,10 @@ describe('Independent discovery pages', () => {
     ]);
     open('pricing');
     await screen.findByText('Gói thử');
+    expect(screen.getByRole('link', { name: 'Xem chi tiết' })).toHaveAttribute(
+      'href',
+      '/pricing/p1',
+    );
     expect(screen.getByText(/Đã bao gồm trang phục: Áo dài, Vest/)).toBeInTheDocument();
     expect(
       screen.getByText(/Studio tư vấn mẫu và size trang phục khi chốt lịch/),

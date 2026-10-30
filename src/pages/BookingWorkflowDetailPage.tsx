@@ -375,13 +375,15 @@ export default function BookingWorkflowDetailPage() {
     booking?.packageName ||
     'Hồ sơ dịch vụ';
   const ordersReturnTo = location.state?.ordersReturnTo;
+  const staffReturnTo = location.state?.bookingOrdersReturnTo;
   const backPath = isClient
     ? typeof ordersReturnTo === 'string' &&
       (ordersReturnTo === '/account/orders' || ordersReturnTo.startsWith('/account/orders?'))
       ? ordersReturnTo
       : '/account/orders?tab=bookings'
-    : isAdmin
-      ? '/booking-requests'
+    : typeof staffReturnTo === 'string' &&
+        (staffReturnTo === '/workflow-bookings' || staffReturnTo.startsWith('/workflow-bookings?'))
+      ? staffReturnTo
       : '/workflow-bookings';
   const effectivePayment = {
     ...emptyPayments,
@@ -1089,6 +1091,12 @@ export default function BookingWorkflowDetailPage() {
             Studio đã từ chối yêu cầu này.
           </p>
         )}
+        {booking.status === 'cancelled' && (
+          <p className={customer ? 'customer-order-notice' : 'rounded-lg bg-muted p-3 text-sm'}>
+            {booking.cancellationReason || 'Yêu cầu đã được hủy.'}
+            {booking.cancelledAt && <> Hủy lúc {formatDateTime(booking.cancelledAt)}.</>}
+          </p>
+        )}
       </header>
 
       <BookingPhotographer
@@ -1285,7 +1293,7 @@ export default function BookingWorkflowDetailPage() {
                 onChange={(event) => setDepositRequired(event.target.value)}
               />
             </Field>
-            <Field label="Ngày chụp (giờ Việt Nam)">
+            <Field label="Ngày chụp">
               <Input
                 type="date"
                 value={quoteDate}

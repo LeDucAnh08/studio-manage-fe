@@ -11,6 +11,7 @@ import {
   Input,
   Modal,
   PageHeader,
+  Pagination,
   SegmentedControl,
   Select,
   SelectContent,
@@ -19,9 +20,6 @@ import {
   SelectValue,
   TableSkeleton,
   Textarea,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
 } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import {
@@ -31,7 +29,6 @@ import {
   Clock,
   Delete,
   Edit,
-  FolderOpen,
   MapPin,
   Mars,
   Paperclip,
@@ -100,31 +97,11 @@ const getInitials = (fullName: string) =>
     .join('')
     .toUpperCase();
 
-const getHue = (s: string) => {
-  let hash = 0;
-  for (let i = 0; i < s.length; i++) hash = s.charCodeAt(i) + ((hash << 5) - hash);
-  return Math.abs(hash) % 360;
-};
-
 const UserAvatar = ({ name, size = 32 }: { name: string; size?: number }) => {
-  const hue = getHue(name);
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span
-          className="rounded-full inline-flex items-center justify-center text-xs font-semibold text-white ring-2 ring-background shadow-sm select-none cursor-default"
-          style={{
-            backgroundColor: `hsl(${hue}, 65%, 45%)`,
-            width: size,
-            height: size,
-          }}
-          aria-label={name}
-        >
-          {getInitials(name)}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>{name}</TooltipContent>
-    </Tooltip>
+    <span className="staff-person-avatar" style={{ width: size, height: size }} aria-hidden="true">
+      {getInitials(name)}
+    </span>
   );
 };
 
@@ -210,7 +187,7 @@ const CostumePicker = ({ costumes, selected, onChange, showError }: CostumePicke
   }
 
   return (
-    <div>
+    <div className="staff-costume-picker">
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="text-sm font-medium flex items-center gap-2">
           <Shirt className="h-4 w-4 text-primary" />
@@ -240,6 +217,7 @@ const CostumePicker = ({ costumes, selected, onChange, showError }: CostumePicke
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               type="text"
+              aria-label="Tìm trang phục trong gói"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm trang phục..."
@@ -259,6 +237,7 @@ const CostumePicker = ({ costumes, selected, onChange, showError }: CostumePicke
                 <button
                   key={g}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => setGenderFilter(g)}
                   className={cn(
                     'px-2.5 py-1.5 transition-colors',
@@ -384,7 +363,7 @@ interface ScheduleFormValues {
 
 const SchedulesPage = () => {
   const dispatch = useAppDispatch();
-  const { list: schedules, total, loading } = useAppSelector((s) => s.schedules);
+  const { list: schedules, total, loading, error } = useAppSelector((s) => s.schedules);
   const { list: customers } = useAppSelector((s) => s.customers);
   const { list: packages } = useAppSelector((s) => s.packages);
   const { photographers, sales: salesUsers } = useAppSelector((s) => s.users);
@@ -472,7 +451,7 @@ const SchedulesPage = () => {
   const openEdit = (s: ScheduleResponse) => {
     if (s.workflowBooking) {
       toast.error(
-        'Lịch này đã liên kết hồ sơ dịch vụ. Quản trị viên xử lý thay đổi trong Quy trình dịch vụ.',
+        'Lịch này đã liên kết đơn chụp ảnh. Quản trị viên xử lý thay đổi trong Đơn chụp ảnh.',
       );
       return;
     }
@@ -661,6 +640,19 @@ const SchedulesPage = () => {
     [schedules],
   );
 
+  const scheduleDescription = (s: ScheduleResponse) =>
+    `${s.customer?.className ?? 'Chưa có lớp'} · ${formatDate(s.shootDate)}`;
+  const pagination = {
+    page,
+    pageSize,
+    total,
+    onPageChange: setPage,
+    onPageSizeChange: (size: number) => {
+      setPageSize(size);
+      setPage(1);
+    },
+  };
+
   const scheduleColumns: Column<ScheduleResponse>[] = [
     {
       key: 'date',
@@ -678,12 +670,15 @@ const SchedulesPage = () => {
       header: 'Lớp',
       render: (s) => (
         <div className="flex flex-col">
-          <span className="font-medium text-primary whitespace-nowrap break-keep">
+          <button
+            type="button"
+            className="staff-schedule-open font-medium text-primary text-left"
+            onClick={() => setDetail(s)}
+            aria-label={`Xem lịch ${scheduleDescription(s)}`}
+          >
             {s.customer?.className ?? '—'}
-          </span>
-          <span className="text-muted-foreground text-xs whitespace-nowrap break-keep">
-            {s.customer?.school ?? ''}
-          </span>
+          </button>
+          <span className="text-muted-foreground text-xs">{s.customer?.school ?? ''}</span>
         </div>
       ),
     },
@@ -699,7 +694,7 @@ const SchedulesPage = () => {
       render: (s) => {
         const fullName = s.bookedBy?.name ?? s.bookedBy?.username;
         if (!fullName) return '—';
-        return <UserAvatar name={fullName} />;
+        return <span>{fullName}</span>;
       },
     },
     {
@@ -708,7 +703,7 @@ const SchedulesPage = () => {
       render: (s) => {
         const fullName = s.leadPhotographer?.name ?? s.leadPhotographer?.username;
         if (!fullName) return '—';
-        return <UserAvatar name={fullName} />;
+        return <span>{fullName}</span>;
       },
     },
     {
@@ -720,11 +715,16 @@ const SchedulesPage = () => {
           .filter(Boolean) as string[];
         if (names.length === 0) return '—';
         return (
-          <span className="inline-flex -space-x-2">
-            {names.map((n, i) => (
-              <UserAvatar key={i} name={n} size={28} />
-            ))}
-          </span>
+          <details className="staff-crew-disclosure" onClick={(event) => event.stopPropagation()}>
+            <summary className="staff-small-disclosure">{names.length} người</summary>
+            <span className="block space-y-1 mt-2">
+              {names.map((n, i) => (
+                <span key={i} className="block">
+                  {n}
+                </span>
+              ))}
+            </span>
+          </details>
         );
       },
     },
@@ -741,24 +741,23 @@ const SchedulesPage = () => {
       key: 'notes',
       header: 'Ghi chú',
       render: (s) => (
-        <span
-          className="block truncate text-muted-foreground whitespace-pre-line"
-          title={s.notes || ''}
-        >
+        <span className="block text-muted-foreground whitespace-pre-line" title={s.notes || ''}>
           {s.notes || '—'}
         </span>
       ),
     },
     {
       key: 'actions',
-      header: '',
+      header: 'Thao tác',
       align: 'right',
       render: (s) => (
-        <span className="space-x-2 flex">
+        <span className="staff-row-actions">
           <Button
             variant="link"
             size="sm"
-            className="h-auto p-0 text-xs text-emerald-600"
+            className="staff-icon-action"
+            aria-label={`Hợp đồng lịch ${scheduleDescription(s)}`}
+            title="Hợp đồng"
             onClick={(e) => {
               e.stopPropagation();
               handleDownloadContract(s);
@@ -769,7 +768,9 @@ const SchedulesPage = () => {
           <Button
             variant="link"
             size="sm"
-            className="h-auto p-0 text-xs"
+            className="staff-icon-action"
+            aria-label={`Sửa lịch ${scheduleDescription(s)}`}
+            title="Sửa lịch"
             onClick={(e) => {
               e.stopPropagation();
               openEdit(s);
@@ -780,7 +781,9 @@ const SchedulesPage = () => {
           <Button
             variant="link"
             size="sm"
-            className="h-auto p-0 text-xs text-destructive"
+            className="staff-icon-action text-destructive"
+            aria-label={`Xoá lịch ${scheduleDescription(s)}`}
+            title="Xoá lịch"
             onClick={(e) => {
               e.stopPropagation();
               handleDelete(s._id);
@@ -794,9 +797,9 @@ const SchedulesPage = () => {
   ];
 
   return (
-    <div>
+    <div className="staff-schedules">
       <PageHeader
-        kicker="Schedules"
+        as="h1"
         title="Lịch chụp"
         description="Theo dõi và sắp xếp lịch chụp ảnh theo ngày."
         action={
@@ -809,21 +812,34 @@ const SchedulesPage = () => {
                 { value: 'calendar', label: 'Lịch', icon: <Calendar className="h-3.5 w-3.5" /> },
               ]}
             />
-            <Button variant="gradient" onClick={openCreate}>
-              + Thêm lịch
-            </Button>
+            <Button onClick={openCreate}>+ Thêm lịch</Button>
           </div>
         }
       />
 
-      <div className="rounded-xl border bg-card p-4 mb-4">
+      {error && (
+        <div role="alert" className="rounded-lg border bg-card p-4 mb-4">
+          <p>Không tải được lịch chụp.</p>
+          <Button
+            className="mt-3"
+            variant="outline"
+            onClick={() =>
+              dispatch(fetchSchedules(buildFilterParams(appliedFilter, page, pageSize)))
+            }
+          >
+            Thử lại
+          </Button>
+        </div>
+      )}
+
+      <div className="staff-toolbar rounded-lg border bg-card p-4 mb-4">
         <div className="flex flex-wrap gap-2">
           <div className="flex-1 min-w-[8rem]">
             <Select
               value={filter.status || ALL}
               onValueChange={(v) => setFilter((f) => ({ ...f, status: v === ALL ? '' : v }))}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-label="Lọc trạng thái lịch chụp">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -838,6 +854,7 @@ const SchedulesPage = () => {
           </div>
           <div className="flex-1 min-w-[8rem]">
             <Combobox
+              aria-label="Lọc theo lớp"
               options={[
                 { value: '', label: 'Tất cả lớp' },
                 ...customers.map((c) => ({ value: c._id, label: c.className })),
@@ -848,20 +865,20 @@ const SchedulesPage = () => {
             />
           </div>
           <DatePicker
+            aria-label="Lọc từ ngày"
             value={filter.dateFrom}
             onChange={(v) => setFilter((f) => ({ ...f, dateFrom: v ?? '' }))}
             placeholder="Từ ngày"
             className="flex-1 min-w-[8rem]"
           />
           <DatePicker
+            aria-label="Lọc đến ngày"
             value={filter.dateTo}
             onChange={(v) => setFilter((f) => ({ ...f, dateTo: v ?? '' }))}
             placeholder="Đến ngày"
             className="flex-1 min-w-[8rem]"
           />
-          <Button variant="gradient" onClick={applyFilter}>
-            Lọc
-          </Button>
+          <Button onClick={applyFilter}>Lọc</Button>
           <Button variant="outline" onClick={resetFilter}>
             Xoá lọc
           </Button>
@@ -883,8 +900,10 @@ const SchedulesPage = () => {
         </div>
       ) : (
         <>
-          <div className="hidden md:block overflow-x-auto">
+          <div className="hidden md:block">
             <DataTable<ScheduleResponse>
+              aria-label="Danh sách lịch chụp"
+              className="staff-schedules-table"
               data={schedules}
               keyExtractor={(s) => s._id}
               emptyTitle="Chưa có dữ liệu"
@@ -892,14 +911,7 @@ const SchedulesPage = () => {
               onRowClick={(s) => setDetail(s)}
               pagination={{
                 serverSide: true,
-                page,
-                pageSize,
-                total,
-                onPageChange: setPage,
-                onPageSizeChange: (size: number) => {
-                  setPageSize(size);
-                  setPage(1);
-                },
+                ...pagination,
               }}
             />
           </div>
@@ -911,17 +923,22 @@ const SchedulesPage = () => {
               const bookedByName = s.bookedBy?.name ?? s.bookedBy?.username ?? null;
               const supports = s.supportPhotographers.map((u) => u.name ?? u.username).join(', ');
               return (
-                <div key={s._id} className="rounded-xl border bg-card p-4">
+                <div key={s._id} className="rounded-lg border bg-card p-4">
                   <div className="flex items-start justify-between mb-2 gap-2">
-                    <div className="min-w-0">
+                    <button
+                      type="button"
+                      className="min-w-0 text-left staff-schedule-open"
+                      onClick={() => setDetail(s)}
+                      aria-label={`Xem lịch ${scheduleDescription(s)}`}
+                    >
                       <div className="font-semibold">{formatDate(s.shootDate)}</div>
-                      <div className="text-primary text-sm mt-0.5 truncate">
+                      <div className="text-primary text-sm mt-0.5 break-words">
                         {customer?.className ?? '—'}
                         {customer?.school && (
                           <span className="text-muted-foreground"> · {customer.school}</span>
                         )}
                       </div>
-                    </div>
+                    </button>
                     <Badge
                       variant="outline"
                       className={cn('border-transparent shrink-0', statusColor[s.status])}
@@ -941,34 +958,35 @@ const SchedulesPage = () => {
                     )}
                     {s.location && (
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 shrink-0 text-rose-500" />
+                        <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
                         <span>{s.location}</span>
                       </div>
                     )}
                     {leadName && (
                       <div className="flex items-center gap-2">
-                        <Briefcase className="h-4 w-4 shrink-0 text-blue-500" />
+                        <Briefcase className="h-4 w-4 shrink-0" aria-hidden="true" />
                         <span>Leader:</span> <span className="text-foreground">{leadName}</span>
                       </div>
                     )}
                     {supports && (
                       <div className="flex items-center gap-2">
-                        <UsersIcon className="h-4 w-4 shrink-0 text-violet-500" />
+                        <UsersIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
                         <span>Support:</span> <span className="text-foreground">{supports}</span>
                       </div>
                     )}
                     {s.notes && (
-                      <div className="mt-1 flex items-start gap-2 rounded-md border border-yellow-400/40 bg-yellow-500/10 text-yellow-600 dark:text-yellow-300 text-xs font-medium px-2 py-1 whitespace-pre-line">
+                      <div className="mt-2 flex items-start gap-2 rounded-md border bg-muted/40 text-sm px-3 py-2 whitespace-pre-line">
                         <StickyNote className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                         <span>{s.notes}</span>
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-4 mt-3 pt-3 border-t">
+                  <div className="flex items-center flex-wrap gap-2 mt-3 pt-3 border-t">
                     <Button
                       variant="link"
                       size="sm"
-                      className="h-auto p-0 text-xs text-emerald-600"
+                      className="staff-row-action"
+                      aria-label={`Hợp đồng lịch ${scheduleDescription(s)}`}
                       onClick={() => handleDownloadContract(s)}
                     >
                       Hợp đồng
@@ -976,7 +994,8 @@ const SchedulesPage = () => {
                     <Button
                       variant="link"
                       size="sm"
-                      className="h-auto p-0 text-xs"
+                      className="staff-row-action"
+                      aria-label={`Sửa lịch ${scheduleDescription(s)}`}
                       onClick={() => openEdit(s)}
                     >
                       Sửa
@@ -984,7 +1003,8 @@ const SchedulesPage = () => {
                     <Button
                       variant="link"
                       size="sm"
-                      className="h-auto p-0 text-xs text-destructive"
+                      className="staff-row-action text-destructive"
+                      aria-label={`Xoá lịch ${scheduleDescription(s)}`}
                       onClick={() => handleDelete(s._id)}
                     >
                       Xoá
@@ -1003,6 +1023,9 @@ const SchedulesPage = () => {
                 Chưa có dữ liệu
               </div>
             )}
+            {schedules.length > 0 && (
+              <Pagination {...pagination} className="rounded-lg border bg-card" />
+            )}
           </div>
         </>
       )}
@@ -1011,11 +1034,16 @@ const SchedulesPage = () => {
         open={modalOpen}
         onOpenChange={setModalOpen}
         title={editing ? 'Sửa lịch chụp' : 'Thêm lịch chụp'}
+        description="Lớp, gói chụp, ekip và phân bổ trang phục của buổi chụp."
         size="lg"
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          aria-busy={isSubmitting}
+          className="staff-form space-y-4"
+        >
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-            <FormField label="Lớp" required>
+            <FormField label="Lớp" required htmlFor="schedule-customer">
               <Controller
                 name="customer"
                 control={control}
@@ -1023,6 +1051,11 @@ const SchedulesPage = () => {
                 render={({ field, fieldState }) => (
                   <>
                     <Combobox
+                      id="schedule-customer"
+                      ref={field.ref}
+                      aria-required="true"
+                      aria-invalid={fieldState.error ? true : undefined}
+                      aria-describedby={fieldState.error ? 'schedule-customer-error' : undefined}
                       options={customers.map((c) => ({
                         value: c._id,
                         label: `${c.className} – ${c.school}`,
@@ -1032,13 +1065,19 @@ const SchedulesPage = () => {
                       placeholder="-- Chọn lớp --"
                     />
                     {fieldState.error && (
-                      <p className="text-xs text-destructive mt-1">Vui lòng chọn lớp.</p>
+                      <p
+                        id="schedule-customer-error"
+                        role="alert"
+                        className="text-xs text-destructive mt-1"
+                      >
+                        Vui lòng chọn lớp.
+                      </p>
                     )}
                   </>
                 )}
               />
             </FormField>
-            <FormField label="Gói chụp" required>
+            <FormField label="Gói chụp" required htmlFor="schedule-package">
               <Controller
                 name="package"
                 control={control}
@@ -1046,6 +1085,11 @@ const SchedulesPage = () => {
                 render={({ field, fieldState }) => (
                   <>
                     <Combobox
+                      id="schedule-package"
+                      ref={field.ref}
+                      aria-required="true"
+                      aria-invalid={fieldState.error ? true : undefined}
+                      aria-describedby={fieldState.error ? 'schedule-package-error' : undefined}
                       options={packages.map((p) => ({
                         value: p._id,
                         label: `${p.name} – ${p.pricePerMember.toLocaleString('vi-VN')}₫/thành viên`,
@@ -1055,19 +1099,25 @@ const SchedulesPage = () => {
                       placeholder="-- Chọn gói chụp --"
                     />
                     {fieldState.error && (
-                      <p className="text-xs text-destructive mt-1">Vui lòng chọn gói chụp.</p>
+                      <p
+                        id="schedule-package-error"
+                        role="alert"
+                        className="text-xs text-destructive mt-1"
+                      >
+                        Vui lòng chọn gói chụp.
+                      </p>
                     )}
                   </>
                 )}
               />
             </FormField>
-            <FormField label="Trạng thái">
+            <FormField label="Trạng thái" htmlFor="schedule-status">
               <Controller
                 name="status"
                 control={control}
                 render={({ field }) => (
                   <Select value={field.value ?? 'pending'} onValueChange={field.onChange}>
-                    <SelectTrigger>
+                    <SelectTrigger id="schedule-status">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1113,6 +1163,10 @@ const SchedulesPage = () => {
                 rules={{ required: true }}
                 render={({ field }) => (
                   <DatePicker
+                    id="shootDate"
+                    aria-required="true"
+                    aria-invalid={errors.shootDate ? true : undefined}
+                    aria-describedby={errors.shootDate ? 'schedule-date-error' : undefined}
                     value={field.value}
                     onChange={field.onChange}
                     placeholder="Chọn ngày chụp"
@@ -1120,7 +1174,9 @@ const SchedulesPage = () => {
                 )}
               />
               {errors.shootDate && (
-                <p className="text-xs text-destructive mt-1">Vui lòng chọn ngày chụp.</p>
+                <p id="schedule-date-error" role="alert" className="text-xs text-destructive mt-1">
+                  Vui lòng chọn ngày chụp.
+                </p>
               )}
             </FormField>
             <FormField label="Giờ bắt đầu" htmlFor="startTime">
@@ -1132,12 +1188,13 @@ const SchedulesPage = () => {
             <FormField label="Địa điểm" htmlFor="location" className="lg:col-span-3">
               <Input id="location" {...register('location')} />
             </FormField>
-            <FormField label="Người chốt lớp (Sale)">
+            <FormField label="Người chốt lớp (Sale)" htmlFor="schedule-sale">
               <Controller
                 name="bookedBy"
                 control={control}
                 render={({ field }) => (
                   <Combobox
+                    id="schedule-sale"
                     options={salesUsers.map((u) => ({
                       value: u._id,
                       label: u.username + (u.name ? ` (${u.name})` : ''),
@@ -1149,12 +1206,13 @@ const SchedulesPage = () => {
                 )}
               />
             </FormField>
-            <FormField label="Thợ leader" className="lg:col-span-2">
+            <FormField label="Thợ leader" htmlFor="schedule-leader" className="lg:col-span-2">
               <Controller
                 name="leadPhotographer"
                 control={control}
                 render={({ field }) => (
                   <Combobox
+                    id="schedule-leader"
                     options={photographers.map((u) => ({
                       value: u._id,
                       label: `${u.username}${u.name ? ` (${u.name})` : ''} – ${ROLE_LABELS[3]}`,
@@ -1199,7 +1257,7 @@ const SchedulesPage = () => {
                 </div>
               </FormField>
             )}
-            <FormField label="Mùa chụp">
+            <FormField label="Mùa chụp" htmlFor="schedule-season">
               <Controller
                 name="season"
                 control={control}
@@ -1208,7 +1266,7 @@ const SchedulesPage = () => {
                     value={field.value ?? ''}
                     onValueChange={(v) => field.onChange(v || null)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="schedule-season">
                       <SelectValue placeholder="-- Chọn mùa --" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1226,12 +1284,12 @@ const SchedulesPage = () => {
               <Textarea id="notes" rows={2} {...register('notes')} />
             </FormField>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="staff-modal-footer flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
               Huỷ
             </Button>
             <Button type="submit" variant="gradient" disabled={isSubmitting}>
-              Lưu
+              {isSubmitting ? 'Đang lưu…' : 'Lưu'}
             </Button>
           </div>
         </form>
@@ -1248,289 +1306,141 @@ const SchedulesPage = () => {
       {/* Detail modal */}
       <Modal
         open={!!detail}
-        onOpenChange={(o) => !o && setDetail(null)}
+        onOpenChange={(open) => !open && setDetail(null)}
         title="Chi tiết lịch chụp"
         size="lg"
       >
-        {detail &&
-          (() => {
-            const customer = detail.customer;
-            const pkg = detail.package;
-            const leadName =
-              detail.leadPhotographer?.name ?? detail.leadPhotographer?.username ?? null;
-            const bookedByName = detail.bookedBy?.name ?? detail.bookedBy?.username ?? null;
-            const supportList = detail.supportPhotographers
-              .map((u) => u.name ?? u.username)
-              .filter(Boolean) as string[];
-
-            const heroHue = getHue(customer?.className ?? detail._id);
-
-            const InfoItem = ({
-              icon,
-              label,
-              value,
-              full,
-              tone = 'primary',
-            }: {
-              icon: React.ReactNode;
-              label: string;
-              value: React.ReactNode;
-              full?: boolean;
-              tone?: 'primary' | 'rose' | 'emerald' | 'violet' | 'amber' | 'sky';
-            }) => {
-              const tones: Record<string, string> = {
-                primary: 'bg-primary/10 text-primary',
-                rose: 'bg-rose-500/10 text-rose-500',
-                emerald: 'bg-emerald-500/10 text-emerald-500',
-                violet: 'bg-violet-500/10 text-violet-500',
-                amber: 'bg-amber-500/10 text-amber-500',
-                sky: 'bg-sky-500/10 text-sky-500',
-              };
-              return (
-                <div
-                  className={cn(
-                    'group flex items-start gap-3 rounded-xl border bg-card px-3.5 py-3 transition-all hover:shadow-md hover:border-primary/40',
-                    full && 'sm:col-span-2',
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'shrink-0 w-9 h-9 inline-flex items-center justify-center rounded-lg transition-transform group-hover:scale-110',
-                      tones[tone],
-                    )}
-                  >
-                    {icon}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[10px] uppercase tracking-[0.08em] font-semibold text-muted-foreground">
-                      {label}
-                    </div>
-                    <div className="text-sm mt-1 break-words leading-relaxed">
-                      {value || <span className="text-muted-foreground italic">Chưa có</span>}
-                    </div>
-                  </div>
+        {detail && (
+          <div className="space-y-6">
+            <section className="staff-detail-summary">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0 space-y-2">
+                  <Badge variant="outline" className={statusColor[detail.status]}>
+                    {statusLabel[detail.status]}
+                  </Badge>
+                  <h3 className="text-xl font-semibold break-words">
+                    {detail.customer?.className ?? '—'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">{detail.customer?.school}</p>
+                  <p className="text-sm tabular-nums">
+                    {formatDate(detail.shootDate)}
+                    {detail.startTime ? ' · ' + detail.startTime : ''}
+                    {detail.endTime ? ' – ' + detail.endTime : ''}
+                  </p>
                 </div>
-              );
-            };
-
-            return (
-              <div className="space-y-5 -mx-2">
-                <div
-                  className="relative overflow-hidden rounded-2xl px-5 py-5"
-                  style={{
-                    background: `linear-gradient(135deg, hsl(${heroHue}, 70%, 50%) 0%, hsl(${(heroHue + 40) % 360}, 75%, 45%) 100%)`,
-                  }}
-                >
-                  <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10 blur-2xl" />
-                  <div className="absolute -bottom-12 -left-8 w-32 h-32 rounded-full bg-black/10 blur-2xl" />
-
-                  <div className="relative flex items-start justify-between gap-3 flex-wrap">
-                    <div className="min-w-0 text-white">
-                      <div className="inline-flex items-center gap-2 mb-2">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            'border-transparent backdrop-blur-sm bg-white/90',
-                            statusColor[detail.status],
-                          )}
-                        >
-                          {statusLabel[detail.status]}
-                        </Badge>
-                      </div>
-                      <h3 className="text-2xl font-bold tracking-tight truncate drop-shadow-sm">
-                        {customer?.className ?? '—'}
-                      </h3>
-                      {customer?.school && (
-                        <p className="text-sm text-white/85 mt-1 truncate">{customer.school}</p>
-                      )}
-                      <div className="mt-3 flex items-center gap-4 flex-wrap text-sm text-white/95">
-                        <span className="inline-flex items-center gap-1.5">
-                          <Calendar className="h-4 w-4" />
-                          <span className="font-medium">{formatDate(detail.shootDate)}</span>
-                        </span>
-                        {(detail.startTime || detail.endTime) && (
-                          <span className="inline-flex items-center gap-1.5">
-                            <Clock className="h-4 w-4" />
-                            <span className="font-medium">
-                              {detail.startTime ?? ''}
-                              {detail.endTime ? ` – ${detail.endTime}` : ''}
-                            </span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="relative flex gap-2 shrink-0">
-                      <button
-                        onClick={() => handleDownloadContract(detail)}
-                        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white border border-white/20 transition-colors"
-                      >
-                        Hợp đồng
-                      </button>
-                      <button
-                        onClick={() => {
-                          setDetail(null);
-                          openEdit(detail);
-                        }}
-                        className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-white text-gray-900 hover:bg-white/90 shadow-sm transition-colors"
-                      >
-                        Sửa
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="px-2 space-y-5">
-                  <section>
-                    <div className="flex items-center gap-2 mb-2.5">
-                      <span className="h-px flex-1 bg-border" />
-                      <span className="text-[11px] uppercase tracking-[0.1em] font-semibold text-muted-foreground">
-                        Thông tin buổi chụp
-                      </span>
-                      <span className="h-px flex-1 bg-border" />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <InfoItem
-                        icon={<MapPin className="h-4 w-4" />}
-                        label="Địa điểm"
-                        value={detail.location}
-                        tone="rose"
-                      />
-                      <InfoItem
-                        icon={<span className="text-[11px] font-bold">₫</span>}
-                        label="Gói chụp"
-                        tone="emerald"
-                        value={
-                          pkg ? (
-                            <div className="flex flex-col">
-                              <span className="font-semibold">{pkg.name}</span>
-                              {typeof pkg.pricePerMember === 'number' && (
-                                <span className="text-xs text-muted-foreground">
-                                  {pkg.pricePerMember.toLocaleString('vi-VN')}₫/thành viên
-                                </span>
-                              )}
-                            </div>
-                          ) : null
-                        }
-                      />
-                      <InfoItem
-                        icon={<FolderOpen className="h-4 w-4" />}
-                        label="Folder ảnh"
-                        tone="amber"
-                        full
-                        value={
-                          detail.driveFolderUrl ? (
-                            <a
-                              href={detail.driveFolderUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-medium text-primary underline underline-offset-2 hover:opacity-80 break-all"
-                            >
-                              Mở folder trên Google Drive
-                            </a>
-                          ) : (
-                            <span className="text-muted-foreground italic">Đang tạo folder…</span>
-                          )
-                        }
-                      />
-                    </div>
-                  </section>
-
-                  <section>
-                    <div className="flex items-center gap-2 mb-2.5">
-                      <span className="h-px flex-1 bg-border" />
-                      <span className="text-[11px] uppercase tracking-[0.1em] font-semibold text-muted-foreground">
-                        Đội ngũ phụ trách
-                      </span>
-                      <span className="h-px flex-1 bg-border" />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <InfoItem
-                        icon={<Briefcase className="h-4 w-4" />}
-                        label="Sale"
-                        tone="sky"
-                        value={
-                          bookedByName ? (
-                            <span className="inline-flex items-center gap-2">
-                              <UserAvatar name={bookedByName} size={28} />
-                              <span className="font-medium">{bookedByName}</span>
-                            </span>
-                          ) : null
-                        }
-                      />
-                      <InfoItem
-                        icon={<Briefcase className="h-4 w-4" />}
-                        label="Leader"
-                        tone="primary"
-                        value={
-                          leadName ? (
-                            <span className="inline-flex items-center gap-2">
-                              <UserAvatar name={leadName} size={28} />
-                              <span className="font-medium">{leadName}</span>
-                            </span>
-                          ) : null
-                        }
-                      />
-                      <InfoItem
-                        icon={<UsersIcon className="h-4 w-4" />}
-                        label={`Support${supportList.length ? ` · ${supportList.length} người` : ''}`}
-                        tone="violet"
-                        full
-                        value={
-                          supportList.length > 0 ? (
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-0.5">
-                              {supportList.map((n, i) => (
-                                <span
-                                  key={i}
-                                  className="inline-flex items-center gap-1.5 rounded-full bg-violet-500/10 pl-0.5 pr-2.5 py-0.5"
-                                >
-                                  <UserAvatar name={n} size={22} />
-                                  <span className="text-xs font-medium">{n}</span>
-                                </span>
-                              ))}
-                            </div>
-                          ) : null
-                        }
-                      />
-                    </div>
-                  </section>
-
-                  {detail.notes && (
-                    <section>
-                      <div className="rounded-xl border border-amber-400/40 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-500/10 dark:to-yellow-500/5 px-4 py-3.5 flex items-start gap-3">
-                        <span className="shrink-0 w-9 h-9 inline-flex items-center justify-center rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-300">
-                          <StickyNote className="h-4 w-4" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-[10px] uppercase tracking-[0.08em] font-semibold text-amber-700 dark:text-amber-300">
-                            Ghi chú
-                          </div>
-                          <div className="text-sm mt-1 whitespace-pre-line break-words leading-relaxed">
-                            {detail.notes}
-                          </div>
-                        </div>
-                      </div>
-                    </section>
-                  )}
-                </div>
-
-                <div className="flex justify-end px-2 pt-3 border-t">
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={() => handleDownloadContract(detail)}>
+                    Hợp đồng
+                  </Button>
                   <Button
-                    variant="link"
-                    className="text-destructive"
                     onClick={() => {
-                      const id = detail._id;
                       setDetail(null);
-                      handleDelete(id);
+                      openEdit(detail);
                     }}
                   >
-                    Xoá lịch chụp
+                    Sửa
                   </Button>
                 </div>
               </div>
-            );
-          })()}
+            </section>
+            <section className="space-y-3">
+              <h3 className="text-lg font-semibold">Thông tin buổi chụp</h3>
+              <dl className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <dt className="text-sm text-muted-foreground">Địa điểm</dt>
+                  <dd className="mt-1 break-words">{detail.location || 'Chưa có'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-muted-foreground">Gói chụp</dt>
+                  <dd className="mt-1">
+                    {detail.package?.name || 'Chưa có'}
+                    {typeof detail.package?.pricePerMember === 'number' && (
+                      <span className="block text-sm tabular-nums text-muted-foreground">
+                        {detail.package.pricePerMember.toLocaleString('vi-VN')}₫/thành viên
+                      </span>
+                    )}
+                  </dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-sm text-muted-foreground">Folder ảnh</dt>
+                  <dd className="mt-1">
+                    {detail.driveFolderUrl ? (
+                      <a
+                        href={detail.driveFolderUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline underline-offset-4"
+                      >
+                        Mở folder trên Google Drive
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">Đang tạo folder…</span>
+                    )}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+            <section className="space-y-3">
+              <h3 className="text-lg font-semibold">Đội ngũ phụ trách</h3>
+              <dl className="grid gap-4 sm:grid-cols-2">
+                {[
+                  {
+                    label: 'Sale',
+                    people: detail.bookedBy
+                      ? [detail.bookedBy.name ?? detail.bookedBy.username]
+                      : [],
+                  },
+                  {
+                    label: 'Leader',
+                    people: detail.leadPhotographer
+                      ? [detail.leadPhotographer.name ?? detail.leadPhotographer.username]
+                      : [],
+                  },
+                  {
+                    label: 'Support',
+                    people: detail.supportPhotographers.map(
+                      (person) => person.name ?? person.username,
+                    ),
+                  },
+                ].map((group) => (
+                  <div key={group.label}>
+                    <dt className="text-sm text-muted-foreground">{group.label}</dt>
+                    <dd className="mt-2 space-y-2">
+                      {group.people.length
+                        ? group.people.map((name, index) => (
+                            <span key={index} className="flex items-center gap-2">
+                              <UserAvatar name={name} size={28} />
+                              <span>{name}</span>
+                            </span>
+                          ))
+                        : 'Chưa có'}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+            {detail.notes && (
+              <section className="rounded-lg border bg-muted/40 p-4 space-y-2">
+                <h3 className="font-semibold">Ghi chú</h3>
+                <p className="text-sm whitespace-pre-line break-words">{detail.notes}</p>
+              </section>
+            )}
+            <div className="staff-modal-footer flex justify-end">
+              <Button
+                variant="link"
+                className="text-destructive"
+                onClick={() => {
+                  const id = detail._id;
+                  setDetail(null);
+                  handleDelete(id);
+                }}
+              >
+                Xoá lịch chụp
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
-
       <Modal
         open={!!contractSchedule}
         onOpenChange={(o) => !o && setContractSchedule(null)}
@@ -1545,13 +1455,14 @@ const SchedulesPage = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField label="Ngày chụp" required>
+              <FormField label="Ngày chụp" required htmlFor="contract-date">
                 <Controller
                   name="shootDate"
                   control={contractControl}
                   rules={{ required: true }}
                   render={({ field }) => (
                     <DatePicker
+                      id="contract-date"
                       value={field.value}
                       onChange={field.onChange}
                       placeholder="Chọn ngày chụp"
@@ -1559,50 +1470,69 @@ const SchedulesPage = () => {
                   )}
                 />
               </FormField>
-              <FormField label="Địa điểm">
-                <Input placeholder="Địa điểm chụp" {...registerContract('location')} />
+              <FormField label="Địa điểm" htmlFor="contract-location">
+                <Input
+                  id="contract-location"
+                  placeholder="Địa điểm chụp"
+                  {...registerContract('location')}
+                />
               </FormField>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField label="Giờ bắt đầu">
-                <Input type="time" {...registerContract('startTime')} />
+              <FormField label="Giờ bắt đầu" htmlFor="contract-start">
+                <Input id="contract-start" type="time" {...registerContract('startTime')} />
               </FormField>
-              <FormField label="Giờ kết thúc">
-                <Input type="time" {...registerContract('endTime')} />
+              <FormField label="Giờ kết thúc" htmlFor="contract-end">
+                <Input id="contract-end" type="time" {...registerContract('endTime')} />
               </FormField>
             </div>
 
             <div className="border-t pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField label="Người liên hệ" required>
-                <Input placeholder="Họ tên" {...registerContract('contactName')} />
+              <FormField label="Người liên hệ" required htmlFor="contract-contact">
+                <Input
+                  id="contract-contact"
+                  placeholder="Họ tên"
+                  {...registerContract('contactName')}
+                />
               </FormField>
-              <FormField label="Số điện thoại">
-                <Input placeholder="SĐT" {...registerContract('contactPhone')} />
+              <FormField label="Số điện thoại" htmlFor="contract-phone">
+                <Input
+                  id="contract-phone"
+                  placeholder="SĐT"
+                  {...registerContract('contactPhone')}
+                />
               </FormField>
             </div>
 
-            <FormField label="Địa chỉ">
-              <Input placeholder="Địa chỉ liên hệ" {...registerContract('contactAddress')} />
+            <FormField label="Địa chỉ" htmlFor="contract-address">
+              <Input
+                id="contract-address"
+                placeholder="Địa chỉ liên hệ"
+                {...registerContract('contactAddress')}
+              />
             </FormField>
 
             <div className="grid grid-cols-3 gap-4">
-              <FormField label="Tổng học sinh">
+              <FormField label="Tổng học sinh" htmlFor="contract-total">
                 <Input
+                  id="contract-total"
                   type="number"
                   min={0}
                   {...registerContract('total', { valueAsNumber: true })}
                 />
               </FormField>
-              <FormField label="Nam">
+              <FormField label="Nam" htmlFor="contract-male">
                 <Input
+                  id="contract-male"
                   type="number"
                   min={0}
                   {...registerContract('totalMale', { valueAsNumber: true })}
                 />
               </FormField>
-              <FormField label="Nữ">
+              <FormField label="Nữ" htmlFor="contract-female">
                 <Input
+                  id="contract-female"
                   type="number"
                   min={0}
                   {...registerContract('totalFemale', { valueAsNumber: true })}
@@ -1610,8 +1540,13 @@ const SchedulesPage = () => {
               </FormField>
             </div>
 
-            <FormField label="Ghi chú">
-              <Textarea rows={3} placeholder="Ghi chú hợp đồng..." {...registerContract('notes')} />
+            <FormField label="Ghi chú" htmlFor="contract-notes">
+              <Textarea
+                id="contract-notes"
+                rows={3}
+                placeholder="Ghi chú hợp đồng..."
+                {...registerContract('notes')}
+              />
             </FormField>
 
             {contractDocUrl && (

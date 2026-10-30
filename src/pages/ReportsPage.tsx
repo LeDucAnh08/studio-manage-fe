@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Button } from '@/components/ui';
+import { Button, Input, PageHeader, StatCard } from '@/components/ui';
 import { clientPortalEnabled } from '../config/features';
 import { rentalLabels, rentalError } from '../services/rentalService';
 import {
@@ -18,9 +18,11 @@ import {
   type FinancialRow,
 } from '../services/reportService';
 
-const inputStyle = 'min-w-0 w-full rounded-lg border bg-background px-3 py-2 text-sm';
+const inputStyle = 'min-w-0 w-full rounded-md border bg-card px-3 text-sm';
 const thStyle = 'px-3 py-3 text-left font-medium text-muted-foreground';
 const tdStyle = 'border-t px-3 py-3 align-top';
+const moneyCell = tdStyle + ' text-right tabular-nums whitespace-nowrap';
+const numberCell = tdStyle + ' text-right tabular-nums';
 const services: ReportService[] = ['photography', 'rental', 'unclassified'];
 const views: Record<ReportView, string> = {
   cash: 'Giao dịch trong kỳ',
@@ -29,22 +31,18 @@ const views: Record<ReportView, string> = {
   refund: 'Hồ sơ cần hoàn hiện tại',
 };
 function Metric({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <div className="min-w-0 rounded-xl border bg-card p-4">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="mt-2 break-words text-xl font-semibold">{value}</p>
-      {hint && <p className="mt-2 text-xs text-muted-foreground">{hint}</p>}
-    </div>
-  );
+  return <StatCard label={label} value={value} hint={hint} />;
 }
 function ReportTable({
   caption,
   headings,
   children,
+  numericHeadings = [],
 }: {
   caption: string;
   headings: string[];
   children: ReactNode;
+  numericHeadings?: number[];
 }) {
   return (
     <div
@@ -52,13 +50,18 @@ function ReportTable({
       tabIndex={0}
       role="region"
       aria-label={caption}
+      data-ui="table-scroll"
     >
-      <table className="w-full min-w-[640px] text-sm">
+      <table data-ui="table" className="w-full min-w-[640px] text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead>
           <tr>
-            {headings.map((h) => (
-              <th scope="col" key={h} className={thStyle}>
+            {headings.map((h, index) => (
+              <th
+                scope="col"
+                key={h}
+                className={thStyle + (numericHeadings.includes(index) ? ' text-right' : '')}
+              >
                 {h}
               </th>
             ))}
@@ -143,13 +146,12 @@ export default function ReportsPage() {
   const current = tab === 'finance' ? finance : inventory;
   const total = current?.pagination.total ?? 0;
   return (
-    <div className="min-w-0 space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold">Báo cáo dịch vụ và kho</h1>
-        <p className="mt-2 text-muted-foreground">
-          Đối chiếu dòng tiền, giá trị dịch vụ và phân bổ trang phục/phụ kiện.
-        </p>
-      </header>
+    <div className="staff-reports min-w-0 space-y-6">
+      <PageHeader
+        as="h1"
+        title="Báo cáo dịch vụ và kho"
+        description="Đối chiếu dòng tiền, giá trị dịch vụ và phân bổ trang phục/phụ kiện."
+      />
       <form
         className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4"
         onSubmit={(e) => {
@@ -163,7 +165,7 @@ export default function ReportsPage() {
           <label className="mb-2 block text-sm font-medium" htmlFor="report-from">
             Từ ngày
           </label>
-          <input
+          <Input
             id="report-from"
             className={inputStyle}
             type="date"
@@ -176,7 +178,7 @@ export default function ReportsPage() {
           <label className="mb-2 block text-sm font-medium" htmlFor="report-to">
             Đến ngày
           </label>
-          <input
+          <Input
             id="report-to"
             className={inputStyle}
             type="date"
@@ -245,6 +247,7 @@ export default function ReportsPage() {
                 </p>
                 <ReportTable
                   caption="So sánh dịch vụ trong kỳ"
+                  numericHeadings={[1, 2, 3, 4, 5]}
                   headings={[
                     'Dịch vụ',
                     'Tiền thu',
@@ -262,15 +265,15 @@ export default function ReportsPage() {
                         <th scope="row" className={tdStyle}>
                           {serviceLabels[s]}
                         </th>
-                        <td className={tdStyle}>{reportMoney(c?.income)}</td>
-                        <td className={tdStyle}>{reportMoney(c?.expense)}</td>
-                        <td className={tdStyle}>
+                        <td className={moneyCell}>{reportMoney(c?.income)}</td>
+                        <td className={moneyCell}>{reportMoney(c?.expense)}</td>
+                        <td className={moneyCell}>
                           {reportMoney((c?.income ?? 0) - (c?.expense ?? 0))}
                         </td>
-                        <td className={tdStyle}>
+                        <td className={moneyCell}>
                           {s === 'unclassified' ? 'Chưa có liên kết' : reportMoney(a?.serviceValue)}
                         </td>
-                        <td className={tdStyle}>
+                        <td className={moneyCell}>
                           {s === 'unclassified' ? '—' : reportMoney(a?.cancellationValue)}
                         </td>
                       </tr>
@@ -280,19 +283,19 @@ export default function ReportsPage() {
                     <th scope="row" className={tdStyle}>
                       Tổng
                     </th>
-                    <td className={tdStyle}>
+                    <td className={moneyCell}>
                       {reportMoney(cash.reduce((n, r) => n + r.income, 0))}
                     </td>
-                    <td className={tdStyle}>
+                    <td className={moneyCell}>
                       {reportMoney(cash.reduce((n, r) => n + r.expense, 0))}
                     </td>
-                    <td className={tdStyle}>
+                    <td className={moneyCell}>
                       {reportMoney(cash.reduce((n, r) => n + r.income - r.expense, 0))}
                     </td>
-                    <td className={tdStyle}>
+                    <td className={moneyCell}>
                       {reportMoney(accepted.reduce((n, r) => n + r.serviceValue, 0))}
                     </td>
-                    <td className={tdStyle}>
+                    <td className={moneyCell}>
                       {reportMoney(accepted.reduce((n, r) => n + r.cancellationValue, 0))}
                     </td>
                   </tr>
@@ -329,6 +332,7 @@ export default function ReportsPage() {
                 </div>
                 <ReportTable
                   caption="Giá trị hợp đồng và công nợ hiện tại"
+                  numericHeadings={[1, 2, 3, 4]}
                   headings={[
                     'Dịch vụ',
                     'Hồ sơ đã đồng ý',
@@ -344,10 +348,10 @@ export default function ReportsPage() {
                         <th scope="row" className={tdStyle}>
                           {serviceLabels[s]}
                         </th>
-                        <td className={tdStyle}>{r?.count ?? 0}</td>
-                        <td className={tdStyle}>{reportMoney(r?.agreedValue)}</td>
-                        <td className={tdStyle}>{reportMoney(r?.due)}</td>
-                        <td className={tdStyle}>{reportMoney(r?.refundDue)}</td>
+                        <td className={numberCell}>{r?.count ?? 0}</td>
+                        <td className={moneyCell}>{reportMoney(r?.agreedValue)}</td>
+                        <td className={moneyCell}>{reportMoney(r?.due)}</td>
+                        <td className={moneyCell}>{reportMoney(r?.refundDue)}</td>
                       </tr>
                     );
                   })}
@@ -365,6 +369,7 @@ export default function ReportsPage() {
                       Nội dung đối chiếu
                     </label>
                     <select
+                      data-ui="native-select"
                       id="report-view"
                       className={inputStyle}
                       value={view}
@@ -385,6 +390,7 @@ export default function ReportsPage() {
                       Dịch vụ đối chiếu
                     </label>
                     <select
+                      data-ui="native-select"
                       id="report-service"
                       className={inputStyle}
                       value={service}
@@ -404,6 +410,7 @@ export default function ReportsPage() {
                 {finance.data.rows.length ? (
                   <ReportTable
                     caption={views[view]}
+                    numericHeadings={view === 'cash' ? [4] : view === 'agreed' ? [2, 3] : [2, 3, 4]}
                     headings={
                       view === 'cash'
                         ? ['Ngày', 'Dịch vụ', 'Hồ sơ', 'Loại', 'Số tiền']
@@ -432,7 +439,7 @@ export default function ReportsPage() {
                             <td className={tdStyle}>
                               {r.type === 'income' ? 'Thu' : 'Chi / hoàn'}
                             </td>
-                            <td className={tdStyle}>{reportMoney(r.amount)}</td>
+                            <td className={moneyCell}>{reportMoney(r.amount)}</td>
                           </>
                         ) : (
                           <>
@@ -445,14 +452,14 @@ export default function ReportsPage() {
                                 : (lifecycleLabels[r.status! as keyof typeof lifecycleLabels] ??
                                   r.status)}
                             </td>
-                            <td className={tdStyle}>
+                            <td className={moneyCell}>
                               {reportMoney(r.fee)}
                               {r.valueKind === 'cancellation' && (
                                 <span className="block text-xs text-muted-foreground">Phí hủy</span>
                               )}
                             </td>
-                            <td className={tdStyle}>{reportMoney(r.netReceived)}</td>
-                            <td className={tdStyle}>
+                            <td className={moneyCell}>{reportMoney(r.netReceived)}</td>
+                            <td className={view === 'agreed' ? tdStyle : moneyCell}>
                               {view === 'agreed'
                                 ? reportDate(r.valueAt!)
                                 : reportMoney(view === 'due' ? r.due : r.refundDue)}
@@ -485,7 +492,7 @@ export default function ReportsPage() {
                   <label className="mb-2 block text-sm font-medium" htmlFor="report-costume">
                     Tìm tên mẫu
                   </label>
-                  <input
+                  <Input
                     id="report-costume"
                     className={inputStyle}
                     maxLength={100}
@@ -526,7 +533,7 @@ export default function ReportsPage() {
                 inventory.data.summary.missingCostumes > 0) && (
                 <div
                   role="status"
-                  className="rounded-xl border border-amber-500/50 bg-amber-500/10 p-4 text-sm space-y-1"
+                  className="rounded-lg border staff-status--warning p-4 text-sm space-y-1"
                 >
                   {inventory.data.summary.unknownSchedules > 0 && (
                     <p>
@@ -553,6 +560,7 @@ export default function ReportsPage() {
               {inventory.data.rows.length ? (
                 <ReportTable
                   caption="Phân bổ trang phục theo mẫu và size"
+                  numericHeadings={[1, 2, 3, 4, 5]}
                   headings={[
                     'Mẫu / size',
                     'Tồn tốt',
@@ -576,15 +584,15 @@ export default function ReportsPage() {
                             : ''}
                         </span>
                       </th>
-                      <td className={tdStyle}>{r.good}</td>
-                      <td className={tdStyle}>{r.photographyDays}</td>
-                      <td className={tdStyle}>{r.rentalDays}</td>
-                      <td className={tdStyle}>
+                      <td className={numberCell}>{r.good}</td>
+                      <td className={numberCell}>{r.photographyDays}</td>
+                      <td className={numberCell}>{r.rentalDays}</td>
+                      <td className={numberCell}>
                         {r.utilization === null
                           ? 'Chưa xác định'
                           : `${r.utilization.toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%`}
                       </td>
-                      <td className={tdStyle}>
+                      <td className={numberCell}>
                         <span className={r.overCapacityDays ? 'font-medium text-destructive' : ''}>
                           {r.unknownSchedules || r.invalidIntervals ? 'Ít nhất ' : ''}
                           {r.peak} món / {r.overCapacityDays} ngày

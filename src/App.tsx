@@ -1,4 +1,12 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+  useLocation,
+  useParams,
+} from 'react-router-dom';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -14,6 +22,8 @@ import PublicMemberIntakePage from './pages/PublicMemberIntakePage';
 import { NewBookingPage } from './pages/BookingsPage';
 import CustomerOrdersPage from './pages/CustomerOrdersPage';
 import PublicDiscoveryPage from './pages/PublicDiscoveryPage';
+import PublicPackageDetailPage from './pages/PublicPackageDetailPage';
+import PackageContentPage from './pages/PackageContentPage';
 import BookingWorkflowDetailPage from './pages/BookingWorkflowDetailPage';
 import { navItems, adminItems, type NavItem } from './config/navItems';
 import type { UserRole } from './types';
@@ -37,6 +47,7 @@ function PageTitleManager() {
   useEffect(() => {
     if (
       !['/portfolio', '/services', '/concepts', '/pricing', '/costumes'].includes(pathname) &&
+      !pathname.startsWith('/pricing/') &&
       !pathname.startsWith('/account/')
     )
       return;
@@ -71,6 +82,22 @@ function BookingEntry() {
   return (
     <Navigate
       to={{ pathname: '/account/bookings/new', search: location.search, hash: location.hash }}
+      state={location.state}
+      replace
+    />
+  );
+}
+
+function BookingRequestsRedirect() {
+  const location = useLocation();
+  const { id } = useParams();
+  return (
+    <Navigate
+      to={{
+        pathname: id ? `/workflow-bookings/${id}` : '/workflow-bookings',
+        search: location.search,
+        hash: location.hash,
+      }}
       state={location.state}
       replace
     />
@@ -161,6 +188,7 @@ function App() {
                 <Route path="/services" element={<PublicDiscoveryPage page="services" />} />
                 <Route path="/concepts" element={<ConceptEntry />} />
                 <Route path="/pricing" element={<PublicDiscoveryPage page="pricing" />} />
+                <Route path="/pricing/:id" element={<PublicPackageDetailPage />} />
                 <Route path="/consultation" element={<Navigate to="/services" replace />} />
                 <Route
                   path="/booking/start"
@@ -230,7 +258,10 @@ function App() {
                 <Route path="/feedback/:customer" element={<FeedbackFormPage />} />
               </Route>
               <Route element={<StaffScope />}>
-                <Route path="/staff/login" element={<LoginPage />} />
+                <Route
+                  path="/staff/login"
+                  element={<SearchPreservingRedirect pathname="/login" />}
+                />
                 <Route path="/staff-register" element={<RegisterRequestPage />} />
                 <Route
                   path="/"
@@ -242,6 +273,14 @@ function App() {
                 >
                   {[...navItems, ...adminItems].map(renderRouteItem)}
                   <Route path="profile" element={<ProfilePage />} />
+                  <Route
+                    path="settings/packages/:id/content"
+                    element={
+                      <ProtectedRoute allowedRoles={[0, 1]}>
+                        <PackageContentPage />
+                      </ProtectedRoute>
+                    }
+                  />
                   {clientPortalEnabled && (
                     <Route
                       path="rental-orders/:id"
@@ -264,10 +303,20 @@ function App() {
                   )}
                   {clientPortalEnabled && (
                     <Route
+                      path="booking-requests"
+                      element={
+                        <ProtectedRoute allowedRoles={[0, 1]}>
+                          <BookingRequestsRedirect />
+                        </ProtectedRoute>
+                      }
+                    />
+                  )}
+                  {clientPortalEnabled && (
+                    <Route
                       path="booking-requests/:id"
                       element={
                         <ProtectedRoute allowedRoles={[0, 1]}>
-                          <BookingWorkflowDetailPage />
+                          <BookingRequestsRedirect />
                         </ProtectedRoute>
                       }
                     />

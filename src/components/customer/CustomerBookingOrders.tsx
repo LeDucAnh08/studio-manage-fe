@@ -32,13 +32,16 @@ const errorMessage = (error: unknown) =>
   (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
   'Chưa tải được thông tin. Vui lòng thử lại.';
 const statusLabel = (order: Pick<WorkflowSummary, 'bookingStatus' | 'lifecycle'>) =>
-  order.bookingStatus === 'rejected'
-    ? bookingLabels.rejected
-    : bookingWorkflowLabels[order.lifecycle];
+  order.bookingStatus === 'cancelled'
+    ? bookingLabels.cancelled
+    : order.bookingStatus === 'rejected'
+      ? bookingLabels.rejected
+      : bookingWorkflowLabels[order.lifecycle];
 
 function OrderProgress({ record }: { record: BookingWorkflowDto }) {
   const { workflow, booking } = record;
-  const terminal = booking.status === 'rejected' || workflow.lifecycle === 'cancelled';
+  const terminal =
+    ['rejected', 'cancelled'].includes(booking.status) || workflow.lifecycle === 'cancelled';
   const confirmed = !!workflow.resources?.scheduleId;
   const accepted = !!workflow.quote?.acceptedAt;
   const completed = workflow.lifecycle === 'completed';
@@ -158,29 +161,33 @@ function OrderPreview({ order, reload }: { order: WorkflowSummary; reload: numbe
   const schedule = workflow?.resources?.scheduleDetails || workflow?.quote?.proposedSchedule;
   const scheduled = !!workflow?.resources?.scheduleDetails;
   const label =
-    booking?.status === 'rejected'
-      ? bookingLabels.rejected
-      : workflow
-        ? bookingWorkflowLabels[workflow.lifecycle]
-        : statusLabel(order);
+    booking?.status === 'cancelled'
+      ? bookingLabels.cancelled
+      : booking?.status === 'rejected'
+        ? bookingLabels.rejected
+        : workflow
+          ? bookingWorkflowLabels[workflow.lifecycle]
+          : statusLabel(order);
   const summary = [booking?.school || order.school, booking && `${booking.members} thành viên`]
     .filter(Boolean)
     .join(' · ');
   const stateMessage =
-    booking?.status === 'rejected'
-      ? booking.reviewNote ||
-        'Studio chưa thể tiếp nhận yêu cầu này. Bạn có thể xem phản hồi trong hồ sơ.'
-      : workflow?.lifecycle === 'cancelled'
-        ? 'Dịch vụ đã hủy. Mở hồ sơ để xem nội dung đã thống nhất với studio.'
-        : workflow?.lifecycle === 'completed'
-          ? 'Dịch vụ đã hoàn tất. Bạn có thể mở hồ sơ để xem lại ảnh và thông tin bàn giao.'
-          : workflow?.lifecycle === 'change_pending'
-            ? 'Yêu cầu thay đổi đang được xử lý. Mở hồ sơ để xem phản hồi và đề xuất của studio.'
-            : workflow?.quote && !workflow.quote.acceptedAt
-              ? 'Báo giá đã sẵn sàng. Mở hồ sơ để xem và xác nhận với studio.'
-              : workflow?.lifecycle === 'confirmed'
-                ? 'Lịch đã được xác nhận. Bạn có thể xem hồ sơ để kiểm tra chi tiết.'
-                : 'Mở hồ sơ để xem phản hồi và các bước tiếp theo với studio.';
+    booking?.status === 'cancelled'
+      ? booking.cancellationReason || 'Yêu cầu đã được hủy.'
+      : booking?.status === 'rejected'
+        ? booking.reviewNote ||
+          'Studio chưa thể tiếp nhận yêu cầu này. Bạn có thể xem phản hồi trong hồ sơ.'
+        : workflow?.lifecycle === 'cancelled'
+          ? 'Dịch vụ đã hủy. Mở hồ sơ để xem nội dung đã thống nhất với studio.'
+          : workflow?.lifecycle === 'completed'
+            ? 'Dịch vụ đã hoàn tất. Bạn có thể mở hồ sơ để xem lại ảnh và thông tin bàn giao.'
+            : workflow?.lifecycle === 'change_pending'
+              ? 'Yêu cầu thay đổi đang được xử lý. Mở hồ sơ để xem phản hồi và đề xuất của studio.'
+              : workflow?.quote && !workflow.quote.acceptedAt
+                ? 'Báo giá đã sẵn sàng. Mở hồ sơ để xem và xác nhận với studio.'
+                : workflow?.lifecycle === 'confirmed'
+                  ? 'Lịch đã được xác nhận. Bạn có thể xem hồ sơ để kiểm tra chi tiết.'
+                  : 'Mở hồ sơ để xem phản hồi và các bước tiếp theo với studio.';
   return (
     <section
       className="customer-orders-preview"

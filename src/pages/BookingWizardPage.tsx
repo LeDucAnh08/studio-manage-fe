@@ -744,11 +744,7 @@ export default function BookingWizardPage() {
                   onChange={(event) => updateDraft({ location: event.target.value })}
                 />
               </Field>
-              <Field
-                id="startAt"
-                label="Ngày và giờ bắt đầu mong muốn (giờ Việt Nam)"
-                error={errors.startAt}
-              >
+              <Field id="startAt" label="Ngày và giờ bắt đầu mong muốn" error={errors.startAt}>
                 <Input
                   id="startAt"
                   type="datetime-local"
@@ -758,11 +754,7 @@ export default function BookingWizardPage() {
                   onChange={(event) => updateDraft({ startAt: event.target.value })}
                 />
               </Field>
-              <Field
-                id="endAt"
-                label="Ngày và giờ kết thúc mong muốn (giờ Việt Nam)"
-                error={errors.endAt}
-              >
+              <Field id="endAt" label="Ngày và giờ kết thúc mong muốn" error={errors.endAt}>
                 <Input
                   id="endAt"
                   type="datetime-local"
@@ -772,9 +764,6 @@ export default function BookingWizardPage() {
                   onChange={(event) => updateDraft({ endAt: event.target.value })}
                 />
               </Field>
-              <p className="customer-caption customer-wizard__field-wide">
-                Lịch được ghi nhận theo múi giờ Việt Nam (UTC+7).
-              </p>
               <div className="customer-wizard__field-wide">
                 <Field id="note" label="Điều Yume nên biết thêm" error={errors.note}>
                   <Textarea
@@ -896,7 +885,6 @@ export default function BookingWizardPage() {
                     <dd>{date(draft.endAt)}</dd>
                   </div>
                 </dl>
-                <p className="customer-caption">Giờ Việt Nam (UTC+7)</p>
                 {draft.note && (
                   <div className="customer-wizard__note">
                     <p className="customer-caption">Điều Yume nên biết thêm</p>

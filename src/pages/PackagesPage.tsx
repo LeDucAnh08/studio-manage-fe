@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Package2, Plus, Scissors, Shirt, Timer, Users } from 'lucide-react';
 import { useForm, Controller } from 'react-hook-form';
 import { toast } from 'react-toastify';
@@ -57,7 +58,7 @@ interface PackageFormValues {
 
 const PackagesPage = () => {
   const dispatch = useAppDispatch();
-  const { list: packages, loading } = useAppSelector((s) => s.packages);
+  const { list: packages, loading, error } = useAppSelector((s) => s.packages);
   const [allCostumes, setAllCostumes] = useState<CostumeType[]>([]);
   const [selectedCostumes, setSelectedCostumes] = useState<string[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -69,7 +70,7 @@ const PackagesPage = () => {
     handleSubmit,
     reset,
     control,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = useForm<PackageFormValues>();
 
   useEffect(() => {
@@ -150,6 +151,8 @@ const PackagesPage = () => {
     {
       key: 'price',
       header: 'Giá/thành viên',
+      align: 'right',
+      className: 'whitespace-nowrap tabular-nums',
       render: (pkg) => `${pkg.pricePerMember.toLocaleString('vi-VN')}₫`,
     },
     {
@@ -201,15 +204,24 @@ const PackagesPage = () => {
     },
     {
       key: 'actions',
-      header: '',
+      header: 'Thao tác',
       align: 'right',
       className: 'whitespace-nowrap',
       render: (pkg) => (
-        <span className="space-x-2">
+        <span className="staff-row-actions">
+          <Button asChild variant="link" size="sm" className="staff-row-action">
+            <Link
+              to={`/settings/packages/${pkg._id}/content`}
+              aria-label={`Nội dung chi tiết gói ${pkg.name}`}
+            >
+              Nội dung chi tiết
+            </Link>
+          </Button>
           <Button
             variant="link"
             size="sm"
-            className="h-auto p-0 text-xs text-primary"
+            className="staff-row-action"
+            aria-label={`Sửa gói ${pkg.name}`}
             onClick={() => openEdit(pkg)}
           >
             Sửa
@@ -217,7 +229,8 @@ const PackagesPage = () => {
           <Button
             variant="link"
             size="sm"
-            className="h-auto p-0 text-xs text-destructive"
+            className="staff-row-action text-destructive"
+            aria-label={`Xoá gói ${pkg.name}`}
             onClick={() => setConfirmId(pkg._id)}
           >
             Xoá
@@ -228,9 +241,9 @@ const PackagesPage = () => {
   ];
 
   return (
-    <div>
+    <div className="staff-packages">
       <PageHeader
-        kicker="Settings"
+        as="h1"
         title="Gói chụp"
         description="Cấu hình các gói chụp ảnh và thời lượng."
         action={
@@ -241,6 +254,15 @@ const PackagesPage = () => {
         }
       />
 
+      {error && (
+        <div role="alert" className="rounded-lg border bg-card p-4 mb-4">
+          <p>Không tải được gói chụp.</p>
+          <Button className="mt-3" variant="outline" onClick={() => dispatch(fetchPackages())}>
+            Thử lại
+          </Button>
+        </div>
+      )}
+
       {loading ? (
         <TableSkeleton cols={8} />
       ) : (
@@ -248,6 +270,8 @@ const PackagesPage = () => {
           {/* Desktop table */}
           <div className="hidden md:block">
             <DataTable<Package>
+              aria-label="Gói chụp"
+              className="staff-packages-table"
               data={packages}
               keyExtractor={(pkg) => pkg._id}
               emptyTitle="Chưa có gói chụp nào"
@@ -261,8 +285,8 @@ const PackagesPage = () => {
               <div key={pkg._id} className="rounded-xl border bg-card p-4">
                 <div className="flex items-start justify-between mb-2 gap-2">
                   <div className="min-w-0">
-                    <div className="font-semibold truncate">{pkg.name}</div>
-                    <div className="text-primary text-sm mt-0.5">
+                    <div className="font-semibold break-words">{pkg.name}</div>
+                    <div className="font-medium text-sm mt-1 tabular-nums">
                       {pkg.pricePerMember.toLocaleString('vi-VN')}₫/thành viên
                     </div>
                   </div>
@@ -270,7 +294,8 @@ const PackagesPage = () => {
                     <Button
                       variant="link"
                       size="sm"
-                      className="h-auto p-0 text-xs"
+                      className="staff-row-action"
+                      aria-label={`Sửa gói ${pkg.name}`}
                       onClick={() => openEdit(pkg)}
                     >
                       Sửa
@@ -278,41 +303,50 @@ const PackagesPage = () => {
                     <Button
                       variant="link"
                       size="sm"
-                      className="h-auto p-0 text-xs text-destructive"
+                      className="staff-row-action text-destructive"
+                      aria-label={`Xoá gói ${pkg.name}`}
                       onClick={() => setConfirmId(pkg._id)}
                     >
                       Xoá
                     </Button>
                   </div>
                 </div>
+                <Button asChild variant="link" size="sm" className="px-0 mb-2">
+                  <Link
+                    to={`/settings/packages/${pkg._id}/content`}
+                    aria-label={`Nội dung chi tiết gói ${pkg.name}`}
+                  >
+                    Nội dung chi tiết
+                  </Link>
+                </Button>
                 <div className="space-y-1 text-sm text-muted-foreground">
                   {pkg.duration && (
                     <div className="inline-flex items-center gap-1.5">
-                      <Timer className="h-4 w-4 text-sky-500" />
+                      <Timer className="h-4 w-4 text-muted-foreground" />
                       <span>{durationLabel[pkg.duration]}</span>
                     </div>
                   )}
                   {pkg.studentsPerCrew != null && (
                     <div className="inline-flex items-center gap-1.5">
-                      <Users className="h-4 w-4 text-indigo-500" />
+                      <Users className="h-4 w-4 text-muted-foreground" />
                       <span>{pkg.studentsPerCrew} học sinh / thợ</span>
                     </div>
                   )}
                   {pkg.costumes && pkg.costumes.length > 0 && (
                     <div className="inline-flex items-center gap-1.5">
-                      <Shirt className="h-4 w-4 text-fuchsia-500" />
+                      <Shirt className="h-4 w-4 text-muted-foreground" />
                       <span>{pkg.costumes.map((c) => c.name).join(', ')}</span>
                     </div>
                   )}
                   {pkg.editingScope && (
                     <div className="inline-flex items-center gap-1.5">
-                      <Scissors className="h-4 w-4 text-amber-500" />
+                      <Scissors className="h-4 w-4 text-muted-foreground" />
                       <span>{editingScopeLabel[pkg.editingScope]}</span>
                     </div>
                   )}
                   {pkg.deliveryDays != null && (
                     <div className="inline-flex items-center gap-1.5">
-                      <Package2 className="h-4 w-4 text-orange-500" />
+                      <Package2 className="h-4 w-4 text-muted-foreground" />
                       <span>Trả file tối đa: {pkg.deliveryDays} ngày</span>
                     </div>
                   )}
@@ -335,17 +369,29 @@ const PackagesPage = () => {
         open={modalOpen}
         onOpenChange={setModalOpen}
         title={editing ? 'Sửa gói chụp' : 'Thêm gói chụp'}
+        description="Giá theo thành viên, nội dung gói và các loại trang phục đã bao gồm."
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+        <form onSubmit={handleSubmit(onSubmit)} aria-busy={isSubmitting} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="Tên gói" required htmlFor="pkgName" className="sm:col-span-2">
+            <FormField
+              label="Tên gói"
+              required
+              htmlFor="pkgName"
+              error={errors.name ? 'Vui lòng nhập tên gói.' : undefined}
+              className="sm:col-span-2"
+            >
               <Input
                 id="pkgName"
                 placeholder="VD: Gói cơ bản, Gói nâng cao..."
                 {...register('name', { required: true })}
               />
             </FormField>
-            <FormField label="Giá/thành viên (₫)" required htmlFor="price">
+            <FormField
+              label="Giá/thành viên (₫)"
+              required
+              htmlFor="price"
+              error={errors.pricePerMember ? 'Vui lòng nhập giá/thành viên.' : undefined}
+            >
               <Input
                 id="price"
                 type="number"
@@ -354,7 +400,7 @@ const PackagesPage = () => {
                 {...register('pricePerMember', { required: true, valueAsNumber: true })}
               />
             </FormField>
-            <FormField label="Thời gian">
+            <FormField label="Thời gian" htmlFor="package-duration">
               <Controller
                 name="duration"
                 control={control}
@@ -363,7 +409,7 @@ const PackagesPage = () => {
                     value={field.value || NO_DURATION}
                     onValueChange={(v) => field.onChange(v === NO_DURATION ? undefined : v)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="package-duration">
                       <SelectValue placeholder="-- Không xác định --" />
                     </SelectTrigger>
                     <SelectContent>
@@ -385,8 +431,9 @@ const PackagesPage = () => {
                 {...register('studentsPerCrew', { valueAsNumber: true })}
               />
             </FormField>
-            <FormField label="Trang phục">
+            <FormField label="Trang phục" htmlFor="package-costumes">
               <MultiSelect
+                id="package-costumes"
                 options={allCostumes.map((c) => ({
                   value: c._id,
                   label: c.name + (c.description ? ` — ${c.description}` : ''),
@@ -401,13 +448,13 @@ const PackagesPage = () => {
                 disabled={allCostumes.length === 0}
               />
             </FormField>
-            <FormField label="Chỉnh sửa ảnh">
+            <FormField label="Chỉnh sửa ảnh" htmlFor="package-editing">
               <Controller
                 name="editingScope"
                 control={control}
                 render={({ field }) => (
                   <Select value={field.value ?? 'full'} onValueChange={field.onChange}>
-                    <SelectTrigger>
+                    <SelectTrigger id="package-editing">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -454,12 +501,12 @@ const PackagesPage = () => {
               />
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="staff-modal-footer flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
               Huỷ
             </Button>
             <Button type="submit" variant="gradient" disabled={isSubmitting}>
-              Lưu
+              {isSubmitting ? 'Đang lưu…' : 'Lưu'}
             </Button>
           </div>
         </form>

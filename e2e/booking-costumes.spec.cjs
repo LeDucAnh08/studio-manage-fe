@@ -76,8 +76,8 @@ for (const [name, viewport] of [
     await page.getByLabel('Số thành viên dự kiến').fill('2');
     await page.getByLabel('Địa điểm mong muốn').fill('Hà Nội');
     const day = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-    await page.getByLabel('Ngày và giờ bắt đầu mong muốn (giờ Việt Nam)').fill(`${day}T08:00`);
-    await page.getByLabel('Ngày và giờ kết thúc mong muốn (giờ Việt Nam)').fill(`${day}T10:00`);
+    await page.getByLabel('Ngày và giờ bắt đầu mong muốn').fill(`${day}T08:00`);
+    await page.getByLabel('Ngày và giờ kết thúc mong muốn').fill(`${day}T10:00`);
     await page.getByRole('button', { name: 'Xem lại yêu cầu', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Kiểm tra trước khi gửi' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Trang phục đã bao gồm' })).toBeVisible();

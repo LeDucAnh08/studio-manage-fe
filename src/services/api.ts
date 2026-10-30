@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { loginEntryForPath } from '../utils/loginEntry';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
@@ -24,9 +23,7 @@ api.interceptors.response.use(
         path.startsWith('/account/') ||
         path.startsWith('/booking/start') ||
         path.startsWith('/rental/start');
-      window.location.href = canResume
-        ? `/login?returnTo=${encodeURIComponent(path)}`
-        : loginEntryForPath(window.location.pathname);
+      window.location.href = canResume ? `/login?returnTo=${encodeURIComponent(path)}` : '/login';
     }
     return Promise.reject(error);
   },
