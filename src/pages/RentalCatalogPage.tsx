@@ -39,6 +39,7 @@ const categoryKey = (value: string) => categoryName(value).toLocaleLowerCase('vi
 
 export default function RentalCatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const addingToRental = searchParams.get('add') === '1';
   const receiveDate = searchParams.get('receiveDate') || '';
   const returnDate = searchParams.get('returnDate') || '';
   const periodError = validateRentalPeriod(receiveDate, returnDate);
@@ -163,6 +164,7 @@ export default function RentalCatalogPage() {
   }, []);
 
   const changeDate = (name: 'receiveDate' | 'returnDate', value: string) => {
+    if (addingToRental) return;
     requestId.current += 1;
     setSearchParams((previous) => {
       const next = new URLSearchParams(previous);
@@ -214,8 +216,18 @@ export default function RentalCatalogPage() {
         <header className="customer-catalog__intro">
           <h1>Trang phục & phụ kiện</h1>
           <p className="customer-copy">
-            Chọn mẫu phù hợp, xem giá và số lượng còn trống theo kỳ thuê.
+            {addingToRental
+              ? 'Chọn thêm mẫu cho yêu cầu thuê hiện tại. Các món đã chọn được giữ nguyên.'
+              : 'Chọn mẫu phù hợp, xem giá và số lượng còn trống theo kỳ thuê.'}
           </p>
+          {addingToRental && (
+            <Link
+              className="customer-link"
+              to={`/rental/start?${new URLSearchParams({ receiveDate, returnDate })}`}
+            >
+              Quay lại yêu cầu thuê
+            </Link>
+          )}
         </header>
         <section className="customer-catalog__period" aria-label="Kỳ thuê">
           <div className="customer-catalog__period-fields">
@@ -226,6 +238,8 @@ export default function RentalCatalogPage() {
                 min={vietnamToday()}
                 required
                 value={receiveDate}
+                readOnly={addingToRental}
+                aria-describedby={addingToRental ? 'catalog-locked-period' : undefined}
                 onChange={(event) => changeDate('receiveDate', event.target.value)}
               />
             </CustomerFormField>
@@ -236,6 +250,8 @@ export default function RentalCatalogPage() {
                 min={receiveDate || vietnamToday()}
                 required
                 value={returnDate}
+                readOnly={addingToRental}
+                aria-describedby={addingToRental ? 'catalog-locked-period' : undefined}
                 onChange={(event) => changeDate('returnDate', event.target.value)}
               />
             </CustomerFormField>
@@ -260,6 +276,12 @@ export default function RentalCatalogPage() {
             {loading ? 'Đang kiểm tra…' : 'Xem mẫu còn trống'}
           </CustomerButton>
         </section>
+        {addingToRental && (
+          <p id="catalog-locked-period" className="customer-caption">
+            Ngày nhận và ngày trả được giữ cố định khi thêm món. Quay lại yêu cầu thuê nếu cần đổi
+            ngày.
+          </p>
+        )}
         <div className="customer-catalog__workspace">
           <aside className="customer-catalog__sidebar" aria-label="Bộ lọc trang phục">
             <h2 className="customer-catalog__sidebar-title">Danh mục</h2>
@@ -482,7 +504,7 @@ export default function RentalCatalogPage() {
                   </p>
                 </div>
                 <p className="customer-caption">Số lượng hiển thị theo kỳ thuê đã chọn.</p>
-                {clientPortalEnabled && (
+                {clientPortalEnabled && !addingToRental && (
                   <CustomerButton asChild variant="secondary">
                     <Link to={`/rental/start?${new URLSearchParams({ receiveDate, returnDate })}`}>
                       Tạo yêu cầu thuê riêng
@@ -601,6 +623,7 @@ export default function RentalCatalogPage() {
                                 item={item}
                                 receiveDate={receiveDate}
                                 returnDate={returnDate}
+                                addingToRental={addingToRental}
                               />
                             ))}
                           </div>

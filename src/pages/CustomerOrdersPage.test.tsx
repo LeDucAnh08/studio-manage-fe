@@ -5,6 +5,7 @@ import { CustomerAppearanceContext } from '../components/customer/CustomerAppear
 import CustomerOrdersPage from './CustomerOrdersPage';
 import CustomerHeader from '../components/Layout/CustomerHeader';
 import type { BookingWorkflowDto } from '../services/bookingWorkflowService';
+import type { RentalOrder } from '../services/rentalService';
 const mocks = vi.hoisted(() => ({
   bookings: vi.fn(),
   rentals: vi.fn(),
@@ -71,9 +72,9 @@ describe('Unified orders tabs', () => {
       ctrlKey: false,
     });
     await screen.findByText('Chưa có đơn thuê');
-    expect(mocks.rentals).toHaveBeenCalledWith(1);
+    expect(mocks.rentals).toHaveBeenCalledWith(1, '');
     expect(screen.getByTestId('url')).toHaveTextContent('?tab=rentals');
-    expect(screen.queryByLabelText('Trạng thái')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Trạng thái')).toHaveValue('');
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     await screen.findByText(/Chưa có đơn phù hợp với trạng thái này/);
     expect(mocks.bookings).toHaveBeenLastCalledWith(1, 20, 'active');
@@ -84,10 +85,106 @@ describe('Unified orders tabs', () => {
     await screen.findByText('Chưa có đơn thuê');
     expect(mocks.bookings).not.toHaveBeenCalled();
     expect(mocks.notifications).not.toHaveBeenCalled();
-    expect(screen.getByRole('link', { name: 'Yêu cầu thuê mới' })).toHaveAttribute(
+    expect(screen.getByLabelText('Trạng thái')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tải lại đơn' })).toBeInTheDocument();
+  });
+
+  function rental(id = 'rental-1', status = 'confirmed'): RentalOrder {
+    return {
+      _id: id,
+      version: 3,
+      status,
+      contactName: 'Khách thuê',
+      note: '',
+      requestedReceiveDate: '2026-11-12',
+      requestedReturnDate: '2026-11-14',
+      requestedLines: [
+        {
+          costumeId: id,
+          name: id === 'rental-1' ? 'Áo dài trắng' : 'Vest xanh',
+          size: 'M',
+          quantity: 2,
+        },
+      ],
+      quote: {
+        version: 1,
+        lines: [
+          {
+            costumeId: id,
+            name: id === 'rental-1' ? 'Áo dài trắng' : 'Vest xanh',
+            size: 'M',
+            quantity: 2,
+          },
+        ],
+        receiveDate: '2026-11-13',
+        returnDate: '2026-11-15',
+        fee: 300000,
+        deposit: 100000,
+        terms: [],
+        acceptedAt: '2026-10-30',
+      },
+      quoteHistory: [],
+      readyForHandover: false,
+      returns: [],
+      change: null,
+      events: [{ action: 'resources.confirm', message: 'Đã giữ hàng', at: '2026-10-31' }],
+      createdAt: '2026-10-29',
+      updatedAt: '2026-10-31',
+    };
+  }
+
+  it('uses the same list and progress layout for rentals, selects an order and preserves its return context', async () => {
+    const completed = rental('rental-2', 'completed');
+    completed.events.push({ action: 'completed', message: 'Đã hoàn tất', at: '2026-11-16' });
+    mocks.rentals.mockResolvedValue({
+      data: [rental(), completed],
+      pagination: { total: 2 },
+    });
+    open('?tab=rentals');
+    const list = await screen.findByRole('list', { name: 'Danh sách đơn thuê trang phục' });
+    const first = screen.getByRole('region', { name: 'Áo dài trắng' });
+    expect(within(first).getByText('Tiến độ đơn')).toBeInTheDocument();
+    expect(within(first).getByText('Đã giữ trang phục')).toBeInTheDocument();
+    expect(within(first).getByText('13/11/2026')).toBeInTheDocument();
+    expect(within(first).queryByText('12/11/2026')).not.toBeInTheDocument();
+    fireEvent.click(within(list).getByRole('button', { name: /Vest xanh/ }));
+    const second = screen.getByRole('region', { name: 'Vest xanh' });
+    expect(within(second).getByText('Đã hoàn tất dịch vụ')).toBeInTheDocument();
+    expect(within(second).getByText('16/11/2026')).toBeInTheDocument();
+    expect(within(second).getByRole('link', { name: 'Xem hồ sơ đầy đủ' })).toHaveAttribute(
       'href',
-      '/rental/start',
+      '/account/rentals/rental-2',
     );
+    expect(screen.getByTestId('url')).toHaveTextContent('order=rental-2');
+    expect(mocks.bookings).not.toHaveBeenCalled();
+  });
+
+  it('filters and paginates rentals on the server, clears selection and retries errors', async () => {
+    mocks.rentals.mockRejectedValueOnce(new Error('offline'));
+    open('?tab=rentals&page=2&order=rental-1');
+    fireEvent.click(await screen.findByRole('button', { name: 'Thử lại' }));
+    await screen.findByText('Chưa có đơn thuê');
+    expect(mocks.rentals).toHaveBeenLastCalledWith(2, '');
+    mocks.rentals.mockResolvedValue({ data: [rental()], pagination: { total: 21 } });
+    fireEvent.change(screen.getByLabelText('Trạng thái'), { target: { value: 'active' } });
+    await screen.findByRole('region', { name: 'Áo dài trắng' });
+    expect(mocks.rentals).toHaveBeenLastCalledWith(1, 'active');
+    expect(screen.getByTestId('url')).not.toHaveTextContent('order=');
+    fireEvent.click(screen.getByRole('button', { name: 'Sau' }));
+    await waitFor(() => expect(mocks.rentals).toHaveBeenLastCalledWith(2, 'active'));
+    fireEvent.click(screen.getByRole('button', { name: 'Tải lại đơn' }));
+    await waitFor(() => expect(mocks.rentals).toHaveBeenCalledTimes(5));
+  });
+
+  it.each(['cancelled', 'rejected'])('hides future rental stages after %s', async (status) => {
+    const order = rental('rental-1', status);
+    order.quote = null;
+    order.events = [];
+    mocks.rentals.mockResolvedValue({ data: [order], pagination: { total: 1 } });
+    open('?tab=rentals');
+    await screen.findByText('Tiến độ đơn');
+    expect(screen.queryByText('Xác nhận giữ trang phục')).not.toBeInTheDocument();
+    expect(screen.queryByText('Nhận, trả & hoàn tất')).not.toBeInTheDocument();
   });
   it('normalizes an unknown tab while keeping rentals available', async () => {
     open('?tab=unknown');

@@ -9,3 +9,8 @@ export const vietnamCalendarDate = (value: string) => {
       }).format(date)
     : '';
 };
+
+export const vietnamDisplayDate = (value?: string | null) => {
+  const date = value ? vietnamCalendarDate(value) : '';
+  return date ? date.split('-').reverse().join('/') : 'Chưa xác định';
+};

@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CustomerAppearanceContext } from '../components/customer/CustomerAppearance';
@@ -7,6 +8,7 @@ import type { RentalOrder } from '../services/rentalService';
 import NewRentalPage from './NewRentalPage';
 import RentalDetailPage from './RentalDetailPage';
 import CostumesPage from './CostumesPage';
+import RentalCatalogPage from './RentalCatalogPage';
 
 const mocks = vi.hoisted(() => ({
   catalog: vi.fn(),
@@ -18,6 +20,9 @@ const mocks = vi.hoisted(() => ({
   auth: { user: { _id: 'customer-1', roles: [6] } as { _id: string; roles: number[] } | null },
 }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => mocks.auth }));
+vi.mock('../components/Layout/PublicSiteLayout', () => ({
+  default: ({ children }: { children: ReactNode }) => <main>{children}</main>,
+}));
 vi.mock('../services/costumeService', () => ({
   costumeService: {
     getPublicCatalog: mocks.catalog,
@@ -42,6 +47,8 @@ const returned = '2099-10-12';
 const item = {
   _id: 'costume-1',
   name: 'Áo dài',
+  gender: 'female',
+  itemKind: 'clothing',
   rentalPrice: 9999999,
   rentalDailyPrice: 50000,
   sizes: ['M'],
@@ -58,7 +65,11 @@ function renderNew(url = '/rental/start') {
   return render(
     <CustomerAppearanceContext.Provider value={true}>
       <MemoryRouter initialEntries={[url]}>
-        <NewRentalPage />
+        <Routes>
+          <Route path="/rental/start" element={<NewRentalPage />} />
+          <Route path="/costumes" element={<RentalCatalogPage />} />
+          <Route path="*" element={null} />
+        </Routes>
         <Location />
       </MemoryRouter>
     </CustomerAppearanceContext.Provider>,
@@ -139,6 +150,22 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe('date-first daily rental form', () => {
+  it('consumes an add-item selection once, including another size of an existing model', async () => {
+    storePreviewDraft();
+    const page = renderNew(`${path}&item=${item._id}&add=1`);
+    await screen.findByLabelText('Mẫu thuê 2');
+    expect(screen.getByLabelText('Mẫu thuê 1')).toHaveValue(item._id);
+    expect(screen.getByLabelText('Số lượng 1')).toHaveValue(2);
+    expect(screen.getByLabelText('Mẫu thuê 2')).toHaveValue(item._id);
+    expect(screen.getByLabelText('Kích cỡ 2')).toHaveValue('');
+    const restoredUrl = screen.getByTestId('location').textContent!;
+    expect(restoredUrl).not.toContain('item=');
+    expect(restoredUrl).not.toContain('add=');
+    page.unmount();
+    renderNew(restoredUrl);
+    await screen.findByLabelText('Mẫu thuê 2');
+    expect(screen.queryByLabelText('Mẫu thuê 3')).not.toBeInTheDocument();
+  });
   it('adds a catalog model to an existing draft once, preserves prior quantities, and does not re-add a removed model after repricing', async () => {
     const second = { ...item, _id: 'costume-2', name: 'Vest xanh' };
     mocks.catalog.mockResolvedValue([item, second]);
@@ -353,9 +380,19 @@ describe('date-first daily rental form', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tăng số lượng 1' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Thêm món thuê' }));
-    fireEvent.change(screen.getByLabelText('Mẫu thuê 2'), {
-      target: { value: accessory._id },
-    });
+    fireEvent.click(await screen.findByRole('link', { name: 'Quay lại yêu cầu thuê' }));
+    await screen.findByLabelText('Mẫu thuê 1');
+    expect(screen.queryByLabelText('Mẫu thuê 2')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Số lượng 1')).toHaveValue(2);
+    expect(screen.getByLabelText('Người liên hệ')).toHaveValue('Khách thuê');
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm món thuê' }));
+    const selectAccessory = await screen.findByRole('link', { name: `Chọn mẫu ${accessory.name}` });
+    expect(screen.getByLabelText(/Ngày nhận/)).toHaveValue(receive);
+    expect(screen.getByLabelText(/Ngày trả/)).toHaveValue(returned);
+    expect(screen.getByLabelText(/Ngày nhận/)).toHaveAttribute('readonly');
+    expect(screen.getByLabelText(/Ngày trả/)).toHaveAttribute('readonly');
+    fireEvent.click(selectAccessory);
+    await screen.findByLabelText('Mẫu thuê 2');
     fireEvent.change(screen.getByLabelText('Kích cỡ 2'), { target: { value: 'FREE' } });
     fireEvent.click(screen.getByRole('button', { name: 'Tăng số lượng 2' }));
     expect(screen.getByLabelText('Số lượng 2')).toHaveValue(2);
@@ -369,6 +406,8 @@ describe('date-first daily rental form', () => {
     expect(screen.getByText(/Tạm tính:/)).toHaveTextContent('840.000');
 
     fireEvent.click(screen.getByRole('button', { name: 'Thêm món thuê' }));
+    fireEvent.click(await screen.findByRole('link', { name: `Chọn mẫu ${item.name}` }));
+    await screen.findByLabelText('Mẫu thuê 3');
     expect(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Bỏ món 3' }));
     expect(screen.queryByLabelText('Mẫu thuê 3')).not.toBeInTheDocument();

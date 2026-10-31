@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Button, Input, PageHeader, StatCard } from '@/components/ui';
+import { Button, Input, PageHeader, Pagination, StatCard } from '@/components/ui';
 import { clientPortalEnabled } from '../config/features';
 import { rentalLabels, rentalError } from '../services/rentalService';
 import {
@@ -19,8 +19,8 @@ import {
 } from '../services/reportService';
 
 const inputStyle = 'min-w-0 w-full rounded-md border bg-card px-3 text-sm';
-const thStyle = 'px-3 py-3 text-left font-medium text-muted-foreground';
-const tdStyle = 'border-t px-3 py-3 align-top';
+const thStyle = 'px-3 py-2 text-left font-medium text-muted-foreground';
+const tdStyle = 'border-t px-3 py-2 align-top';
 const moneyCell = tdStyle + ' text-right tabular-nums whitespace-nowrap';
 const numberCell = tdStyle + ' text-right tabular-nums';
 const services: ReportService[] = ['photography', 'rental', 'unclassified'];
@@ -607,21 +607,13 @@ export default function ReportsPage() {
             </section>
           )}
           {total > 20 && (
-            <nav className="flex flex-wrap items-center gap-3" aria-label="Phân trang báo cáo">
-              <Button variant="outline" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-                Trang trước
-              </Button>
-              <span className="text-sm">
-                Trang {page}/{Math.ceil(total / 20)} · {total} dòng
-              </span>
-              <Button
-                variant="outline"
-                disabled={page * 20 >= total}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Trang sau
-              </Button>
-            </nav>
+            <Pagination
+              className="rounded-lg border bg-card"
+              page={page}
+              pageSize={20}
+              total={total}
+              onPageChange={setPage}
+            />
           )}
         </>
       )}

@@ -81,9 +81,12 @@ export interface RentalRequest {
   lines: Array<{ costumeId: string; size: string; quantity: number }>;
 }
 export const rentalService = {
-  list: (page = 1) =>
+  list: (page = 1, view = '') =>
     api
-      .get<{ data: RentalOrder[]; pagination: { total: number } }>('/rentals', { params: { page } })
+      .get<{
+        data: RentalOrder[];
+        pagination: { total: number };
+      }>('/rentals', { params: { page, ...(view ? { view } : {}) } })
       .then((res) => res.data),
   get: (id: string) =>
     api.get<ApiResponse<RentalOrder>>(`/rentals/${id}`).then((res) => res.data.data),

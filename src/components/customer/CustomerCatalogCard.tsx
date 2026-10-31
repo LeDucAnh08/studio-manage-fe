@@ -6,6 +6,7 @@ import { rentalDayCount } from '../../utils/rentalPeriod';
 import { CustomerButton } from './CustomerButton';
 import { CustomerPrice } from './CustomerPrice';
 import { CustomerStatusBadge } from './CustomerStatusBadge';
+import { CustomerImage } from './CustomerImage';
 import '../../styles/customer-catalog.css';
 
 const genderLabel = { male: 'Nam', female: 'Nữ', unisex: 'Nam / Nữ' };
@@ -15,10 +16,12 @@ export function CustomerCatalogCard({
   item,
   receiveDate,
   returnDate,
+  addingToRental = false,
 }: {
   item: RentalCatalogItem;
   receiveDate: string;
   returnDate: string;
+  addingToRental?: boolean;
 }) {
   const days = rentalDayCount(receiveDate, returnDate);
   const dailyPrice = item.rentalDailyPrice;
@@ -32,18 +35,30 @@ export function CustomerCatalogCard({
       return left >= 0 && right >= 0 ? left - right : a.localeCompare(b, 'vi', { numeric: true });
     });
   const rentalParams = new URLSearchParams({ item: item._id, receiveDate, returnDate });
+  if (addingToRental) rentalParams.set('add', '1');
   return (
     <article
       className={`customer-catalog-card${clientPortalEnabled ? ' customer-catalog-card--selectable' : ''}`}
     >
+      {item.imageUrl && (
+        <CustomerImage
+          className="customer-catalog-card__image"
+          src={item.imageUrl}
+          alt={item.name}
+          width={1024}
+          height={1024}
+        />
+      )}
       <header className="customer-catalog-card__heading">
-        <div className="customer-catalog-card__illustration" aria-hidden="true">
-          {item.itemKind === 'accessory' ? (
-            <Sparkles aria-hidden="true" strokeWidth={1.5} />
-          ) : (
-            <Shirt aria-hidden="true" strokeWidth={1.5} />
-          )}
-        </div>
+        {!item.imageUrl && (
+          <div className="customer-catalog-card__illustration" aria-hidden="true">
+            {item.itemKind === 'accessory' ? (
+              <Sparkles aria-hidden="true" strokeWidth={1.5} />
+            ) : (
+              <Shirt aria-hidden="true" strokeWidth={1.5} />
+            )}
+          </div>
+        )}
         <div className="customer-catalog-card__identity">
           <CustomerStatusBadge>{genderLabel[item.gender]}</CustomerStatusBadge>
           <h4 className="customer-catalog-card__title">{item.name}</h4>

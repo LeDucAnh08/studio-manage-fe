@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { portfolioImages } from '@/assets/images/portfolio-images';
 import type { BookingWorkflowDto } from '@/services/bookingWorkflowService';
 import { CustomerImage } from './CustomerImage';
+import { CustomerPrice } from './CustomerPrice';
 import { OrderButton } from './CustomerOrderControls';
 import { BookingCostumeDetails } from './BookingCostumeDetails';
 import '../../styles/customer-booking-intake.css';
@@ -85,6 +86,24 @@ export function CustomerBookingIntake({
       </header>
 
       <div className="customer-booking-intake__progress">
+        {booking.packageAgreement && (
+          <section className="customer-order-surface mb-6">
+            <h2 className="customer-section-title">Thông tin gói đã xác nhận</h2>
+            <p>
+              <CustomerPrice amount={booking.packageAgreement.total} label="Tổng tiền gói:" />
+            </p>
+            <p>
+              <CustomerPrice
+                amount={booking.packageAgreement.depositRequired}
+                label={`Tiền cọc ${booking.packageAgreement.depositPercent}%:`}
+              />
+            </p>
+            <p>
+              Studio kiểm tra ekip và giữ lịch {booking.packageAgreement.holdHours} giờ sau khi
+              duyệt. Bạn chưa cần thanh toán khi yêu cầu đang chờ duyệt.
+            </p>
+          </section>
+        )}
         <ol className="customer-booking-intake__steps" aria-label="Tiến trình yêu cầu">
           <li className="customer-booking-intake__step">
             <CircleCheck
@@ -119,7 +138,9 @@ export function CustomerBookingIntake({
               aria-hidden="true"
             />
             <div className="customer-booking-intake__step-copy">
-              <p className="customer-booking-intake__step-label">Báo giá &amp; xác nhận</p>
+              <p className="customer-booking-intake__step-label">
+                {booking.packageAgreement ? 'Đặt cọc & chốt lịch' : 'Báo giá & xác nhận'}
+              </p>
               <p className="customer-booking-intake__step-caption">Chưa bắt đầu</p>
             </div>
           </li>

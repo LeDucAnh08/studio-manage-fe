@@ -46,6 +46,15 @@ describe('Package content editing', () => {
     fireEvent.change(screen.getByLabelText('Đối tượng phù hợp'), {
       target: { value: 'Lớp cuối cấp' },
     });
+    const additionalContent = {
+      'Sản phẩm bàn giao': ['deliverables', '20 ảnh/người\nNhận qua Google Drive'],
+      'Phạm vi buổi chụp': ['shootScope', '4 giờ, 2 concept tại sân trường'],
+      'Điều kiện áp dụng giá': ['pricingConditions', 'Từ 30 thành viên tại Hà Nội'],
+    };
+    for (const [label, [, value]] of Object.entries(additionalContent)) {
+      expect(screen.getByLabelText(label)).toHaveValue('');
+      fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    }
     fireEvent.change(screen.getByLabelText('Quyền lợi bổ sung (mỗi dòng một quyền lợi)'), {
       target: { value: ' Album lớp \n\nẢnh cá nhân\n' },
     });
@@ -58,11 +67,42 @@ describe('Package content editing', () => {
     const sent = JSON.parse(body.get('content') as string);
     expect(sent.version).toBe(0);
     expect(sent.details.audience).toBe('Lớp cuối cấp');
+    for (const [label, [key, value]] of Object.entries(additionalContent)) {
+      expect(sent.details[key]).toBe(value);
+      expect(screen.getByLabelText(label)).toHaveValue(value);
+    }
     expect(sent.details.benefits).toEqual(['Album lớp', 'Ảnh cá nhân']);
     expect(sent.details.itinerary).toEqual([
       { time: '08:00', title: 'Tập trung', description: '' },
     ]);
     expect(screen.getByRole('button', { name: 'Lưu nội dung' })).toBeDisabled();
+  });
+
+  it('loads saved package information and lets the admin clear it', async () => {
+    mocks.getOne.mockResolvedValueOnce({
+      ...pkg,
+      details: {
+        deliverables: 'Album lớp',
+        shootScope: 'Chụp tại sân trường',
+        pricingConditions: 'Từ 30 người',
+      },
+    });
+    open();
+    await ready();
+    for (const [label, value] of [
+      ['Sản phẩm bàn giao', 'Album lớp'],
+      ['Phạm vi buổi chụp', 'Chụp tại sân trường'],
+      ['Điều kiện áp dụng giá', 'Từ 30 người'],
+    ]) {
+      expect(screen.getByLabelText(label)).toHaveValue(value);
+      fireEvent.change(screen.getByLabelText(label), { target: { value: '' } });
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu nội dung' }));
+    await screen.findByText('Đã lưu. Nội dung mới đã hiển thị trên trang khách hàng.');
+    const sent = JSON.parse(mocks.saveContent.mock.calls[0][1].get('content') as string);
+    for (const key of ['deliverables', 'shootScope', 'pricingConditions']) {
+      expect(sent.details[key]).toBe('');
+    }
   });
 
   it('keeps changes after a conflict and can retry saving', async () => {

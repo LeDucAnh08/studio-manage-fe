@@ -97,6 +97,21 @@ describe('date-first rental catalog', () => {
     vi.mocked(costumeService.getPublicCatalog).mockResolvedValue([item]);
   });
 
+  it('shows the seeded product image without changing selection or availability', async () => {
+    vi.mocked(costumeService.getPublicCatalog).mockResolvedValue([
+      { ...item, imageUrl: '/costume-demo/blueAoDai.webp' },
+    ]);
+    renderCatalog(periodQuery);
+    const image = await screen.findByRole('img', { name: item.name });
+    expect(image).toHaveAttribute('src', '/costume-demo/blueAoDai.webp');
+    expect(image).toHaveAttribute('loading', 'lazy');
+    expect(screen.getByText('M: 3')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: `Chọn mẫu ${item.name}` })).toHaveAttribute(
+      'href',
+      `/rental/start?item=${item._id}&${periodQuery}`,
+    );
+  });
+
   it('does not fetch or show products before both dates are valid, and keeps dates outside optional filters', async () => {
     renderCatalog();
     expect(screen.getByLabelText(/Ngày nhận/)).toHaveValue('');
@@ -363,6 +378,28 @@ describe('date-first rental catalog', () => {
     expect(url.searchParams.get('returnDate')).toBe(returnDate);
     expect(url.searchParams.has('source')).toBe(false);
     expect(url.searchParams.has('package')).toBe(false);
+  });
+
+  it('locks the existing period while adding, preserves the mode through filters, and offers a return path', async () => {
+    renderCatalog(`${periodQuery}&add=1`);
+    await screen.findByRole('heading', { name: item.name });
+    expect(screen.getByLabelText(/Ngày nhận/)).toHaveAttribute('readonly');
+    expect(screen.getByLabelText(/Ngày trả/)).toHaveAttribute('readonly');
+    expect(screen.getByLabelText(/Ngày nhận/)).toHaveValue(receiveDate);
+    expect(screen.getByLabelText(/Ngày trả/)).toHaveValue(returnDate);
+    fireEvent.click(screen.getByRole('button', { name: 'Xoá lọc', hidden: true }));
+    await screen.findByRole('heading', { name: item.name });
+    expect(catalogUrl().searchParams.get('add')).toBe('1');
+    expect(screen.getByRole('link', { name: `Chọn mẫu ${item.name}` })).toHaveAttribute(
+      'href',
+      `/rental/start?item=${item._id}&${periodQuery}&add=1`,
+    );
+    expect(screen.queryByRole('link', { name: 'Tạo yêu cầu thuê riêng' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Quay lại yêu cầu thuê' })).toHaveAttribute(
+      'href',
+      `/rental/start?${periodQuery}`,
+    );
+    expect(costumeService.getPublicCatalog).toHaveBeenLastCalledWith({ receiveDate, returnDate });
   });
 
   it('offers both request creation and card selection by default', async () => {

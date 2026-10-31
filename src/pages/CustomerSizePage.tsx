@@ -10,9 +10,7 @@ import {
   Copy,
   FileUp,
   GraduationCap,
-  Ruler,
   School,
-  Weight,
 } from 'lucide-react';
 import { customerService } from '../services/customerService';
 import { studentService } from '../services/studentService';
@@ -728,7 +726,7 @@ ${costumeLines || `- ${totalMale} bộ nam\n- ${totalFemale} bộ nữ`}
                 },
                 {
                   key: 'actions',
-                  header: '',
+                  header: 'Thao tác',
                   align: 'right',
                   render: (s) => (
                     <Button
@@ -744,8 +742,7 @@ ${costumeLines || `- ${totalMale} bộ nam\n- ${totalFemale} bộ nữ`}
               ];
               return (
                 <>
-                  {/* Desktop table */}
-                  <div className="hidden md:block">
+                  <div className="min-w-0">
                     <DataTable<StudentResponse>
                       data={displayedStudents}
                       keyExtractor={(s) => s._id}
@@ -769,118 +766,6 @@ ${costumeLines || `- ${totalMale} bộ nam\n- ${totalFemale} bộ nữ`}
                         <Button variant="link" size="sm" onClick={() => setShowDupOnly(false)}>
                           Hiện tất cả
                         </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Mobile cards */}
-                  <div className="md:hidden space-y-3">
-                    {displayedStudents.map((s, i) => {
-                      const isDup = duplicateNorms.has(normalizeName(s.name));
-                      const isMale = s.gender === 'male';
-                      return (
-                        <div
-                          key={s._id}
-                          onClick={() => openEdit(s)}
-                          className={cn(
-                            'rounded-xl border bg-card p-4 cursor-pointer',
-                            isDup && 'border-yellow-400/50 bg-yellow-500/10',
-                          )}
-                        >
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-xs text-muted-foreground">{i + 1}.</span>
-                                <span className="font-semibold truncate">{s.name}</span>
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    'border-transparent',
-                                    isMale
-                                      ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
-                                      : 'bg-pink-500/15 text-pink-600 dark:text-pink-400',
-                                  )}
-                                >
-                                  {GENDER_LABEL[s.gender]}
-                                </Badge>
-                                {isDup && (
-                                  <span className="text-yellow-600 dark:text-yellow-400 text-xs inline-flex items-center gap-1">
-                                    <AlertTriangle className="h-3.5 w-3.5" />
-                                    <span>trùng tên</span>
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          {(s.height || s.weight) && (
-                            <div className="flex gap-4 text-sm text-muted-foreground">
-                              {s.height && (
-                                <span className="inline-flex items-center gap-1.5">
-                                  <Ruler className="h-4 w-4 text-sky-500" />
-                                  <span>{s.height} cm</span>
-                                </span>
-                              )}
-                              {s.weight && (
-                                <span className="inline-flex items-center gap-1.5">
-                                  <Weight className="h-4 w-4 text-amber-500" />
-                                  <span>{s.weight} kg</span>
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          {s.costumes?.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {s.costumes.map((c) => (
-                                <Badge key={c._id} variant="outline" className="font-normal">
-                                  {c.name}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                          {s.notes && (
-                            <p className="text-xs text-muted-foreground mt-2 italic">{s.notes}</p>
-                          )}
-                          <div
-                            className="flex justify-end gap-3 mt-3 pt-3 border-t"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Button
-                              variant="link"
-                              size="sm"
-                              className="h-auto p-0 text-xs"
-                              onClick={() => openEdit(s)}
-                            >
-                              Sửa
-                            </Button>
-                            <Button
-                              variant="link"
-                              size="sm"
-                              className="h-auto p-0 text-xs text-destructive"
-                              onClick={() => setConfirmId(s._id)}
-                            >
-                              Xoá
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {displayedStudents.length === 0 && (
-                      <div className="rounded-xl border bg-card py-10 text-center text-muted-foreground">
-                        {showDupOnly ? (
-                          <span>
-                            Không còn học sinh trùng tên —{' '}
-                            <Button
-                              variant="link"
-                              size="sm"
-                              className="h-auto p-0"
-                              onClick={() => setShowDupOnly(false)}
-                            >
-                              Hiện tất cả
-                            </Button>
-                          </span>
-                        ) : (
-                          'Không có học sinh nào'
-                        )}
                       </div>
                     )}
                   </div>

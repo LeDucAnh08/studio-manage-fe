@@ -217,6 +217,87 @@ const renderRental = (customer = true) =>
 const apiFailure = (message: string) => ({ response: { status: 409, data: { message } } });
 
 describe('Customer order presentation preserves workflow contracts', () => {
+  const packageAgreement = () => ({
+    total: 1500000,
+    depositRequired: 450000,
+    depositPercent: 30,
+    holdHours: 24,
+    acceptedAt: '2026-10-30T08:00:00Z',
+    terms: ['Điều kiện gói'],
+  });
+
+  it('lets admin approve a package hold without presenting a manual quote form', async () => {
+    const record = intakeFixture();
+    record.booking.packageAgreement = packageAgreement();
+    mocks.workflowGet.mockResolvedValue(record);
+    mocks.auth.user = { _id: 'admin-1', name: 'Admin', roles: [0] };
+    renderBooking(false);
+    expect(
+      await screen.findByRole('heading', { name: 'Thông tin gói khách đã xác nhận' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Duyệt và giữ lịch tạm' })).toBeEnabled();
+    expect(
+      screen.queryByRole('heading', { name: 'Lập báo giá và đề xuất lịch' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the deposit deadline for a package and does not ask the client to accept another quote', async () => {
+    const record = bookingFixture();
+    record.booking.packageAgreement = packageAgreement();
+    record.workflow.lifecycle = 'awaiting_deposit';
+    record.workflow.resources = null;
+    record.workflow.packageReservation = {
+      status: 'held',
+      expiresAt: new Date(Date.now() + 86400000).toISOString(),
+      photographers: ['photo-1'],
+    };
+    mocks.workflowGet.mockResolvedValue(record);
+    renderBooking();
+    expect(
+      await screen.findByRole('heading', { name: 'Đang giữ lịch tạm, chờ đặt cọc' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Tôi đồng ý báo giá/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Thông tin thành viên lớp' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('lets the client complete the member roster after the package schedule is confirmed', async () => {
+    const record = bookingFixture();
+    record.booking.packageAgreement = packageAgreement();
+    record.workflow.packageReservation = {
+      status: 'confirmed',
+      expiresAt: new Date().toISOString(),
+      photographers: ['photo-1'],
+    };
+    mocks.workflowGet.mockResolvedValue(record);
+    renderBooking();
+    expect(
+      await screen.findByRole('heading', { name: 'Thông tin thành viên lớp' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Thêm thành viên' })).toBeEnabled();
+  });
+  it('lets admin prepare package costumes after automatic confirmation without confirming the schedule again', async () => {
+    const record = bookingFixture();
+    record.booking.packageAgreement = packageAgreement();
+    record.workflow.assignedPhotographer = { _id: 'photo-1', name: 'Thợ chụp' };
+    record.workflow.packageReservation = {
+      status: 'confirmed',
+      expiresAt: new Date().toISOString(),
+      photographers: ['photo-1'],
+    };
+    record.workflow.progress = { status: 'not_started', deliveryVersion: 0, revisionRequests: [] };
+    record.workflow.allowedCostumes = [{ costumeId: 'costume-1', name: 'Áo dài', sizes: ['M'] }];
+    mocks.workflowGet.mockResolvedValue(record);
+    mocks.auth.user = { _id: 'admin-1', name: 'Admin', roles: [0] };
+    renderBooking(false);
+    expect(
+      await screen.findByRole('heading', { name: 'Chuẩn bị trang phục cho buổi chụp' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Kiểm tra tồn kho và lưu phân bổ' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Kiểm tra và giữ lịch' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bắt đầu buổi chụp' })).toBeDisabled();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();

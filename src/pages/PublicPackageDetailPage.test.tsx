@@ -27,6 +27,9 @@ const pkg = {
   costumes: [{ _id: 'type-1', name: 'Áo dài' }],
   details: {
     audience: 'Dành cho lớp cuối cấp',
+    deliverables: '20 ảnh chỉnh sửa/người\nAlbum lớp qua Google Drive',
+    shootScope: '4 giờ, 2 concept tại sân trường',
+    pricingConditions: 'Áp dụng từ 30 thành viên tại Hà Nội',
     benefits: ['Album của lớp'],
     exclusions: ['Vé vào cổng'],
     itinerary: [{ time: '08:00', title: 'Tập trung', description: 'Chuẩn bị trang phục' }],
@@ -78,8 +81,14 @@ describe('Public package details', () => {
       'Mang theo nước',
       'Cọc theo báo giá',
       'Báo trước cho studio',
+      '4 giờ, 2 concept tại sân trường',
+      'Áp dụng từ 30 thành viên tại Hà Nội',
     ])
       expect(screen.getByText(text)).toBeInTheDocument();
+    expect(screen.getByText(/20 ảnh chỉnh sửa\/người/).textContent).toBe(pkg.details.deliverables);
+    for (const name of ['Sản phẩm bàn giao', 'Phạm vi buổi chụp', 'Điều kiện áp dụng giá']) {
+      expect(screen.getByRole('heading', { name })).toBeInTheDocument();
+    }
     expect(screen.getByText('Trang phục đã bao gồm: Áo dài')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Đặt gói này' })).toHaveAttribute(
       'href',
@@ -101,6 +110,22 @@ describe('Public package details', () => {
     expect(screen.queryByRole('heading', { name: 'Điều kiện và lưu ý' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Xem ảnh/ })).not.toBeInTheDocument();
     expect(screen.getAllByText('Liên hệ')).toHaveLength(2);
+    for (const name of ['Sản phẩm bàn giao', 'Phạm vi buổi chụp', 'Điều kiện áp dụng giá']) {
+      expect(screen.queryByRole('heading', { name })).not.toBeInTheDocument();
+    }
+  });
+
+  it('hides unconfigured sections on packages that already have other detail content', async () => {
+    mocks.getPublic.mockResolvedValueOnce({
+      ...pkg,
+      details: { ...pkg.details, deliverables: '', shootScope: undefined, pricingConditions: '  ' },
+    });
+    open();
+    await screen.findByRole('heading', { level: 1, name: pkg.name });
+    for (const name of ['Sản phẩm bàn giao', 'Phạm vi buổi chụp', 'Điều kiện áp dụng giá']) {
+      expect(screen.queryByRole('heading', { name })).not.toBeInTheDocument();
+    }
+    expect(screen.getByText('Album của lớp')).toBeInTheDocument();
   });
 
   it('lets guests browse while booking is disabled', async () => {

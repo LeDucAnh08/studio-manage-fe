@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Package2, Plus, Scissors, Shirt, Timer, Users } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useForm, Controller } from 'react-hook-form';
 import { toast } from 'react-toastify';
 import { packageService } from '../services/packageService';
@@ -46,6 +46,8 @@ const NO_DURATION = '__none__';
 interface PackageFormValues {
   name: string;
   pricePerMember: number;
+  depositPercent: number;
+  depositHoldHours: number;
   duration?: 'full_day' | 'half_day' | 'two_thirds_day';
   costumes?: string[];
   crewRatio?: string;
@@ -81,7 +83,7 @@ const PackagesPage = () => {
   const openCreate = () => {
     setEditing(null);
     setSelectedCostumes([]);
-    reset({ editingScope: 'full' });
+    reset({ editingScope: 'full', depositPercent: 30, depositHoldHours: 24 });
     setModalOpen(true);
   };
 
@@ -92,6 +94,8 @@ const PackagesPage = () => {
     reset({
       name: pkg.name,
       pricePerMember: pkg.pricePerMember,
+      depositPercent: pkg.depositPercent ?? 30,
+      depositHoldHours: pkg.depositHoldHours ?? 24,
       duration: pkg.duration,
       costumes: costumeIds,
       crewRatio: pkg.crewRatio,
@@ -267,8 +271,7 @@ const PackagesPage = () => {
         <TableSkeleton cols={8} />
       ) : (
         <>
-          {/* Desktop table */}
-          <div className="hidden md:block">
+          <div className="min-w-0">
             <DataTable<Package>
               aria-label="Gói chụp"
               className="staff-packages-table"
@@ -277,90 +280,6 @@ const PackagesPage = () => {
               emptyTitle="Chưa có gói chụp nào"
               columns={columns}
             />
-          </div>
-
-          {/* Mobile cards */}
-          <div className="md:hidden space-y-3">
-            {packages.map((pkg) => (
-              <div key={pkg._id} className="rounded-xl border bg-card p-4">
-                <div className="flex items-start justify-between mb-2 gap-2">
-                  <div className="min-w-0">
-                    <div className="font-semibold break-words">{pkg.name}</div>
-                    <div className="font-medium text-sm mt-1 tabular-nums">
-                      {pkg.pricePerMember.toLocaleString('vi-VN')}₫/thành viên
-                    </div>
-                  </div>
-                  <div className="flex gap-3 shrink-0">
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="staff-row-action"
-                      aria-label={`Sửa gói ${pkg.name}`}
-                      onClick={() => openEdit(pkg)}
-                    >
-                      Sửa
-                    </Button>
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="staff-row-action text-destructive"
-                      aria-label={`Xoá gói ${pkg.name}`}
-                      onClick={() => setConfirmId(pkg._id)}
-                    >
-                      Xoá
-                    </Button>
-                  </div>
-                </div>
-                <Button asChild variant="link" size="sm" className="px-0 mb-2">
-                  <Link
-                    to={`/settings/packages/${pkg._id}/content`}
-                    aria-label={`Nội dung chi tiết gói ${pkg.name}`}
-                  >
-                    Nội dung chi tiết
-                  </Link>
-                </Button>
-                <div className="space-y-1 text-sm text-muted-foreground">
-                  {pkg.duration && (
-                    <div className="inline-flex items-center gap-1.5">
-                      <Timer className="h-4 w-4 text-muted-foreground" />
-                      <span>{durationLabel[pkg.duration]}</span>
-                    </div>
-                  )}
-                  {pkg.studentsPerCrew != null && (
-                    <div className="inline-flex items-center gap-1.5">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span>{pkg.studentsPerCrew} học sinh / thợ</span>
-                    </div>
-                  )}
-                  {pkg.costumes && pkg.costumes.length > 0 && (
-                    <div className="inline-flex items-center gap-1.5">
-                      <Shirt className="h-4 w-4 text-muted-foreground" />
-                      <span>{pkg.costumes.map((c) => c.name).join(', ')}</span>
-                    </div>
-                  )}
-                  {pkg.editingScope && (
-                    <div className="inline-flex items-center gap-1.5">
-                      <Scissors className="h-4 w-4 text-muted-foreground" />
-                      <span>{editingScopeLabel[pkg.editingScope]}</span>
-                    </div>
-                  )}
-                  {pkg.deliveryDays != null && (
-                    <div className="inline-flex items-center gap-1.5">
-                      <Package2 className="h-4 w-4 text-muted-foreground" />
-                      <span>Trả file tối đa: {pkg.deliveryDays} ngày</span>
-                    </div>
-                  )}
-                  {pkg.description && (
-                    <div className="text-muted-foreground italic">{pkg.description}</div>
-                  )}
-                </div>
-              </div>
-            ))}
-            {packages.length === 0 && (
-              <div className="rounded-xl border bg-card py-10 text-center text-muted-foreground">
-                Chưa có gói chụp nào
-              </div>
-            )}
           </div>
         </>
       )}
@@ -398,6 +317,46 @@ const PackagesPage = () => {
                 min={0}
                 placeholder="VD: 150000"
                 {...register('pricePerMember', { required: true, valueAsNumber: true })}
+              />
+            </FormField>
+            <FormField
+              label="Tiền cọc (%)"
+              htmlFor="package-deposit-percent"
+              hint="Tính theo tổng giá gói khi khách đặt."
+            >
+              <Input
+                id="package-deposit-percent"
+                type="number"
+                min={1}
+                max={100}
+                step={1}
+                {...register('depositPercent', {
+                  required: true,
+                  valueAsNumber: true,
+                  min: 1,
+                  max: 100,
+                  validate: Number.isSafeInteger,
+                })}
+              />
+            </FormField>
+            <FormField
+              label="Giữ lịch chờ cọc (giờ)"
+              htmlFor="package-hold-hours"
+              hint="Tính từ lúc duyệt; hết hạn chưa đủ cọc sẽ tự hủy."
+            >
+              <Input
+                id="package-hold-hours"
+                type="number"
+                min={1}
+                max={168}
+                step={1}
+                {...register('depositHoldHours', {
+                  required: true,
+                  valueAsNumber: true,
+                  min: 1,
+                  max: 168,
+                  validate: Number.isSafeInteger,
+                })}
               />
             </FormField>
             <FormField label="Thời gian" htmlFor="package-duration">

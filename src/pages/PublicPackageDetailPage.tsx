@@ -240,6 +240,18 @@ export default function PublicPackageDetailPage() {
                     <PackageGallery images={details.gallery} />
                   </section>
                 )}
+                {details?.deliverables?.trim() && (
+                  <section id="deliverables">
+                    <h2>Sản phẩm bàn giao</h2>
+                    <p>{details.deliverables}</p>
+                  </section>
+                )}
+                {details?.shootScope?.trim() && (
+                  <section id="shoot-scope">
+                    <h2>Phạm vi buổi chụp</h2>
+                    <p>{details.shootScope}</p>
+                  </section>
+                )}
                 {!!details?.itinerary.length && (
                   <section id="itinerary">
                     <h2>Lịch trình buổi chụp mẫu</h2>
@@ -287,10 +299,16 @@ export default function PublicPackageDetailPage() {
                     </strong>
                   </div>
                   <p>
-                    Giá tham khảo. Báo giá cuối cùng được studio xác nhận theo quy mô lớp và yêu cầu
-                    thực tế.
+                    Giá gói tính theo số thành viên. Studio kiểm tra phạm vi phục vụ và lịch trước
+                    khi duyệt; thay đổi ngoài gói cần được hai bên xác nhận riêng.
                   </p>
                   {details?.priceNotes && <p>{details.priceNotes}</p>}
+                  {details?.pricingConditions?.trim() && (
+                    <div>
+                      <h3>Điều kiện áp dụng giá</h3>
+                      <p>{details.pricingConditions}</p>
+                    </div>
+                  )}
                   {!!details?.exclusions.length && (
                     <>
                       <h3>Các khoản chưa bao gồm</h3>

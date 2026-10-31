@@ -233,7 +233,7 @@ const UsersPage = () => {
     },
     {
       key: 'actions',
-      header: '',
+      header: 'Thao tác',
       align: 'right',
       className: 'whitespace-nowrap',
       render: (u) => (
@@ -282,28 +282,36 @@ const UsersPage = () => {
       )}
 
       {accountRequests.some((request) => request.status === 'pending') && (
-        <section className="mb-6 rounded-xl border bg-card p-4">
-          <h2 className="font-semibold">Yêu cầu cấp tài khoản</h2>
-          <div className="mt-3 space-y-3">
-            {accountRequests
-              .filter((request) => request.status === 'pending')
-              .map((request) => (
-                <div
-                  key={request._id}
-                  className="flex flex-col gap-4 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0">
-                    <p className="font-medium break-words">
-                      {request.name}{' '}
-                      <span className="text-muted-foreground">({request.username})</span>
-                    </p>
-                    <p className="text-sm text-muted-foreground break-words">
-                      {ROLE_LABELS[request.requestedRole]}
-                      {request.phone ? ` · ${request.phone}` : ''}
-                      {request.note ? ` · ${request.note}` : ''}
-                    </p>
+        <div className="mb-6">
+          <DataTable<AccountRequest>
+            aria-label="Yêu cầu cấp tài khoản"
+            title="Yêu cầu cấp tài khoản"
+            data={accountRequests.filter((request) => request.status === 'pending')}
+            keyExtractor={(request) => request._id}
+            columns={[
+              {
+                key: 'name',
+                header: 'Người yêu cầu',
+                render: (request) => (
+                  <div>
+                    <p className="font-medium">{request.name}</p>
+                    <p className="text-xs text-muted-foreground">{request.username}</p>
                   </div>
-                  <div className="flex shrink-0 gap-2">
+                ),
+              },
+              {
+                key: 'role',
+                header: 'Vai trò',
+                render: (request) => ROLE_LABELS[request.requestedRole],
+              },
+              { key: 'phone', header: 'Điện thoại', render: (request) => request.phone || '—' },
+              { key: 'note', header: 'Ghi chú', render: (request) => request.note || '—' },
+              {
+                key: 'actions',
+                header: 'Thao tác',
+                align: 'right',
+                render: (request) => (
+                  <div className="staff-row-actions">
                     <Button
                       size="sm"
                       variant="outline"
@@ -311,81 +319,20 @@ const UsersPage = () => {
                     >
                       Từ chối
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="gradient"
-                      onClick={() => openRequestReview(request, 'approved')}
-                    >
+                    <Button size="sm" onClick={() => openRequestReview(request, 'approved')}>
                       Cấp tài khoản
                     </Button>
                   </div>
-                </div>
-              ))}
-          </div>
-        </section>
+                ),
+              },
+            ]}
+            pagination
+          />
+        </div>
       )}
 
-      <div className="hidden md:block">
+      <div className="min-w-0">
         <DataTable<User> data={users} keyExtractor={(u) => u._id} columns={columns} />
-      </div>
-
-      {/* Mobile cards */}
-      <div className="md:hidden space-y-3">
-        {users.map((u) => (
-          <div key={u._id} className="rounded-xl border bg-card p-4">
-            <div className="flex items-start justify-between mb-1 gap-2">
-              <div className="min-w-0">
-                <div className="font-semibold truncate">
-                  {u.username}
-                  {u._id === me?._id && (
-                    <span className="ml-2 text-xs text-muted-foreground">(bạn)</span>
-                  )}
-                </div>
-                {u.name && <div className="text-sm text-muted-foreground">{u.name}</div>}
-              </div>
-              {u.isActive ? (
-                <Badge variant="success" className="shrink-0">
-                  Hoạt động
-                </Badge>
-              ) : (
-                <Badge variant="destructive" className="shrink-0">
-                  Đã khoá
-                </Badge>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-1 mt-2">
-              {(u.roles ?? []).map((r) => (
-                <Badge
-                  key={r}
-                  variant="outline"
-                  className={cn('border-transparent', ROLE_BADGE[r])}
-                >
-                  {ROLE_LABELS[r]}
-                </Badge>
-              ))}
-            </div>
-            <div className="flex gap-4 mt-3 pt-3 border-t">
-              <Button
-                variant="link"
-                size="sm"
-                className="h-auto p-0 text-xs"
-                onClick={() => openEdit(u)}
-              >
-                Sửa
-              </Button>
-              {u._id !== me?._id && (
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="h-auto p-0 text-xs text-destructive"
-                  onClick={() => handleDelete(u._id)}
-                >
-                  Xoá
-                </Button>
-              )}
-            </div>
-          </div>
-        ))}
       </div>
 
       <Modal

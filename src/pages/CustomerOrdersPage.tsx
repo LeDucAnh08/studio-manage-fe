@@ -2,7 +2,7 @@ import * as Tabs from '@radix-ui/react-tabs';
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { CustomerBookingOrders } from '../components/customer/CustomerBookingOrders';
-import RentalListPage from './RentalListPage';
+import { CustomerRentalOrders } from '../components/customer/CustomerRentalOrders';
 import '../styles/customer-orders-workspace.css';
 
 export default function CustomerOrdersPage() {
@@ -41,7 +41,7 @@ export default function CustomerOrdersPage() {
           {tab === 'bookings' && <CustomerBookingOrders />}
         </Tabs.Content>
         <Tabs.Content value="rentals" className="customer-order-panel">
-          {tab === 'rentals' && <RentalListPage embedded />}
+          {tab === 'rentals' && <CustomerRentalOrders />}
         </Tabs.Content>
       </Tabs.Root>
     </div>

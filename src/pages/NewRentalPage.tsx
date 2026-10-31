@@ -133,7 +133,8 @@ export default function NewRentalPage() {
     if (!item || item === appliedCatalogItem.current || !catalog.some((row) => row._id === item))
       return;
     appliedCatalogItem.current = item;
-    if (draft.lines.some((row) => row.costumeId === item)) return;
+    const adding = params.get('add') === '1';
+    if (!adding && draft.lines.some((row) => row.costumeId === item)) return;
     const emptyIndex = draft.lines.findIndex((row) => !row.costumeId);
     if (emptyIndex < 0 && draft.lines.length >= 30) {
       setError('Yêu cầu thuê tối đa 30 dòng. Hãy bỏ bớt một món trước khi chọn thêm mẫu.');
@@ -148,7 +149,19 @@ export default function NewRentalPage() {
           ? current.lines.map((row, index) => (index === emptyIndex ? selection : row))
           : [...current.lines, selection],
     }));
-  }, [catalog, params, draft.lines]);
+    if (adding) {
+      // Consume the selection so refreshing does not append the same item again.
+      setParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.delete('item');
+          next.delete('add');
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  }, [catalog, params, draft.lines, setParams]);
   const patch = (value: Partial<Draft>) => {
     setError('');
     setDraft((current) => ({ ...current, ...value }));
@@ -157,6 +170,13 @@ export default function NewRentalPage() {
     patch({
       lines: draft.lines.map((row, position) => (position === index ? { ...row, ...value } : row)),
     });
+  const addRentalItem = () => {
+    const next = { ...draft, ownerId: user?._id ?? draft.ownerId, preview: false };
+    sessionStorage.setItem(RENTAL_DRAFT_KEY, JSON.stringify(next));
+    const params = new URLSearchParams(catalogParams);
+    params.set('add', '1');
+    navigate(`/costumes?${params}`);
+  };
   const changePeriod = (name: 'receiveDate' | 'returnDate', value: string) => {
     const next = { receiveDate: draft.receiveDate, returnDate: draft.returnDate, [name]: value };
     patch({ ...next, preview: false });
@@ -726,9 +746,7 @@ export default function NewRentalPage() {
                   variant="outline"
                   className={customer ? 'customer-rental-form__add' : undefined}
                   disabled={draft.lines.length >= 30}
-                  onClick={() =>
-                    patch({ lines: [...draft.lines, { costumeId: '', size: '', quantity: '1' }] })
-                  }
+                  onClick={addRentalItem}
                 >
                   <CirclePlus aria-hidden="true" size={20} /> Thêm món thuê
                 </Button>

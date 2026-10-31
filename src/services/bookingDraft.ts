@@ -8,6 +8,7 @@ export interface BookingDraft {
   ownerId: string | null;
   idempotencyKey: string;
   submissionFingerprint?: string;
+  packageConsentKey?: string;
   step: 1 | 2 | 3;
   source: string;
   concept: string;

@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import {
   OrderButton as Button,
   OrderInput as Input,
@@ -65,6 +65,19 @@ export default function RentalDetailPage() {
   const customer = useCustomerAppearance();
   const ContentTag = customer ? 'section' : 'main';
   const { id = '' } = useParams();
+  const location = useLocation();
+  const ordersReturnTo = location.state?.ordersReturnTo;
+  const staffReturnTo = location.state?.rentalOrdersReturnTo;
+  const staffBackPath =
+    typeof staffReturnTo === 'string' &&
+    (staffReturnTo === '/rental-orders' || staffReturnTo.startsWith('/rental-orders?'))
+      ? staffReturnTo
+      : '/rental-orders';
+  const customerBackPath =
+    typeof ordersReturnTo === 'string' &&
+    (ordersReturnTo === '/account/orders' || ordersReturnTo.startsWith('/account/orders?'))
+      ? ordersReturnTo
+      : '/account/orders?tab=rentals';
   const { user } = useAuth();
   const roles = user?.roles ?? [];
   const admin = roles.includes(0) || roles.includes(1),
@@ -265,7 +278,7 @@ export default function RentalDetailPage() {
       <div className="flex flex-wrap justify-between gap-3">
         <Link
           className={customer ? 'customer-link' : 'text-sm text-primary'}
-          to={client ? '/account/orders?tab=rentals' : '/rental-orders'}
+          to={client ? customerBackPath : staffBackPath}
         >
           ← Danh sách đơn thuê
         </Link>

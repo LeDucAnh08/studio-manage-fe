@@ -198,6 +198,16 @@ const CostumesPage = () => {
       header: 'Mặt hàng',
       render: (c) => (
         <div className="min-w-48 space-y-1.5">
+          {c.imageUrl && (
+            <img
+              src={c.imageUrl}
+              alt={c.name}
+              width={80}
+              height={80}
+              loading="lazy"
+              className="h-20 w-20 rounded-md object-contain bg-muted"
+            />
+          )}
           <p className="font-semibold leading-tight">{c.name}</p>
           <div className="flex flex-wrap gap-1.5">
             <Badge variant="outline">{ITEM_KIND_LABEL[c.itemKind ?? 'clothing']}</Badge>
@@ -304,7 +314,7 @@ const CostumesPage = () => {
         </div>
       )}
 
-      <div className="hidden md:block">
+      <div className="min-w-0">
         <DataTable<CostumeResponse>
           aria-label="Kho trang phục và phụ kiện"
           className="staff-inventory-table"
@@ -316,78 +326,6 @@ const CostumesPage = () => {
           dense
           textSize="sm"
         />
-      </div>
-
-      {/* Mobile cards */}
-      <div className="md:hidden space-y-3">
-        {loading ? (
-          <div className="rounded-xl border bg-card py-10 text-center text-muted-foreground">
-            Đang tải…
-          </div>
-        ) : costumes.length === 0 ? (
-          <div className="rounded-xl border bg-card py-10 text-center text-muted-foreground">
-            Chưa có mặt hàng nào
-          </div>
-        ) : (
-          costumes.map((c) => {
-            return (
-              <div key={c._id} className="rounded-xl border bg-card p-4">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="font-semibold break-words">{c.name}</div>
-                    <div className="flex flex-wrap gap-1.5 mt-1">
-                      <Badge variant="outline">{GENDER_LABEL[c.gender] ?? '—'}</Badge>
-                      {c.type && <Badge variant="outline">{getTypeName(c.type)}</Badge>}
-                      <Badge variant="outline">{ITEM_KIND_LABEL[c.itemKind ?? 'clothing']}</Badge>
-                      <Badge variant={c.isRentalItem ? 'default' : 'outline'}>
-                        {c.isRentalItem ? 'Cho thuê' : 'Dùng nội bộ'}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-                {c.isRentalItem && (
-                  <p className="text-sm font-medium tabular-nums">
-                    Giá thuê/ngày:{' '}
-                    {c.rentalDailyPrice ? formatVnd(c.rentalDailyPrice) : 'Chờ báo giá theo ngày'}
-                  </p>
-                )}
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {c.inventory?.length
-                    ? c.inventory
-                        .map(
-                          (entry) =>
-                            `${entry.size}: ${entry.quantity} (${CONDITION_LABEL[entry.condition]})`,
-                        )
-                        .join(', ')
-                    : 'Chưa cập nhật tồn kho'}
-                </p>
-                {c.description && (
-                  <p className="text-sm text-muted-foreground italic">{c.description}</p>
-                )}
-                <div className="flex justify-end gap-3 mt-3 pt-3 border-t">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="min-h-11 flex-1"
-                    aria-label={`Sửa mặt hàng ${c.name}`}
-                    onClick={() => openEdit(c)}
-                  >
-                    Sửa
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="min-h-11 min-w-11 text-destructive"
-                    aria-label={`Xóa ${c.name}`}
-                    onClick={() => setConfirmId(c._id)}
-                  >
-                    Xoá
-                  </Button>
-                </div>
-              </div>
-            );
-          })
-        )}
       </div>
 
       <Modal

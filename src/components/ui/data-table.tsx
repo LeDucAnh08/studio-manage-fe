@@ -162,7 +162,7 @@ export function DataTable<T>({
   const textCls = textSize === 'xs' ? 'text-xs' : 'text-sm';
 
   const table = (
-    <Table className={textCls} aria-label={label} containerLabel={label}>
+    <Table className={cn('min-w-[640px]', textCls)} aria-label={label} containerLabel={label}>
       <TableHeader className={cn('bg-muted/40', stickyHeader && 'sticky top-0 z-10')}>
         <TableRow>
           {columns.map((col) => (

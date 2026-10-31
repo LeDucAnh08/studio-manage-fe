@@ -83,7 +83,9 @@ export function BookingPhotographer({
             Thợ phụ trách chăm khách và làm thợ chính.{' '}
             {workflow.resources?.scheduleId
               ? 'Lịch chụp đã được xác nhận.'
-              : 'Phân công này chưa giữ khung giờ chụp; studio kiểm tra lại khi chốt lịch.'}
+              : workflow.packageReservation?.status === 'held'
+                ? 'Ekip đang được giữ lịch tạm trong thời hạn đặt cọc.'
+                : 'Phân công này chưa giữ khung giờ chụp; studio kiểm tra lại khi chốt lịch.'}
           </>
         )}
       </p>

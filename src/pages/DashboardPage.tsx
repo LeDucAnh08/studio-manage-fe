@@ -528,7 +528,7 @@ const DashboardPage = () => {
               <p className="text-muted-foreground text-sm">Không có lịch chụp nào sắp tới.</p>
             ) : (
               <>
-                <div className="hidden md:block overflow-x-auto">
+                <div className="min-w-0 overflow-x-auto">
                   <DataTable<UpcomingSchedule>
                     aria-label="Lịch chụp sắp tới"
                     variant="plain"
@@ -536,39 +536,6 @@ const DashboardPage = () => {
                     keyExtractor={(s) => s._id}
                     columns={upcomingColumns}
                   />
-                </div>
-                <div className="md:hidden space-y-2">
-                  {(upcomingSchedules as UpcomingSchedule[]).map((s) => (
-                    <div
-                      key={s._id}
-                      className="rounded-xl border bg-card p-3 hover:shadow-sm transition-shadow"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="font-medium text-sm">{formatDate(s.shootDate)}</div>
-                          {(s.startTime || s.endTime) && (
-                            <div className="text-xs text-muted-foreground">
-                              {s.startTime}
-                              {s.endTime ? ` – ${s.endTime}` : ''}
-                            </div>
-                          )}
-                          <div className="text-sm mt-0.5">{s.customer?.className ?? '—'}</div>
-                          {s.location && (
-                            <div className="text-xs text-muted-foreground">{s.location}</div>
-                          )}
-                        </div>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            'border-transparent text-xs',
-                            SCHEDULE_STATUS_COLOR[s.status] ?? '',
-                          )}
-                        >
-                          {SCHEDULE_STATUS_LABEL[s.status] ?? s.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </>
             )}

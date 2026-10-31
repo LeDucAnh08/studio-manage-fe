@@ -24,6 +24,7 @@ export type BookingWorkflowAction =
   | 'quote.accept'
   | 'payment.record'
   | 'resources.confirm'
+  | 'resources.costumes'
   | 'progress.update'
   | 'revision.request'
   | 'delivery.accept'
@@ -79,7 +80,7 @@ export interface AllowedWorkflowCostume {
 }
 
 export interface BookingWorkflowDto {
-  booking: Pick<Booking, 'costumeSelections' | 'costumeHold'> & {
+  booking: Pick<Booking, 'costumeSelections' | 'costumeHold' | 'packageAgreement'> & {
     _id: string;
     status: 'pending' | 'approved' | 'rejected' | 'cancelled';
     cancelledAt?: string;
@@ -98,6 +99,11 @@ export interface BookingWorkflowDto {
     reviewNote?: string;
   };
   workflow: {
+    packageReservation?: {
+      status: 'held' | 'confirmed' | 'expired' | 'released';
+      expiresAt: string;
+      photographers: string[];
+    } | null;
     bookingId: string;
     version: number;
     lifecycle: BookingWorkflowLifecycle;

@@ -14,6 +14,9 @@ if (typeof window !== 'undefined') {
 
 const emptyDetails = (): PackageDetails => ({
   audience: '',
+  deliverables: '',
+  shootScope: '',
+  pricingConditions: '',
   benefits: [],
   exclusions: [],
   itinerary: [],
@@ -405,10 +408,45 @@ export default function PackageContentPage() {
                     />
                   </FormField>
                   <p className="text-xs text-muted-foreground">
-                    Thời lượng, ekip, trang phục, hậu kỳ và bàn giao đã lấy từ thông tin gói, không
-                    cần nhập lại.
+                    Thời lượng, ekip, trang phục, phạm vi hậu kỳ và số ngày bàn giao đã lấy từ thông
+                    tin gói. Bổ sung chi tiết sản phẩm và phạm vi buổi chụp ở các mục bên dưới.
                   </p>
                 </section>
+                {(
+                  [
+                    {
+                      key: 'deliverables',
+                      label: 'Sản phẩm bàn giao',
+                      hint: 'Ghi số ảnh chỉnh sửa mỗi người/cả lớp, ảnh gốc, video, ảnh in hoặc album; định dạng và cách nhận sản phẩm.',
+                    },
+                    {
+                      key: 'shootScope',
+                      label: 'Phạm vi buổi chụp',
+                      hint: 'Ghi số giờ chụp, số concept, số địa điểm; có chụp cá nhân, nhóm và tập thể hay không. Nêu rõ thời gian di chuyển có tính trong buổi chụp.',
+                    },
+                    {
+                      key: 'pricingConditions',
+                      label: 'Điều kiện áp dụng giá',
+                      hint: 'Ghi số người tối thiểu/tối đa, khu vực, ngày áp dụng, thuế và cách báo giá nếu lớp ít người hoặc có yêu cầu ngoài phạm vi gói.',
+                    },
+                  ] as const
+                ).map((field) => (
+                  <section key={field.key} className="rounded-xl border bg-card p-4 sm:p-6">
+                    <FormField
+                      label={field.label}
+                      htmlFor={`package-${field.key}`}
+                      hint={`${field.hint} Mỗi dòng một ý, tối đa 4.000 ký tự. Để trống để ẩn mục này.`}
+                    >
+                      <Textarea
+                        id={`package-${field.key}`}
+                        rows={5}
+                        maxLength={4000}
+                        value={details[field.key] ?? ''}
+                        onChange={(event) => change(field.key, event.target.value)}
+                      />
+                    </FormField>
+                  </section>
+                ))}
                 <section
                   className="rounded-xl border bg-card p-4 sm:p-6 space-y-4"
                   aria-labelledby="package-images-title"

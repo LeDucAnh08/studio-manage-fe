@@ -150,6 +150,8 @@ function validateStepTwo(draft: BookingDraft): WizardErrors {
     errors.endAt = 'Thời gian kết thúc phải sau lúc bắt đầu.';
   } else if (end - start > MAX_REQUEST_DURATION) {
     errors.endAt = 'Khoảng thời gian yêu cầu không được dài quá 7 ngày.';
+  } else if (draft.startAt.slice(0, 10) !== draft.endAt.slice(0, 10)) {
+    errors.endAt = 'Buổi chụp theo gói cần bắt đầu và kết thúc trong cùng ngày.';
   }
   if (!draft.location.trim()) errors.location = 'Nhập địa điểm mong muốn.';
   if (draft.note.length > 2000) errors.note = 'Ghi chú tối đa 2.000 ký tự.';
@@ -218,6 +220,21 @@ export default function BookingWizardPage() {
   }, [draft]);
 
   const selectedPackage = packages.find((item) => item._id === draft.packageId);
+  const packageConsentKey = selectedPackage
+    ? JSON.stringify([
+        selectedPackage._id,
+        selectedPackage.pricePerMember,
+        selectedPackage.depositPercent ?? 30,
+        selectedPackage.depositHoldHours ?? 24,
+        selectedPackage.detailsVersion ?? 0,
+        selectedPackage.updatedAt,
+        draft.members,
+        draft.startAt,
+        draft.endAt,
+        draft.location,
+      ])
+    : '';
+  const packageAccepted = !!packageConsentKey && draft.packageConsentKey === packageConsentKey;
   const comparisonPackages = useMemo(
     () =>
       draft.comparedPackageIds
@@ -246,6 +263,18 @@ export default function BookingWizardPage() {
     ].filter(Boolean);
     const payload = {
       packageId: draft.packageId,
+      ...(selectedPackage
+        ? {
+            packageAgreement: {
+              accepted: packageAccepted,
+              pricePerMember: selectedPackage.pricePerMember,
+              depositPercent: selectedPackage.depositPercent ?? 30,
+              holdHours: selectedPackage.depositHoldHours ?? 24,
+              detailsVersion: selectedPackage.detailsVersion ?? 0,
+              updatedAt: selectedPackage.updatedAt,
+            },
+          }
+        : {}),
       contactName: draft.contactName.trim(),
       phone: draft.phone.trim(),
       members: Number(draft.members),
@@ -313,6 +342,16 @@ export default function BookingWizardPage() {
       );
       return;
     }
+    if (!selectedPackage || selectedPackage.pricePerMember <= 0) {
+      setSubmitError(
+        'Gói này cần liên hệ studio để được tư vấn riêng. Vui lòng chọn gói có giá công khai.',
+      );
+      return;
+    }
+    if (!packageAccepted) {
+      setSubmitError('Vui lòng xác nhận giá gói, tiền cọc và điều kiện trước khi gửi.');
+      return;
+    }
     setSubmitting(true);
     setSubmitError('');
     const payload = buildPayload();
@@ -337,6 +376,10 @@ export default function BookingWizardPage() {
       navigate(`/account/bookings/${result._id}`);
     } catch (error) {
       setSubmitError(errorText(error));
+      if ((error as { response?: { status?: number } }).response?.status === 409) {
+        updateDraft({ packageConsentKey: undefined });
+        loadPackages();
+      }
     } finally {
       setSubmitting(false);
     }
@@ -371,8 +414,8 @@ export default function BookingWizardPage() {
             <p className="customer-wizard__eyebrow">Yume Studio · Chụp kỷ yếu</p>
             <h1 className="customer-wizard__headline">Bắt đầu kế hoạch buổi chụp</h1>
             <p className="customer-wizard__description">
-              Chọn gói, cho studio biết thông tin lớp và thời gian mong muốn. Gửi yêu cầu hoàn toàn
-              miễn phí; lịch và giá cuối cùng chỉ được chốt sau khi hai bên xác nhận.
+              Chọn gói, xác nhận giá và gửi thời gian mong muốn. Studio kiểm tra ekip trước khi
+              duyệt; ghi nhận đủ cọc trong thời hạn sẽ tự chốt lịch.
             </p>
           </header>
           <ol aria-label="Các bước gửi yêu cầu" className="customer-wizard__steps">
@@ -425,8 +468,8 @@ export default function BookingWizardPage() {
                 Chọn gói chụp phù hợp
               </h2>
               <p className="customer-caption">
-                Giá hiển thị là giá tham khảo mỗi thành viên. Studio sẽ gửi báo giá chính thức sau
-                khi hiểu rõ nhu cầu của lớp.
+                Giá gói tính theo từng thành viên. Studio kiểm tra lịch, địa điểm và ekip trước khi
+                duyệt yêu cầu.
               </p>
             </div>
             {loadingPackages ? (
@@ -467,9 +510,7 @@ export default function BookingWizardPage() {
                         name={item.name}
                         featured={item.isPopular}
                         selected={selected}
-                        price={
-                          <CustomerPrice amount={item.pricePerMember} unit="/ người · tham khảo" />
-                        }
+                        price={<CustomerPrice amount={item.pricePerMember} unit="/ người" />}
                         note={item.description}
                         actions={
                           <>
@@ -552,9 +593,7 @@ export default function BookingWizardPage() {
                         <h3 id="compare-title" className="customer-wizard__title">
                           So sánh gói dịch vụ
                         </h3>
-                        <p className="customer-caption">
-                          Tối đa 3 gói · giá tham khảo, chưa phải báo giá cuối cùng
-                        </p>
+                        <p className="customer-caption">Tối đa 3 gói · giá theo từng thành viên</p>
                       </div>
                       <Button
                         type="button"
@@ -895,7 +934,7 @@ export default function BookingWizardPage() {
               <CustomerSurface as="div" className="customer-wizard__estimate">
                 <aside aria-labelledby="booking-estimate-title">
                   <h3 id="booking-estimate-title" className="customer-wizard__title">
-                    Ước tính tham khảo
+                    Tổng tiền gói
                   </h3>
                   {selectedPackage ? (
                     <>
@@ -907,6 +946,21 @@ export default function BookingWizardPage() {
                         amount={selectedPackage.pricePerMember * Number(draft.members)}
                         emphasis="total"
                       />
+                      <p>
+                        <CustomerPrice
+                          label={`Tiền cọc ${selectedPackage.depositPercent ?? 30}%:`}
+                          amount={Math.ceil(
+                            (selectedPackage.pricePerMember *
+                              Number(draft.members) *
+                              (selectedPackage.depositPercent ?? 30)) /
+                              100,
+                          )}
+                        />
+                      </p>
+                      <p className="customer-caption">
+                        Giữ lịch {selectedPackage.depositHoldHours ?? 24} giờ sau khi studio duyệt,
+                        tối đa đến giờ chụp.
+                      </p>
                     </>
                   ) : (
                     <>
@@ -915,12 +969,42 @@ export default function BookingWizardPage() {
                     </>
                   )}
                   <p className="customer-caption">
-                    Đây chỉ là ước tính theo đơn giá công khai. Báo giá cuối cùng có thể thay đổi
-                    theo yêu cầu, lịch chụp và nội dung dịch vụ hai bên thống nhất.
+                    Giá và lịch đã chọn được lưu cùng yêu cầu. Studio duyệt sau khi kiểm tra phạm vi
+                    phục vụ và ekip. Thay đổi giá hoặc lịch cần bạn xác nhận.
                   </p>
                 </aside>
               </CustomerSurface>
             </div>
+            {selectedPackage && (
+              <div className="customer-order-surface">
+                <p>
+                  <Link
+                    to={`/pricing/${selectedPackage._id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="customer-link"
+                  >
+                    Xem chi tiết gói và điều kiện dịch vụ
+                  </Link>
+                </p>
+                <label className="flex items-start gap-3 mt-3">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-5 w-5 shrink-0"
+                    checked={packageAccepted}
+                    onChange={(event) =>
+                      updateDraft({
+                        packageConsentKey: event.target.checked ? packageConsentKey : undefined,
+                      })
+                    }
+                  />
+                  <span>
+                    Tôi đồng ý giá gói, tiền cọc và điều kiện dịch vụ. Hết hạn chưa đủ cọc, yêu cầu
+                    tự hủy; khoản đã ghi nhận sẽ được đối soát hoàn lại.
+                  </span>
+                </label>
+              </div>
+            )}
             {submitError && (
               <CustomerSurface padding="compact">
                 <p role="alert" className="customer-wizard__error">

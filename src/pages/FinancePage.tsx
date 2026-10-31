@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { School, UserCircle2 } from 'lucide-react';
 import { useForm, Controller } from 'react-hook-form';
 import { toast } from 'react-toastify';
 import { transactionService } from '../services/transactionService';
@@ -28,7 +27,6 @@ import {
   Label,
   Modal,
   PageHeader,
-  Pagination,
   Select,
   SelectContent,
   SelectItem,
@@ -533,7 +531,7 @@ const FinancePage = () => {
           <TableSkeleton cols={8} />
         ) : (
           <>
-            <div className="hidden md:block">
+            <div className="min-w-0">
               <DataTable<TransactionResponse>
                 aria-label="Danh sách giao dịch"
                 className="staff-finance-table"
@@ -547,93 +545,12 @@ const FinancePage = () => {
                 }}
               />
             </div>
-
-            <div className="md:hidden space-y-3">
-              {transactions.map((t) => (
-                <div key={t._id} className="rounded-xl border bg-card p-4">
-                  <div className="flex items-start justify-between mb-2 gap-2">
-                    <div className="min-w-0">
-                      <div className="text-sm text-muted-foreground">{formatDate(t.date)}</div>
-                      <div className="text-sm font-medium mt-0.5">{t.categoryId?.name ?? '—'}</div>
-                      {t.customer && (
-                        <div className="text-xs text-muted-foreground">{t.customer.className}</div>
-                      )}
-                      {t.description && (
-                        <div className="text-xs text-muted-foreground mt-0.5">{t.description}</div>
-                      )}
-                      {t.createdBy && (
-                        <div className="text-xs text-muted-foreground mt-0.5 inline-flex items-center gap-1.5">
-                          <UserCircle2 className="h-3.5 w-3.5 text-indigo-400" />
-                          <span>{t.createdBy.name ?? t.createdBy.username}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-right shrink-0">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          'border-transparent',
-                          t.type === 'income' ? 'staff-status--success' : 'staff-status--danger',
-                        )}
-                      >
-                        {t.type === 'income' ? 'Thu' : 'Chi'}
-                      </Badge>
-                      <div
-                        className={cn(
-                          'font-semibold text-sm mt-1 tabular-nums',
-                          t.type === 'income' ? 'staff-ink-success' : 'staff-ink-danger',
-                        )}
-                      >
-                        {t.type === 'expense' ? '-' : '+'}
-                        {formatCurrency(t.amount)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-4 pt-2 border-t items-center">
-                    <label className="flex min-h-11 items-center gap-1.5 text-xs text-muted-foreground mr-auto">
-                      <Checkbox
-                        checked={!!t.accountantRefunded}
-                        disabled={!canRefund}
-                        onCheckedChange={(c) => toggleRefund(t, !!c)}
-                      />
-                      KT hoàn tiền
-                    </label>
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="staff-row-action"
-                      aria-label={`Sửa giao dịch ${transactionDescription(t)}`}
-                      onClick={() => openEdit(t)}
-                    >
-                      Sửa
-                    </Button>
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="staff-row-action text-destructive"
-                      aria-label={`Xoá giao dịch ${transactionDescription(t)}`}
-                      onClick={() => setConfirmId(t._id)}
-                    >
-                      Xoá
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {transactions.length === 0 && (
-                <div className="rounded-xl border bg-card py-10 text-center text-muted-foreground">
-                  Chưa có dữ liệu
-                </div>
-              )}
-              {transactions.length > 0 && (
-                <Pagination {...pagination} className="rounded-lg border bg-card" />
-              )}
-            </div>
           </>
         ))}
 
       {tab === 'summary' && (
         <>
-          <div className="hidden md:block">
+          <div className="min-w-0">
             <DataTable<SummaryRow>
               aria-label="Tổng hợp thu chi theo lớp"
               data={summary}
@@ -665,82 +582,6 @@ const FinancePage = () => {
                 ) : undefined
               }
             />
-          </div>
-
-          <div className="md:hidden space-y-3">
-            {summary.map((row) => (
-              <div key={row._id ?? 'unknown'} className="rounded-xl border bg-card p-4">
-                <div className="font-semibold mb-0.5">
-                  {row.customer?.className ?? '(Không có lớp)'}
-                </div>
-                {row.customer?.school && (
-                  <div className="text-sm text-muted-foreground mb-2 inline-flex items-center gap-1.5">
-                    <School className="h-4 w-4 text-sky-500" />
-                    <span>{row.customer.school}</span>
-                  </div>
-                )}
-                <div className="staff-money-grid grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                  <div>
-                    <div className="text-xs text-muted-foreground">Thu</div>
-                    <div className="staff-ink-success font-medium">
-                      {formatCurrency(row.income)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">Chi</div>
-                    <div className="staff-ink-danger font-medium">
-                      {formatCurrency(row.expense)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">Lợi nhuận</div>
-                    <div
-                      className={cn(
-                        'font-semibold',
-                        row.profit >= 0 ? 'staff-ink-success' : 'staff-ink-danger',
-                      )}
-                    >
-                      {formatCurrency(row.profit)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {summary.length > 0 && (
-              <div className="rounded-xl border bg-muted/40 p-4">
-                <div className="font-semibold mb-2">Tổng cộng</div>
-                <div className="staff-money-grid grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                  <div>
-                    <div className="text-xs text-muted-foreground">Thu</div>
-                    <div className="staff-ink-success font-semibold">
-                      {formatCurrency(grandTotal.income)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">Chi</div>
-                    <div className="staff-ink-danger font-semibold">
-                      {formatCurrency(grandTotal.expense)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">Lợi nhuận</div>
-                    <div
-                      className={cn(
-                        'font-semibold',
-                        grandTotal.profit >= 0 ? 'staff-ink-success' : 'staff-ink-danger',
-                      )}
-                    >
-                      {formatCurrency(grandTotal.profit)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            {summary.length === 0 && (
-              <div className="rounded-xl border bg-card py-10 text-center text-muted-foreground">
-                Chưa có dữ liệu
-              </div>
-            )}
           </div>
         </>
       )}

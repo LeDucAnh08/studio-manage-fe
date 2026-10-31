@@ -35,6 +35,14 @@ export const bookingLabels: Record<BookingStatus, string> = {
   cancelled: 'Đã hủy',
 };
 export interface Booking {
+  packageAgreement?: {
+    total: number;
+    depositRequired: number;
+    depositPercent: number;
+    holdHours: number;
+    acceptedAt: string;
+    terms: string[];
+  };
   assignedPhotographer?: { _id: string; name: string } | null;
   assignedSupportPhotographers?: { _id: string; name: string }[];
   _id: string;
@@ -94,6 +102,14 @@ export const bookingService = {
       location: string;
       note: string;
       costumeSelections?: BookingCostumeInput[];
+      packageAgreement?: {
+        accepted: boolean;
+        pricePerMember: number;
+        depositPercent: number;
+        holdHours: number;
+        detailsVersion: number;
+        updatedAt?: string;
+      };
     },
     idempotencyKey: string,
   ) =>

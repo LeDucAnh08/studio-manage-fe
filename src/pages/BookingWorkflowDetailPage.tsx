@@ -393,9 +393,13 @@ export default function BookingWorkflowDetailPage() {
   const canEditMembers = !!(
     (isAdmin || isClient) &&
     workflow?.quote?.acceptedAt &&
-    !workflow.resources?.scheduleId &&
+    (booking?.packageAgreement
+      ? workflow.lifecycle === 'confirmed'
+      : !workflow.resources?.scheduleId) &&
     workflow.memberEntry?.opened !== true &&
-    ['awaiting_deposit', 'ready_to_confirm'].includes(workflow.lifecycle)
+    (booking?.packageAgreement
+      ? workflow.lifecycle === 'confirmed'
+      : ['awaiting_deposit', 'ready_to_confirm'].includes(workflow.lifecycle))
   );
   const isPaymentEntryAvailable = isAdmin || isAccountant;
   const availablePaymentKinds: Array<'deposit' | 'balance' | 'refund'> = [];
@@ -414,6 +418,7 @@ export default function BookingWorkflowDetailPage() {
     : (availablePaymentKinds[0] ?? 'deposit');
   const canQuote = !!(
     isAdmin &&
+    !booking?.packageAgreement &&
     booking?.status === 'approved' &&
     !workflow?.quote?.acceptedAt &&
     !workflow?.payments?.entries.length
@@ -523,11 +528,15 @@ export default function BookingWorkflowDetailPage() {
   };
 
   const submitReview = async (status: 'approved' | 'rejected') => {
-    if (!reviewNote.trim()) return;
+    if (!reviewNote.trim() && !(booking?.packageAgreement && status === 'approved')) return;
     setBusy('review');
     setError('');
     try {
-      await bookingService.review(id, status, reviewNote.trim());
+      await bookingService.review(
+        id,
+        status,
+        reviewNote.trim() || 'Đã kiểm tra gói, lịch và ekip.',
+      );
       toast.success('Đã gửi phản hồi cho khách.');
       await load();
     } catch (reviewError) {
@@ -684,7 +693,7 @@ export default function BookingWorkflowDetailPage() {
 
   const submitAllocation = async () => {
     if (!workflow?.quote) return;
-    if (!workflow.assignedPhotographer || !allocationReady) {
+    if (!workflow.assignedPhotographer || (!canPrepareCostumes && !allocationReady)) {
       setError('Gắn thợ phụ trách và kiểm tra lịch trống hiện tại trước khi xác nhận.');
       return;
     }
@@ -717,7 +726,7 @@ export default function BookingWorkflowDetailPage() {
       setError('Chọn ít nhất một thợ chụp và hoàn thiện từng dòng phân bổ trang phục.');
       return;
     }
-    await runAction('resources.confirm', {
+    await runAction(canPrepareCostumes ? 'resources.costumes' : 'resources.confirm', {
       schedule: {
         ...workflow.quote.proposedSchedule,
         photographerIds: selectedPhotographerIds,
@@ -897,10 +906,17 @@ export default function BookingWorkflowDetailPage() {
     isClient && booking.status === 'approved' && !!workflow.quote && !quoteAccepted;
   const canConfirmResources =
     isAdmin &&
+    !booking.packageAgreement &&
     quoteAccepted &&
     !workflow.resources?.scheduleId &&
     effectivePayment.netReceived >= (workflow.quote?.depositRequired ?? Number.POSITIVE_INFINITY) &&
     ['awaiting_deposit', 'ready_to_confirm'].includes(workflow.lifecycle);
+  const canPrepareCostumes =
+    isAdmin &&
+    !!booking.packageAgreement &&
+    workflow.lifecycle === 'confirmed' &&
+    !!workflow.resources?.scheduleId &&
+    workflow.allowedCostumes.length > 0;
   const canUpdateProgress =
     (isAdmin || (isPhotographer && workflow.resources?.photographers.includes(user?._id ?? ''))) &&
     !!workflow.resources?.scheduleId;
@@ -1072,14 +1088,17 @@ export default function BookingWorkflowDetailPage() {
             Yêu cầu đang chờ studio xem xét. Thời gian đề xuất chưa giữ lịch.
           </p>
         )}
-        {booking.status === 'approved' && (
+        {booking.status === 'approved' && workflow.lifecycle !== 'cancelled' && (
           <p
             className={
               customer ? 'customer-order-notice' : 'rounded-lg bg-emerald-600/10 p-3 text-sm'
             }
           >
-            Studio đã duyệt tiếp nhận yêu cầu. Lịch chỉ được giữ sau khi khách đồng ý báo giá, đặt
-            cọc và studio xác nhận nguồn lực.
+            {booking.packageAgreement || workflow.packageReservation
+              ? workflow.resources?.scheduleId
+                ? 'Lịch đã chốt theo thông tin gói đã xác nhận. Hoàn thiện danh sách thành viên trước buổi chụp.'
+                : 'Studio đã duyệt gói và giữ ekip tạm thời. Ghi nhận đủ cọc trong hạn để tự động chốt lịch.'
+              : 'Studio đã duyệt tiếp nhận yêu cầu. Lịch chỉ được giữ sau khi khách đồng ý báo giá, đặt cọc và studio xác nhận nguồn lực.'}
           </p>
         )}
         {booking.status === 'rejected' && (
@@ -1146,7 +1165,9 @@ export default function BookingWorkflowDetailPage() {
               Xét duyệt yêu cầu ban đầu
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Duyệt chỉ mở bước báo giá; thao tác này chưa xác nhận lịch và chưa thu tiền.
+              {booking.packageAgreement
+                ? 'Chọn đủ ekip trước khi duyệt. Hệ thống giữ tạm đúng lịch khách chọn; đủ cọc sẽ tự xác nhận lịch.'
+                : 'Duyệt chỉ mở bước báo giá; thao tác này chưa xác nhận lịch và chưa thu tiền.'}
             </p>
           </div>
           <Field label="Phản hồi cho khách">
@@ -1159,10 +1180,10 @@ export default function BookingWorkflowDetailPage() {
           </Field>
           <div className="flex flex-wrap gap-2">
             <Button
-              disabled={busy !== '' || !reviewNote.trim()}
+              disabled={busy !== '' || (!booking.packageAgreement && !reviewNote.trim())}
               onClick={() => void submitReview('approved')}
             >
-              Duyệt yêu cầu
+              {booking.packageAgreement ? 'Duyệt và giữ lịch tạm' : 'Duyệt yêu cầu'}
             </Button>
             <Button
               variant="outline"
@@ -1184,6 +1205,43 @@ export default function BookingWorkflowDetailPage() {
         </section>
       )}
 
+      {booking.packageAgreement && !workflow.quote && (
+        <section
+          className={customer ? 'customer-order-surface' : 'space-y-3 rounded-2xl border p-5'}
+        >
+          <h2 className={customer ? 'customer-section-title' : 'font-semibold'}>
+            Thông tin gói khách đã xác nhận
+          </h2>
+          <p>
+            <CustomerPrice amount={booking.packageAgreement.total} label="Tổng tiền gói:" />
+          </p>
+          <p>
+            <CustomerPrice
+              amount={booking.packageAgreement.depositRequired}
+              label={`Tiền cọc ${booking.packageAgreement.depositPercent}%:`}
+            />
+          </p>
+          <p>
+            Giữ lịch {booking.packageAgreement.holdHours} giờ sau khi duyệt, tối đa đến giờ chụp.
+          </p>
+          <p>
+            Khách đồng ý lúc {formatDateTime(booking.packageAgreement.acceptedAt)}. Giá và lịch
+            không được sửa trực tiếp.
+          </p>
+        </section>
+      )}
+      {workflow.packageReservation?.status === 'held' && (
+        <section
+          role="status"
+          className={customer ? 'customer-order-notice' : 'rounded-xl border p-5'}
+        >
+          <h2 className="font-semibold">Đang giữ lịch tạm, chờ đặt cọc</h2>
+          <p>
+            Hạn ghi nhận đủ cọc: {formatDateTime(workflow.packageReservation.expiresAt)}. Đủ cọc sẽ
+            tự chốt lịch; hết hạn chưa đủ cọc thì tự hủy và giải phóng ekip.
+          </p>
+        </section>
+      )}
       {canQuote && (
         <section
           className={
@@ -1388,7 +1446,9 @@ export default function BookingWorkflowDetailPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
-                Báo giá phiên bản {workflow.quote.version}
+                {booking.packageAgreement
+                  ? 'Thông tin gói đã xác nhận'
+                  : `Báo giá phiên bản ${workflow.quote.version}`}
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 {workflow.quote.acceptedAt
@@ -1615,9 +1675,12 @@ export default function BookingWorkflowDetailPage() {
                 ).
               </p>
             )}
-          {canSeeFinancials && workflow.quote.paymentInstructions && workflow.paymentReady && (
-            <PaymentInstructionsPanel instructions={workflow.quote.paymentInstructions} />
-          )}
+          {canSeeFinancials &&
+            workflow.quote.paymentInstructions &&
+            workflow.paymentReady &&
+            workflow.packageReservation?.status !== 'expired' && (
+              <PaymentInstructionsPanel instructions={workflow.quote.paymentInstructions} />
+            )}
           {canSeeFinancials && !workflow.paymentReady && (
             <p
               className={
@@ -1912,283 +1975,291 @@ export default function BookingWorkflowDetailPage() {
         </section>
       )}
 
-      {(isAdmin || isClient) && quoteAccepted && !workflow.resources?.scheduleId && (
-        <section
-          className={
-            customer ? 'customer-order-surface' : 'space-y-4 rounded-2xl border p-5 sm:p-6'
-          }
-        >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
-                Thông tin thành viên lớp
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Đã khai báo {workflow.members.length} / {booking.members} thành viên. Danh sách chỉ
-                hiển thị trong hồ sơ có quyền.
-              </p>
-            </div>
-            <span
-              className={customer ? 'customer-status' : 'rounded-full bg-muted px-3 py-1 text-sm'}
-            >
-              Chưa giữ lịch
-            </span>
-          </div>
-          {canEditMembers && (
-            <div
-              className={
-                customer
-                  ? 'customer-order-inset customer-order-stack'
-                  : 'space-y-4 rounded-xl border bg-muted/10 p-4'
-              }
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h3 className={customer ? 'customer-order-title' : 'font-semibold'}>
-                    Chỉnh sửa danh sách
-                  </h3>
-                  <p className={customer ? 'customer-caption' : 'text-xs text-muted-foreground'}>
-                    Lưu danh sách trước khi studio xác nhận lịch. Hãy đóng đường dẫn công khai trước
-                    khi chỉnh sửa.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={memberDraft.length >= booking.members}
-                  onClick={() => setMemberDraft((current) => [...current, defaultMemberInput()])}
-                >
-                  Thêm thành viên
-                </Button>
-              </div>
-              {memberDraft.length === 0 && (
-                <p
-                  className={
-                    customer
-                      ? 'customer-order-inset'
-                      : 'rounded-lg border p-3 text-sm text-muted-foreground'
-                  }
-                >
-                  Chưa có thành viên. Thêm trực tiếp hoặc mở đường dẫn để từng bạn tự nhập thông
-                  tin.
+      {(isAdmin || isClient) &&
+        quoteAccepted &&
+        (booking.packageAgreement
+          ? workflow.lifecycle === 'confirmed'
+          : !workflow.resources?.scheduleId) && (
+          <section
+            className={
+              customer ? 'customer-order-surface' : 'space-y-4 rounded-2xl border p-5 sm:p-6'
+            }
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
+                  Thông tin thành viên lớp
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Đã khai báo {workflow.members.length} / {booking.members} thành viên. Danh sách
+                  chỉ hiển thị trong hồ sơ có quyền.
                 </p>
-              )}
-              {memberDraft.map((member, index) => (
-                <article
-                  key={member._id ?? `new-${index}`}
-                  className={
-                    customer ? 'customer-order-surface' : 'space-y-3 rounded-xl border bg-card p-4'
-                  }
-                >
-                  <div
+              </div>
+              <span
+                className={customer ? 'customer-status' : 'rounded-full bg-muted px-3 py-1 text-sm'}
+              >
+                {booking.packageAgreement ? 'Đã chốt lịch' : 'Chưa giữ lịch'}
+              </span>
+            </div>
+            {canEditMembers && (
+              <div
+                className={
+                  customer
+                    ? 'customer-order-inset customer-order-stack'
+                    : 'space-y-4 rounded-xl border bg-muted/10 p-4'
+                }
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className={customer ? 'customer-order-title' : 'font-semibold'}>
+                      Chỉnh sửa danh sách
+                    </h3>
+                    <p className={customer ? 'customer-caption' : 'text-xs text-muted-foreground'}>
+                      {booking.packageAgreement
+                        ? 'Hoàn thiện danh sách trước buổi chụp. Hãy đóng đường dẫn công khai trước khi chỉnh sửa.'
+                        : 'Lưu danh sách trước khi studio xác nhận lịch. Hãy đóng đường dẫn công khai trước khi chỉnh sửa.'}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={memberDraft.length >= booking.members}
+                    onClick={() => setMemberDraft((current) => [...current, defaultMemberInput()])}
+                  >
+                    Thêm thành viên
+                  </Button>
+                </div>
+                {memberDraft.length === 0 && (
+                  <p
                     className={
                       customer
-                        ? 'customer-order-actions'
-                        : 'flex items-center justify-between gap-2'
+                        ? 'customer-order-inset'
+                        : 'rounded-lg border p-3 text-sm text-muted-foreground'
                     }
                   >
-                    <h4 className={customer ? 'customer-caption' : 'font-medium'}>
-                      Thành viên {index + 1}
-                    </h4>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        setMemberDraft((current) => current.filter((_, row) => row !== index))
+                    Chưa có thành viên. Thêm trực tiếp hoặc mở đường dẫn để từng bạn tự nhập thông
+                    tin.
+                  </p>
+                )}
+                {memberDraft.map((member, index) => (
+                  <article
+                    key={member._id ?? `new-${index}`}
+                    className={
+                      customer
+                        ? 'customer-order-surface'
+                        : 'space-y-3 rounded-xl border bg-card p-4'
+                    }
+                  >
+                    <div
+                      className={
+                        customer
+                          ? 'customer-order-actions'
+                          : 'flex items-center justify-between gap-2'
                       }
                     >
-                      Xóa
-                    </Button>
-                  </div>
-                  <div
-                    className={
-                      customer
-                        ? 'customer-order-summary'
-                        : 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3'
-                    }
-                  >
-                    <Field label="Họ tên">
-                      <Input
-                        maxLength={100}
-                        value={member.name}
-                        onChange={(event) => updateMember(index, { name: event.target.value })}
-                      />
-                    </Field>
-                    <Field label="Giới tính">
-                      <OrderSelect
-                        className="min-h-11 w-full rounded-lg border bg-background px-3"
-                        value={member.gender}
-                        onChange={(event) => updateMember(index, { gender: event.target.value })}
+                      <h4 className={customer ? 'customer-caption' : 'font-medium'}>
+                        Thành viên {index + 1}
+                      </h4>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setMemberDraft((current) => current.filter((_, row) => row !== index))
+                        }
                       >
-                        <option value="">Chưa khai báo</option>
-                        <option value="male">Nam</option>
-                        <option value="female">Nữ</option>
-                        <option value="other">Khác</option>
-                      </OrderSelect>
-                    </Field>
-                    <Field label="Số liên hệ">
-                      <Input
-                        maxLength={80}
-                        value={member.contact}
-                        onChange={(event) => updateMember(index, { contact: event.target.value })}
-                      />
-                    </Field>
-                    <Field label="Chiều cao (cm)">
-                      <Input
-                        type="number"
-                        min={1}
-                        max={250}
-                        value={member.height}
-                        onChange={(event) => updateMember(index, { height: event.target.value })}
-                      />
-                    </Field>
-                    <Field label="Cân nặng (kg)">
-                      <Input
-                        type="number"
-                        min={1}
-                        max={500}
-                        value={member.weight}
-                        onChange={(event) => updateMember(index, { weight: event.target.value })}
-                      />
-                    </Field>
-                    {workflow.allowedCostumes.map((costume) => (
-                      <Field key={costume.costumeId} label={`Size · ${costume.name}`}>
+                        Xóa
+                      </Button>
+                    </div>
+                    <div
+                      className={
+                        customer
+                          ? 'customer-order-summary'
+                          : 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3'
+                      }
+                    >
+                      <Field label="Họ tên">
+                        <Input
+                          maxLength={100}
+                          value={member.name}
+                          onChange={(event) => updateMember(index, { name: event.target.value })}
+                        />
+                      </Field>
+                      <Field label="Giới tính">
                         <OrderSelect
                           className="min-h-11 w-full rounded-lg border bg-background px-3"
-                          value={
-                            member.costumeSizes.find((item) => item.costumeId === costume.costumeId)
-                              ?.size ?? ''
-                          }
-                          onChange={(event) =>
-                            setMemberCostumeSize(index, costume.costumeId, event.target.value)
-                          }
+                          value={member.gender}
+                          onChange={(event) => updateMember(index, { gender: event.target.value })}
                         >
-                          <option value="">Chưa chọn</option>
-                          {costume.sizes.map((size) => (
-                            <option key={size} value={size}>
-                              {size}
-                            </option>
-                          ))}
+                          <option value="">Chưa khai báo</option>
+                          <option value="male">Nam</option>
+                          <option value="female">Nữ</option>
+                          <option value="other">Khác</option>
                         </OrderSelect>
                       </Field>
-                    ))}
-                  </div>
-                </article>
-              ))}
-              {memberError && (
-                <p
-                  role="alert"
-                  className={customer ? 'customer-order-error' : 'text-sm text-destructive'}
-                >
-                  {memberError}
-                </p>
-              )}
-              <Button disabled={busy !== ''} onClick={() => void submitMemberEdits()}>
-                Lưu danh sách thành viên
-              </Button>
-            </div>
-          )}
-          {(isAdmin || isClient) && (
-            <div
-              className={
-                customer
-                  ? 'customer-order-inset customer-order-stack'
-                  : 'space-y-3 rounded-xl border p-4'
-              }
-            >
-              <div>
-                <h3 className={customer ? 'customer-order-title' : 'font-semibold'}>
-                  Đường dẫn nhập thông tin riêng
-                </h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Mỗi thành viên chỉ thấy biểu mẫu của mình. Đóng hoặc tạo lại đường dẫn khi cần
-                  thay đổi quyền truy cập.
-                </p>
-              </div>
-              <p className="text-sm">
-                Trạng thái: {workflow.memberEntry?.opened || linkOpen ? 'Đang mở' : 'Đã đóng'}
-              </p>
-              {memberUrl && (
-                <div
-                  className={
-                    customer ? 'customer-order-actions' : 'flex flex-col gap-2 sm:flex-row'
-                  }
-                >
-                  <Input aria-label="Đường dẫn thành viên" readOnly value={memberUrl} />
-                  <Button variant="outline" onClick={() => void submitMemberLinkCopy()}>
-                    Sao chép link
-                  </Button>
-                </div>
-              )}
-              {!memberUrl && workflow.memberEntry?.opened && (
-                <p
-                  className={
-                    customer ? 'customer-order-notice' : 'rounded-lg bg-amber-500/10 p-3 text-sm'
-                  }
-                >
-                  Link hiện đang mở nhưng mã chia sẻ chỉ hiển thị ngay sau khi tạo. Tạo link mới để
-                  sao chép và vô hiệu hóa link cũ.
-                </p>
-              )}
-              <div className="flex flex-wrap gap-2">
-                <Button disabled={busy !== ''} onClick={() => void openMemberLink()}>
-                  {workflow.memberEntry?.opened ? 'Tạo link mới' : 'Mở link nhập thông tin'}
-                </Button>
-                {(workflow.memberEntry?.opened || linkOpen) && (
-                  <Button
-                    variant="outline"
-                    disabled={busy !== ''}
-                    onClick={() => void closeMemberLink()}
+                      <Field label="Số liên hệ">
+                        <Input
+                          maxLength={80}
+                          value={member.contact}
+                          onChange={(event) => updateMember(index, { contact: event.target.value })}
+                        />
+                      </Field>
+                      <Field label="Chiều cao (cm)">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={250}
+                          value={member.height}
+                          onChange={(event) => updateMember(index, { height: event.target.value })}
+                        />
+                      </Field>
+                      <Field label="Cân nặng (kg)">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={500}
+                          value={member.weight}
+                          onChange={(event) => updateMember(index, { weight: event.target.value })}
+                        />
+                      </Field>
+                      {workflow.allowedCostumes.map((costume) => (
+                        <Field key={costume.costumeId} label={`Size · ${costume.name}`}>
+                          <OrderSelect
+                            className="min-h-11 w-full rounded-lg border bg-background px-3"
+                            value={
+                              member.costumeSizes.find(
+                                (item) => item.costumeId === costume.costumeId,
+                              )?.size ?? ''
+                            }
+                            onChange={(event) =>
+                              setMemberCostumeSize(index, costume.costumeId, event.target.value)
+                            }
+                          >
+                            <option value="">Chưa chọn</option>
+                            {costume.sizes.map((size) => (
+                              <option key={size} value={size}>
+                                {size}
+                              </option>
+                            ))}
+                          </OrderSelect>
+                        </Field>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+                {memberError && (
+                  <p
+                    role="alert"
+                    className={customer ? 'customer-order-error' : 'text-sm text-destructive'}
                   >
-                    Đóng link
-                  </Button>
+                    {memberError}
+                  </p>
                 )}
+                <Button disabled={busy !== ''} onClick={() => void submitMemberEdits()}>
+                  Lưu danh sách thành viên
+                </Button>
               </div>
-            </div>
-          )}
-          {workflow.members.length > 0 && (
-            <div className={customer ? 'customer-order-summary' : 'grid gap-3 sm:grid-cols-2'}>
-              {workflow.members.map((member, index) => (
-                <article
-                  key={member._id}
-                  className={customer ? 'customer-order-surface' : 'rounded-xl border p-4'}
-                >
+            )}
+            {(isAdmin || isClient) && (
+              <div
+                className={
+                  customer
+                    ? 'customer-order-inset customer-order-stack'
+                    : 'space-y-3 rounded-xl border p-4'
+                }
+              >
+                <div>
                   <h3 className={customer ? 'customer-order-title' : 'font-semibold'}>
-                    {index + 1}. {member.name}
+                    Đường dẫn nhập thông tin riêng
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {member.gender === 'male'
-                      ? 'Nam'
-                      : member.gender === 'female'
-                        ? 'Nữ'
-                        : member.gender === 'other'
-                          ? 'Khác'
-                          : 'Chưa khai báo'}
-                    {member.height ? ` · ${member.height} cm` : ''}
-                    {member.weight ? ` · ${member.weight} kg` : ''}
+                    Mỗi thành viên chỉ thấy biểu mẫu của mình. Đóng hoặc tạo lại đường dẫn khi cần
+                    thay đổi quyền truy cập.
                   </p>
-                  {member.contact && <p className="mt-1 text-sm">Liên hệ: {member.contact}</p>}
-                  {member.costumeSizes.length > 0 && (
-                    <ul className="mt-2 space-y-1 text-sm">
-                      {member.costumeSizes.map((size) => (
-                        <li key={size.costumeId}>
-                          {workflow.allowedCostumes.find(
-                            (item) => item.costumeId === size.costumeId,
-                          )?.name ?? 'Trang phục'}{' '}
-                          · cỡ {size.size}
-                        </li>
-                      ))}
-                    </ul>
+                </div>
+                <p className="text-sm">
+                  Trạng thái: {workflow.memberEntry?.opened || linkOpen ? 'Đang mở' : 'Đã đóng'}
+                </p>
+                {memberUrl && (
+                  <div
+                    className={
+                      customer ? 'customer-order-actions' : 'flex flex-col gap-2 sm:flex-row'
+                    }
+                  >
+                    <Input aria-label="Đường dẫn thành viên" readOnly value={memberUrl} />
+                    <Button variant="outline" onClick={() => void submitMemberLinkCopy()}>
+                      Sao chép link
+                    </Button>
+                  </div>
+                )}
+                {!memberUrl && workflow.memberEntry?.opened && (
+                  <p
+                    className={
+                      customer ? 'customer-order-notice' : 'rounded-lg bg-amber-500/10 p-3 text-sm'
+                    }
+                  >
+                    Link hiện đang mở nhưng mã chia sẻ chỉ hiển thị ngay sau khi tạo. Tạo link mới
+                    để sao chép và vô hiệu hóa link cũ.
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button disabled={busy !== ''} onClick={() => void openMemberLink()}>
+                    {workflow.memberEntry?.opened ? 'Tạo link mới' : 'Mở link nhập thông tin'}
+                  </Button>
+                  {(workflow.memberEntry?.opened || linkOpen) && (
+                    <Button
+                      variant="outline"
+                      disabled={busy !== ''}
+                      onClick={() => void closeMemberLink()}
+                    >
+                      Đóng link
+                    </Button>
                   )}
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
+                </div>
+              </div>
+            )}
+            {workflow.members.length > 0 && (
+              <div className={customer ? 'customer-order-summary' : 'grid gap-3 sm:grid-cols-2'}>
+                {workflow.members.map((member, index) => (
+                  <article
+                    key={member._id}
+                    className={customer ? 'customer-order-surface' : 'rounded-xl border p-4'}
+                  >
+                    <h3 className={customer ? 'customer-order-title' : 'font-semibold'}>
+                      {index + 1}. {member.name}
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {member.gender === 'male'
+                        ? 'Nam'
+                        : member.gender === 'female'
+                          ? 'Nữ'
+                          : member.gender === 'other'
+                            ? 'Khác'
+                            : 'Chưa khai báo'}
+                      {member.height ? ` · ${member.height} cm` : ''}
+                      {member.weight ? ` · ${member.weight} kg` : ''}
+                    </p>
+                    {member.contact && <p className="mt-1 text-sm">Liên hệ: {member.contact}</p>}
+                    {member.costumeSizes.length > 0 && (
+                      <ul className="mt-2 space-y-1 text-sm">
+                        {member.costumeSizes.map((size) => (
+                          <li key={size.costumeId}>
+                            {workflow.allowedCostumes.find(
+                              (item) => item.costumeId === size.costumeId,
+                            )?.name ?? 'Trang phục'}{' '}
+                            · cỡ {size.size}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
-      {isAdmin && canConfirmResources && workflow.quote && (
+      {isAdmin && (canConfirmResources || canPrepareCostumes) && workflow.quote && (
         <section
           className={
             customer ? 'customer-order-surface' : 'space-y-4 rounded-2xl border p-5 sm:p-6'
@@ -2196,11 +2267,14 @@ export default function BookingWorkflowDetailPage() {
         >
           <div>
             <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
-              Xác nhận lịch và phân bổ nguồn lực
+              {canPrepareCostumes
+                ? 'Chuẩn bị trang phục cho buổi chụp'
+                : 'Xác nhận lịch và phân bổ nguồn lực'}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Lịch lấy theo báo giá khách đã đồng ý. Chọn thợ chụp đang hoạt động và khai báo số
-              lượng trang phục theo từng size.
+              {canPrepareCostumes
+                ? 'Lịch đã chốt. Phân bổ trang phục trong gói theo size, số lượng và ngày nhận/trả; hệ thống kiểm tra tồn kho trước khi lưu.'
+                : 'Lịch lấy theo báo giá khách đã đồng ý. Chọn thợ chụp đang hoạt động và khai báo số lượng trang phục theo từng size.'}
             </p>
           </div>
           <div
@@ -2242,7 +2316,7 @@ export default function BookingWorkflowDetailPage() {
               {workflow.members.length} / {booking.members}
             </p>
           </div>
-          {workflow.members.length !== booking.members && (
+          {!canPrepareCostumes && workflow.members.length !== booking.members && (
             <p
               className={
                 customer ? 'customer-order-notice' : 'rounded-lg bg-amber-500/10 p-3 text-sm'
@@ -2264,16 +2338,18 @@ export default function BookingWorkflowDetailPage() {
               Gắn thợ phụ trách ở đầu hồ sơ trước khi xác nhận lịch.
             </p>
           )}
-          <PhotographerAvailabilityPicker
-            {...photographerWindow(workflow.quote.proposedSchedule)}
-            bookingId={booking._id}
-            version={workflow.version}
-            selected={selectedPhotographerIds}
-            onChange={setSelectedPhotographerIds}
-            primaryId={workflow.assignedPhotographer?._id}
-            multiple
-            onLoaded={setAllocationAvailability}
-          />
+          {!canPrepareCostumes && (
+            <PhotographerAvailabilityPicker
+              {...photographerWindow(workflow.quote.proposedSchedule)}
+              bookingId={booking._id}
+              version={workflow.version}
+              selected={selectedPhotographerIds}
+              onChange={setSelectedPhotographerIds}
+              primaryId={workflow.assignedPhotographer?._id}
+              multiple
+              onLoaded={setAllocationAvailability}
+            />
+          )}
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
@@ -2417,16 +2493,16 @@ export default function BookingWorkflowDetailPage() {
           <Button
             disabled={
               busy !== '' ||
-              workflow.members.length !== booking.members ||
+              (!canPrepareCostumes && workflow.members.length !== booking.members) ||
               !workflow.assignedPhotographer ||
-              !allocationReady ||
+              (!canPrepareCostumes && !allocationReady) ||
               !selectedPhotographerIds.length ||
               !effectivePayment.netReceived ||
               effectivePayment.netReceived < workflow.quote.depositRequired
             }
             onClick={() => void submitAllocation()}
           >
-            Kiểm tra và giữ lịch
+            {canPrepareCostumes ? 'Kiểm tra tồn kho và lưu phân bổ' : 'Kiểm tra và giữ lịch'}
           </Button>
         </section>
       )}
@@ -2563,7 +2639,22 @@ export default function BookingWorkflowDetailPage() {
                   />
                 </Field>
               )}
-              <Button disabled={busy !== ''} onClick={() => void submitProgress(nextProgress)}>
+              {nextProgress === 'shooting' &&
+                workflow.packageReservation &&
+                workflow.members.length !== booking.members && (
+                  <p className="text-sm text-muted-foreground">
+                    Cần đủ danh sách thành viên trước khi bắt đầu buổi chụp.
+                  </p>
+                )}
+              <Button
+                disabled={
+                  busy !== '' ||
+                  (nextProgress === 'shooting' &&
+                    !!workflow.packageReservation &&
+                    workflow.members.length !== booking.members)
+                }
+                onClick={() => void submitProgress(nextProgress)}
+              >
                 {nextProgress === 'shooting'
                   ? 'Bắt đầu buổi chụp'
                   : nextProgress === 'editing'

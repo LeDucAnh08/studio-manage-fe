@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Button } from '@/components/ui';
+import { Badge, Button, DataTable, PageHeader, type Column } from '@/components/ui';
 import {
   bookingWorkflowService,
   type BookingWorkflowLifecycle,
@@ -91,64 +91,178 @@ export default function BookingWorkflowListPage() {
   const isPhotographer = !!user?.roles.includes(3);
   const isAdmin = !!user?.roles.some((role) => role === 0 || role === 1);
 
-  return (
-    <main className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
+  const recordLink = (item: WorkflowSummary) => (
+    <Link
+      className="font-medium text-primary hover:underline"
+      to={'/workflow-bookings/' + item.bookingId}
+      state={{
+        bookingOrdersReturnTo:
+          '/workflow-bookings' + (params.toString() ? '?' + params.toString() : ''),
+      }}
+    >
+      {item.className || item.packageName}
+    </Link>
+  );
+  const columns: Column<WorkflowSummary>[] = [
+    {
+      key: 'booking',
+      header: 'Đơn chụp',
+      className: 'min-w-[180px]',
+      render: (item) => (
         <div>
-          <h1 className="text-2xl font-bold">Đơn chụp ảnh</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {isAccountant
-              ? 'Theo dõi các khoản thu, cọc và số dư của hồ sơ dịch vụ.'
-              : isPhotographer
-                ? 'Chăm sóc những đơn được giao, theo dõi lịch chụp và cập nhật tiến độ bàn giao.'
-                : 'Xử lý yêu cầu mới, phân công ekip và theo dõi báo giá, lịch chụp, thanh toán, bàn giao.'}
-          </p>
+          {recordLink(item)}
+          <p className="mt-1 text-xs text-muted-foreground">#{item.bookingId.slice(-6)}</p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => setReloadKey((value) => value + 1)}
-          disabled={loading}
+      ),
+    },
+    {
+      key: 'package',
+      header: 'Gói dịch vụ',
+      className: 'min-w-[160px]',
+      render: (item) => item.packageName,
+    },
+    {
+      key: 'status',
+      header: 'Trạng thái',
+      className: 'min-w-[150px]',
+      render: (item) => (
+        <Badge
+          variant={
+            ['cancelled', 'rejected'].includes(item.bookingStatus)
+              ? 'destructive'
+              : item.bookingStatus === 'pending'
+                ? 'warning'
+                : 'secondary'
+          }
         >
-          Tải lại
-        </Button>
-      </header>
-
+          {item.bookingStatus === 'cancelled'
+            ? 'Đã hủy'
+            : item.bookingStatus === 'rejected'
+              ? 'Đã từ chối'
+              : item.bookingStatus === 'pending'
+                ? 'Chờ duyệt'
+                : lifecycleLabels[item.lifecycle]}
+        </Badge>
+      ),
+    },
+    {
+      key: 'photographer',
+      header: 'Ekip',
+      className: 'min-w-[180px]',
+      render: (item) => (
+        <div>
+          <p>{item.assignedPhotographer?.name || 'Chưa phân công'}</p>
+          {!!item.assignedSupportPhotographers?.length && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Hỗ trợ: {item.assignedSupportPhotographers.map((row) => row.name).join(', ')}
+            </p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'schedule',
+      header: 'Ngày chụp',
+      className: 'whitespace-nowrap',
+      render: (item) =>
+        item.shootDate
+          ? date(item.shootDate) + (item.startTime ? ' · ' + item.startTime : '')
+          : 'Chưa chốt lịch',
+    },
+    ...(isAccountant
+      ? [
+          {
+            key: 'payment',
+            header: 'Thanh toán',
+            align: 'right' as const,
+            className: 'min-w-[160px]',
+            render: (item: WorkflowSummary) =>
+              item.payment ? (
+                <div>
+                  <p>Đã nhận {money(item.payment.netReceived)}</p>
+                  <p>Còn thu {money(item.payment.totalDue)}</p>
+                  {!!item.payment.refundDue && (
+                    <p className="text-destructive">Cần hoàn {money(item.payment.refundDue)}</p>
+                  )}
+                </div>
+              ) : (
+                '—'
+              ),
+          },
+        ]
+      : []),
+    ...(isPhotographer
+      ? [
+          {
+            key: 'progress',
+            header: 'Tiến độ',
+            render: (item: WorkflowSummary) =>
+              item.progressStatus
+                ? (progressLabels[item.progressStatus] ?? item.progressStatus)
+                : 'Chưa bắt đầu',
+          },
+        ]
+      : []),
+    {
+      key: 'updated',
+      header: 'Cập nhật',
+      className: 'whitespace-nowrap',
+      render: (item) => date(item.updatedAt),
+    },
+  ];
+  return (
+    <section className="space-y-6 min-w-0">
+      <PageHeader
+        as="h1"
+        title="Đơn chụp ảnh"
+        description={
+          isAccountant
+            ? 'Theo dõi các khoản thu, cọc và số dư của hồ sơ dịch vụ.'
+            : isPhotographer
+              ? 'Chăm sóc đơn được giao, theo dõi lịch và tiến độ bàn giao.'
+              : 'Xử lý yêu cầu, phân công ekip và theo dõi lịch chụp, thanh toán, bàn giao.'
+        }
+        action={
+          <Button
+            variant="outline"
+            onClick={() => setReloadKey((value) => value + 1)}
+            disabled={loading}
+          >
+            Tải lại
+          </Button>
+        }
+      />
       {isAdmin && <BookingNotifications base="/workflow-bookings" />}
-
       {(isAdmin || isPhotographer) && user && (
         <PhotographerUnavailability userId={user._id} admin={isAdmin} />
       )}
-
-      <label className="flex flex-wrap items-center gap-3 text-sm font-medium">
-        Trạng thái đơn
-        <select
-          className="min-h-11 rounded-lg border bg-background px-3"
-          value={filter}
-          onChange={(event) =>
-            setParams((previous) => {
-              const updated = new URLSearchParams(previous);
-              if (event.target.value) updated.set('view', event.target.value);
-              else updated.delete('view');
-              updated.delete('page');
-              return updated;
-            })
-          }
-        >
-          <option value="">Tất cả</option>
-          <option value="pending">Chờ duyệt</option>
-          <option value="active">Đang xử lý</option>
-          <option value="completed">Hoàn tất</option>
-          <option value="cancelled">Đã hủy</option>
-          <option value="rejected">Đã từ chối</option>
-        </select>
-      </label>
-
-      {loading ? (
-        <p role="status" className="rounded-xl border p-5 text-sm text-muted-foreground">
-          Đang tải đơn chụp ảnh…
-        </p>
-      ) : error ? (
-        <section className="rounded-xl border border-destructive/30 p-5" role="alert">
+      <div className="staff-toolbar rounded-lg border bg-card p-4">
+        <label className="flex flex-wrap items-center gap-3 text-sm font-medium">
+          Trạng thái đơn
+          <select
+            className="h-9 rounded-md border bg-background px-3"
+            value={filter}
+            onChange={(event) =>
+              setParams((previous) => {
+                const updated = new URLSearchParams(previous);
+                if (event.target.value) updated.set('view', event.target.value);
+                else updated.delete('view');
+                updated.delete('page');
+                return updated;
+              })
+            }
+          >
+            <option value="">Tất cả</option>
+            <option value="pending">Chờ duyệt</option>
+            <option value="active">Đang xử lý</option>
+            <option value="completed">Hoàn tất</option>
+            <option value="cancelled">Đã hủy</option>
+            <option value="rejected">Đã từ chối</option>
+          </select>
+        </label>
+      </div>
+      {error ? (
+        <section className="rounded-lg border border-destructive/30 p-4" role="alert">
           <p className="text-sm text-destructive">{error}</p>
           <Button
             className="mt-3"
@@ -158,96 +272,29 @@ export default function BookingWorkflowListPage() {
             Thử lại
           </Button>
         </section>
-      ) : items.length === 0 ? (
-        <section className="rounded-xl border bg-card p-8 text-center">
-          <h2 className="font-semibold">Chưa có đơn chụp ảnh phù hợp</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {isAdmin || isAccountant
-              ? 'Các đơn gửi đến studio sẽ xuất hiện tại đây. Bạn có thể đổi bộ lọc trạng thái.'
-              : 'Đơn được phân công cho bạn sẽ xuất hiện tại đây.'}
-          </p>
-        </section>
       ) : (
-        <div className="grid gap-3">
-          {items.map((item) => (
-            <Link
-              key={item.bookingId}
-              to={'/workflow-bookings/' + item.bookingId}
-              state={{
-                bookingOrdersReturnTo:
-                  '/workflow-bookings' + (params.toString() ? '?' + params.toString() : ''),
-              }}
-              className="grid gap-3 rounded-xl border bg-card p-4 transition hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
-            >
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="font-semibold">{item.className || item.packageName}</h2>
-                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs">
-                    {item.bookingStatus === 'cancelled'
-                      ? 'Đã hủy'
-                      : item.bookingStatus === 'rejected'
-                        ? 'Đã từ chối'
-                        : item.bookingStatus === 'pending'
-                          ? 'Chờ duyệt'
-                          : lifecycleLabels[item.lifecycle]}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {item.className ? item.packageName + ' · ' : ''}Gói dịch vụ
-                </p>
-                <p className="mt-1 text-sm">
-                  Thợ phụ trách: {item.assignedPhotographer?.name || 'Chưa phân công'}
-                </p>
-                {!!item.assignedSupportPhotographers?.length && (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Thợ hỗ trợ:{' '}
-                    {item.assignedSupportPhotographers.map((row) => row.name).join(', ')}
-                  </p>
-                )}
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {item.shootDate ? 'Ngày chụp: ' + date(item.shootDate) : 'Chưa chốt ngày chụp'}
-                  {' · '}Cập nhật {date(item.updatedAt)}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
-                {isAccountant && item.payment && (
-                  <span className="text-sm">
-                    Đã nhận {money(item.payment.netReceived)} · Còn thu{' '}
-                    {money(item.payment.totalDue)}
-                    {item.payment.refundDue ? ` · Cần hoàn ${money(item.payment.refundDue)}` : ''}
-                  </span>
-                )}
-                {isPhotographer && item.progressStatus && (
-                  <span className="text-sm">
-                    Tiến độ: {progressLabels[item.progressStatus] ?? item.progressStatus}
-                  </span>
-                )}
-                <span className="text-sm font-semibold text-primary">Mở hồ sơ →</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <DataTable
+          aria-label="Đơn chụp ảnh"
+          columns={columns}
+          data={items}
+          keyExtractor={(item) => item.bookingId}
+          loading={loading}
+          emptyTitle="Chưa có đơn chụp ảnh phù hợp"
+          emptyDescription={
+            isAdmin || isAccountant
+              ? 'Bạn có thể đổi bộ lọc trạng thái để xem các đơn khác.'
+              : 'Đơn được phân công cho bạn sẽ xuất hiện tại đây.'
+          }
+          pagination={{
+            serverSide: true,
+            page,
+            pageSize: 20,
+            total,
+            onPageChange: updatePage,
+            hidePageSize: true,
+          }}
+        />
       )}
-
-      <div className="flex items-center justify-end gap-3">
-        <Button
-          variant="outline"
-          disabled={page === 1 || loading}
-          onClick={() => updatePage(page - 1)}
-        >
-          Trước
-        </Button>
-        <span className="text-sm">
-          Trang {page} · {total} đơn
-        </span>
-        <Button
-          variant="outline"
-          disabled={page * 20 >= total || loading}
-          onClick={() => updatePage(page + 1)}
-        >
-          Sau
-        </Button>
-      </div>
-    </main>
+    </section>
   );
 }

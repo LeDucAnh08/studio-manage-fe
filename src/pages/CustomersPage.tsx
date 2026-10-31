@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Phone, School } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { toast } from 'react-toastify';
@@ -8,16 +7,13 @@ import { useAppDispatch, useAppSelector } from '../store';
 import { fetchCustomers } from '../store/slices/customersSlice';
 import type { Customer } from '../types';
 import {
-  Badge,
   Button,
   ConfirmDialog,
   DataTable,
-  EmptyState,
   FormField,
   Input,
   Modal,
   PageHeader,
-  Pagination,
   SearchInput,
   Select,
   SelectContent,
@@ -172,8 +168,7 @@ const CustomersPage = () => {
         </div>
       ) : (
         <>
-          {/* Desktop table */}
-          <div className="hidden md:block">
+          <div className="min-w-0">
             <DataTable<Customer>
               data={customers}
               aria-label="Danh sách lớp học"
@@ -273,89 +268,6 @@ const CustomersPage = () => {
                 } satisfies Column<Customer>,
               ]}
             />
-          </div>
-
-          {/* Mobile cards */}
-          <div className="md:hidden space-y-3">
-            {customers.map((c) => (
-              <div key={c._id} className="rounded-lg border bg-card p-4">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="min-w-0">
-                    <Link
-                      to={`/customers/${c._id}`}
-                      className="font-semibold text-primary hover:underline text-base block break-words"
-                    >
-                      {c.className}
-                    </Link>
-                    {c.school && (
-                      <div className="text-sm text-muted-foreground flex items-start gap-1.5 mt-0.5">
-                        <School aria-hidden="true" className="h-4 w-4 shrink-0" />
-                        <span className="break-words">{c.school}</span>
-                      </div>
-                    )}
-                  </div>
-                  {c.total != null && (
-                    <Badge variant="outline" className="shrink-0">
-                      {c.total} hs
-                      {(c.totalMale != null || c.totalFemale != null) && (
-                        <span className="font-normal ml-1">
-                          ({c.totalMale ?? 0} nam / {c.totalFemale ?? 0} nữ)
-                        </span>
-                      )}
-                    </Badge>
-                  )}
-                </div>
-
-                {(c.contactName || c.contactPhone) && (
-                  <div className="space-y-1 pt-2 border-t">
-                    {c.contactName && (
-                      <div className="text-sm text-foreground">{c.contactName}</div>
-                    )}
-                    {c.contactPhone && (
-                      <a
-                        href={`tel:${c.contactPhone}`}
-                        className="staff-contact-link text-sm inline-flex items-center gap-1.5"
-                      >
-                        <Phone aria-hidden="true" className="h-4 w-4" />
-                        <span>{c.contactPhone}</span>
-                      </a>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-3 mt-3 pt-3 border-t">
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="staff-row-action"
-                    aria-label={`Sửa lớp ${classDescription(c)}`}
-                    onClick={() => openEdit(c)}
-                  >
-                    Sửa
-                  </Button>
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="staff-row-action text-destructive"
-                    aria-label={`Xoá lớp ${classDescription(c)}`}
-                    onClick={() => setConfirmId(c._id)}
-                  >
-                    Xoá
-                  </Button>
-                </div>
-              </div>
-            ))}
-            {customers.length === 0 && (
-              <div className="rounded-lg border bg-card">
-                <EmptyState
-                  title={appliedSearch ? 'Không tìm thấy lớp' : 'Chưa có dữ liệu'}
-                  description={appliedSearch ? 'Thử từ khóa khác hoặc xóa tìm kiếm.' : undefined}
-                />
-              </div>
-            )}
-            {customers.length > 0 && (
-              <Pagination {...pagination} className="rounded-lg border bg-card" />
-            )}
           </div>
         </>
       )}

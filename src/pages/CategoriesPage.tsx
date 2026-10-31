@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { ArrowDown, ArrowUp, FolderOpen, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { categoryService } from '../services/categoryService';
 import { useAppDispatch, useAppSelector } from '../store';
@@ -9,6 +9,9 @@ import type { Category } from '../types';
 import {
   Button,
   ConfirmDialog,
+  Badge,
+  DataTable,
+  type Column,
   FormField,
   Input,
   Modal,
@@ -19,11 +22,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui';
-import { cn } from '@/lib/utils';
 
 const CategoriesPage = () => {
   const dispatch = useAppDispatch();
-  const { list: categories, error } = useAppSelector((s) => s.categories);
+  const { list: categories, loading, error } = useAppSelector((s) => s.categories);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -79,33 +81,58 @@ const CategoriesPage = () => {
     setConfirmId(null);
   };
 
-  const income = categories.filter((c) => c.type === 'income');
-  const expense = categories.filter((c) => c.type === 'expense');
-
-  const groups = [
+  const columns: Column<Category>[] = [
     {
-      key: 'income',
-      label: 'Khoản thu',
-      list: income,
-      icon: <ArrowDown className="h-4 w-4" />,
-      classes: {
-        bg: 'staff-status--success',
-        text: '',
-        ring: '',
-        dot: 'bg-current staff-ink-success',
-      },
+      key: 'name',
+      header: 'Tên danh mục',
+      render: (c) => <span className="font-medium">{c.name}</span>,
     },
     {
-      key: 'expense',
-      label: 'Khoản chi',
-      list: expense,
-      icon: <ArrowUp className="h-4 w-4" />,
-      classes: {
-        bg: 'staff-status--danger',
-        text: '',
-        ring: '',
-        dot: 'bg-current staff-ink-danger',
-      },
+      key: 'type',
+      header: 'Loại',
+      render: (c) => (
+        <Badge variant={c.type === 'income' ? 'success' : 'destructive'}>
+          {c.type === 'income' ? 'Khoản thu' : 'Khoản chi'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'default',
+      header: 'Thiết lập',
+      render: (c) => (c.isDefault ? <Badge variant="secondary">Mặc định</Badge> : 'Tùy chỉnh'),
+    },
+    {
+      key: 'actions',
+      header: 'Thao tác',
+      align: 'right',
+      render: (c) => (
+        <div className="staff-row-actions">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="staff-icon-action text-primary"
+            aria-label={'Sửa danh mục ' + c.name}
+            onClick={() => openEdit(c)}
+            title="Sửa"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          {!c.isDefault && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="staff-icon-action text-destructive"
+              aria-label={'Xoá danh mục ' + c.name}
+              onClick={() => setConfirmId(c._id)}
+              title="Xoá"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      ),
     },
   ];
 
@@ -132,81 +159,15 @@ const CategoriesPage = () => {
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {groups.map(({ key, label, list, icon, classes }) => (
-          <div key={key} className="rounded-xl border bg-card overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b">
-              <div className="flex items-center gap-3">
-                <span
-                  className={cn(
-                    'inline-flex h-9 w-9 items-center justify-center rounded-lg ring-1',
-                    classes.bg,
-                    classes.text,
-                    classes.ring,
-                  )}
-                >
-                  {icon}
-                </span>
-                <div>
-                  <h2 className="text-lg font-semibold">{label}</h2>
-                  <p className="text-xs text-muted-foreground">{list.length} danh mục</p>
-                </div>
-              </div>
-            </div>
-
-            <ul className="divide-y">
-              {list.map((c) => (
-                <li
-                  key={c._id}
-                  className="group flex items-center justify-between gap-3 px-5 py-3 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className={cn('h-2 w-2 rounded-full flex-shrink-0', classes.dot)} />
-                    <span className="text-sm font-medium break-words">{c.name}</span>
-                    {c.isDefault && (
-                      <span className="text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                        Mặc định
-                      </span>
-                    )}
-                  </div>
-                  <div className="staff-row-actions shrink-0">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="staff-icon-action text-primary"
-                      aria-label={`Sửa danh mục ${c.name}`}
-                      onClick={() => openEdit(c)}
-                      title="Sửa"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    {!c.isDefault && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="staff-icon-action text-destructive"
-                        aria-label={`Xoá danh mục ${c.name}`}
-                        onClick={() => setConfirmId(c._id)}
-                        title="Xoá"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                </li>
-              ))}
-              {list.length === 0 && (
-                <li className="flex flex-col items-center justify-center gap-2 px-5 py-10 text-muted-foreground">
-                  <FolderOpen className="h-6 w-6 opacity-60" />
-                  <span className="text-sm">Chưa có danh mục</span>
-                </li>
-              )}
-            </ul>
-          </div>
-        ))}
-      </div>
+      <DataTable
+        aria-label="Danh mục thu chi"
+        data={categories}
+        columns={columns}
+        loading={loading}
+        keyExtractor={(c) => c._id}
+        emptyTitle="Chưa có danh mục"
+        pagination
+      />
 
       <Modal
         open={modalOpen}

@@ -116,7 +116,7 @@ const SeasonPage = () => {
     },
     {
       key: 'actions',
-      header: '',
+      header: 'Thao tác',
       align: 'right',
       className: 'whitespace-nowrap',
       render: (s) => (
@@ -160,55 +160,13 @@ const SeasonPage = () => {
         <TableSkeleton cols={4} />
       ) : (
         <>
-          {/* Desktop table */}
-          <div className="hidden md:block">
+          <div className="min-w-0">
             <DataTable<Season>
               data={seasons}
               keyExtractor={(s) => s._id}
               emptyTitle="Chưa có mùa chụp nào"
               columns={columns}
             />
-          </div>
-
-          {/* Mobile cards */}
-          <div className="md:hidden space-y-3">
-            {seasons.length === 0 && (
-              <p className="text-center text-muted-foreground py-10">Chưa có mùa chụp nào</p>
-            )}
-            {seasons.map((s) => (
-              <div key={s._id} className="rounded-xl border bg-card p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="font-semibold flex items-center gap-2">
-                      <CalendarRange className="h-4 w-4 text-primary shrink-0" />
-                      <span className="truncate">{s.name}</span>
-                    </div>
-                    <div className="mt-1.5 flex flex-col gap-0.5 text-sm text-muted-foreground">
-                      <span>Từ: {formatDate(s.startDate)}</span>
-                      <span>Đến: {formatDate(s.endDate)}</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => openEdit(s)}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => setConfirmId(s._id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </>
       )}

@@ -11,7 +11,6 @@ import {
   Input,
   Modal,
   PageHeader,
-  Pagination,
   SegmentedControl,
   Select,
   SelectContent,
@@ -23,20 +22,15 @@ import {
 } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import {
-  Briefcase,
   Calendar,
   Check,
-  Clock,
   Delete,
   Edit,
-  MapPin,
   Mars,
   Paperclip,
   Search,
   Shirt,
-  StickyNote,
   Table as TableIcon,
-  Users as UsersIcon,
   Venus,
   VenusAndMars,
   X,
@@ -900,7 +894,7 @@ const SchedulesPage = () => {
         </div>
       ) : (
         <>
-          <div className="hidden md:block">
+          <div className="min-w-0">
             <DataTable<ScheduleResponse>
               aria-label="Danh sách lịch chụp"
               className="staff-schedules-table"
@@ -914,118 +908,6 @@ const SchedulesPage = () => {
                 ...pagination,
               }}
             />
-          </div>
-
-          <div className="md:hidden space-y-3">
-            {schedules.map((s) => {
-              const customer = s.customer;
-              const leadName = s.leadPhotographer?.name ?? s.leadPhotographer?.username ?? null;
-              const bookedByName = s.bookedBy?.name ?? s.bookedBy?.username ?? null;
-              const supports = s.supportPhotographers.map((u) => u.name ?? u.username).join(', ');
-              return (
-                <div key={s._id} className="rounded-lg border bg-card p-4">
-                  <div className="flex items-start justify-between mb-2 gap-2">
-                    <button
-                      type="button"
-                      className="min-w-0 text-left staff-schedule-open"
-                      onClick={() => setDetail(s)}
-                      aria-label={`Xem lịch ${scheduleDescription(s)}`}
-                    >
-                      <div className="font-semibold">{formatDate(s.shootDate)}</div>
-                      <div className="text-primary text-sm mt-0.5 break-words">
-                        {customer?.className ?? '—'}
-                        {customer?.school && (
-                          <span className="text-muted-foreground"> · {customer.school}</span>
-                        )}
-                      </div>
-                    </button>
-                    <Badge
-                      variant="outline"
-                      className={cn('border-transparent shrink-0', statusColor[s.status])}
-                    >
-                      {statusLabel[s.status]}
-                    </Badge>
-                  </div>
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    {(s.startTime || s.endTime) && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 shrink-0 text-primary" />
-                        <span>
-                          {s.startTime}
-                          {s.endTime ? ` – ${s.endTime}` : ''}
-                        </span>
-                      </div>
-                    )}
-                    {s.location && (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
-                        <span>{s.location}</span>
-                      </div>
-                    )}
-                    {leadName && (
-                      <div className="flex items-center gap-2">
-                        <Briefcase className="h-4 w-4 shrink-0" aria-hidden="true" />
-                        <span>Leader:</span> <span className="text-foreground">{leadName}</span>
-                      </div>
-                    )}
-                    {supports && (
-                      <div className="flex items-center gap-2">
-                        <UsersIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                        <span>Support:</span> <span className="text-foreground">{supports}</span>
-                      </div>
-                    )}
-                    {s.notes && (
-                      <div className="mt-2 flex items-start gap-2 rounded-md border bg-muted/40 text-sm px-3 py-2 whitespace-pre-line">
-                        <StickyNote className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                        <span>{s.notes}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center flex-wrap gap-2 mt-3 pt-3 border-t">
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="staff-row-action"
-                      aria-label={`Hợp đồng lịch ${scheduleDescription(s)}`}
-                      onClick={() => handleDownloadContract(s)}
-                    >
-                      Hợp đồng
-                    </Button>
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="staff-row-action"
-                      aria-label={`Sửa lịch ${scheduleDescription(s)}`}
-                      onClick={() => openEdit(s)}
-                    >
-                      Sửa
-                    </Button>
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="staff-row-action text-destructive"
-                      aria-label={`Xoá lịch ${scheduleDescription(s)}`}
-                      onClick={() => handleDelete(s._id)}
-                    >
-                      Xoá
-                    </Button>
-                    {bookedByName && (
-                      <span className="ml-auto bg-primary/15 text-primary text-xs font-medium px-2 py-0.5 rounded-full border border-primary/30">
-                        {bookedByName}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-            {schedules.length === 0 && (
-              <div className="rounded-xl border bg-card py-10 text-center text-muted-foreground">
-                Chưa có dữ liệu
-              </div>
-            )}
-            {schedules.length > 0 && (
-              <Pagination {...pagination} className="rounded-lg border bg-card" />
-            )}
           </div>
         </>
       )}

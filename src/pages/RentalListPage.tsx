@@ -1,12 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { OrderButton as Button } from '../components/customer/CustomerOrderControls';
-import { useCustomerAppearance } from '../components/customer/CustomerAppearance';
-import { CustomerOrderCard } from '../components/customer/CustomerOrderCard';
-import { CustomerPrice } from '../components/customer/CustomerPrice';
-import { CustomerStatusBadge } from '../components/customer/CustomerStatusBadge';
-import '../styles/customer-orders.css';
-import { useAuth } from '../context/AuthContext';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Badge, Button, DataTable, PageHeader, type Column } from '@/components/ui';
 import {
   rentalService,
   rentalLabels,
@@ -15,140 +9,213 @@ import {
   rentalError,
   type RentalOrder,
 } from '../services/rentalService';
-export default function RentalListPage({ embedded = false }: { embedded?: boolean }) {
-  const customer = useCustomerAppearance();
-  const OrderCard = customer ? CustomerOrderCard : Link;
-  const Status = customer ? CustomerStatusBadge : 'span';
-  const { user } = useAuth();
-  const client = !!user?.roles.includes(6);
-  const Heading = embedded ? 'h2' : 'h1';
+
+export default function RentalListPage() {
+  const [params, setParams] = useSearchParams();
+  const views = ['', 'active', 'completed', 'cancelled', 'rejected'];
+  const view = views.includes(params.get('view') || '') ? params.get('view') || '' : '';
+  const requestedPage = Number(params.get('page') || 1);
+  const page =
+    Number.isSafeInteger(requestedPage) && requestedPage > 0 && requestedPage <= 100000
+      ? requestedPage
+      : 1;
   const [rows, setRows] = useState<RentalOrder[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const load = useCallback(async () => {
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    let active = true;
     setLoading(true);
     setError('');
-    try {
-      const data = await rentalService.list(page);
-      setRows(data.data);
-      setTotal(data.pagination.total);
-    } catch (e) {
-      setError(rentalError(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [page]);
-  useEffect(() => {
-    void load();
-  }, [load]);
-  return (
-    <section className={customer ? 'customer-orders' : 'space-y-6'}>
-      <header
-        className={
-          customer ? 'customer-orders__header' : 'flex flex-wrap items-center justify-between gap-3'
+    rentalService
+      .list(page, view)
+      .then((result) => {
+        if (active) {
+          setRows(result.data);
+          setTotal(result.pagination.total);
         }
-      >
+      })
+      .catch((error) => {
+        if (active) setError(rentalError(error));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [page, view, retry]);
+  const returnTo = '/rental-orders' + (params.toString() ? '?' + params.toString() : '');
+  const columns: Column<RentalOrder>[] = [
+    {
+      key: 'customer',
+      header: 'Khách thuê',
+      className: 'min-w-[180px]',
+      render: (order) => (
         <div>
-          <Heading className={customer ? 'customer-page-title' : 'text-2xl font-bold'}>
-            {client ? 'Đơn thuê trang phục' : 'Quản lý đơn thuê'}
-          </Heading>
-          <p className="mt-2 text-muted-foreground">
-            Báo giá, giữ hàng, giao nhận và đối soát tiền.
+          <Link
+            className="font-medium text-primary hover:underline"
+            to={'/rental-orders/' + order._id}
+            state={{ rentalOrdersReturnTo: returnTo }}
+          >
+            {order.contactName}
+          </Link>
+          <p className="mt-1 text-xs text-muted-foreground">#{order._id.slice(-6)}</p>
+          {order.phone && <p className="text-xs text-muted-foreground">{order.phone}</p>}
+        </div>
+      ),
+    },
+    {
+      key: 'items',
+      header: 'Trang phục',
+      className: 'min-w-[200px]',
+      render: (order) => {
+        const lines = order.quote?.lines ?? order.requestedLines;
+        return (
+          <div>
+            {lines.map((line, index) => (
+              <p key={index}>
+                {line.name} · {line.size} · {line.quantity} món
+              </p>
+            ))}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'status',
+      header: 'Trạng thái',
+      className: 'min-w-[160px]',
+      render: (order) => (
+        <Badge
+          variant={
+            ['cancelled', 'rejected'].includes(order.status)
+              ? 'destructive'
+              : order.status === 'completed'
+                ? 'success'
+                : 'secondary'
+          }
+        >
+          {rentalLabels[order.status] ?? order.status}
+        </Badge>
+      ),
+    },
+    {
+      key: 'dates',
+      header: 'Ngày nhận – trả',
+      className: 'whitespace-nowrap',
+      render: (order) => (
+        <div>
+          <p>{rentalDate(order.quote?.receiveDate ?? order.requestedReceiveDate)}</p>
+          <p className="text-muted-foreground">
+            {rentalDate(order.quote?.returnDate ?? order.requestedReturnDate)}
           </p>
         </div>
-        {client &&
-          (customer ? (
-            <Button asChild>
-              <Link to="/rental/start">Yêu cầu thuê mới</Link>
-            </Button>
+      ),
+    },
+    {
+      key: 'received',
+      header: 'Đã nhận',
+      align: 'right',
+      className: 'whitespace-nowrap',
+      render: (order) => (order.payment ? rentalMoney(order.payment.netReceived) : '—'),
+    },
+    {
+      key: 'balance',
+      header: 'Còn thu / cần hoàn',
+      align: 'right',
+      className: 'whitespace-nowrap',
+      render: (order) =>
+        order.payment ? (
+          order.payment.refundDue ? (
+            <span className="text-destructive">
+              Cần hoàn {rentalMoney(order.payment.refundDue)}
+            </span>
           ) : (
-            <Link
-              to="/rental/start"
-              className="rounded-lg bg-primary px-4 py-3 text-primary-foreground"
-            >
-              Yêu cầu thuê mới
-            </Link>
-          ))}
-      </header>
-      {loading ? (
-        <p role="status">Đang tải đơn thuê…</p>
-      ) : error ? (
-        <div role="alert">
+            rentalMoney(order.payment.due)
+          )
+        ) : (
+          '—'
+        ),
+    },
+    {
+      key: 'updated',
+      header: 'Cập nhật',
+      className: 'whitespace-nowrap',
+      render: (order) => rentalDate(order.updatedAt),
+    },
+  ];
+  return (
+    <section className="space-y-6 min-w-0">
+      <PageHeader
+        as="h1"
+        title="Quản lý đơn thuê"
+        description="Theo dõi giữ hàng, giao nhận và đối soát tiền."
+        action={
+          <Button
+            variant="outline"
+            disabled={loading}
+            onClick={() => setRetry((value) => value + 1)}
+          >
+            Tải lại
+          </Button>
+        }
+      />
+      <div className="staff-toolbar rounded-lg border bg-card p-4">
+        <label className="flex flex-wrap items-center gap-3 text-sm font-medium">
+          Trạng thái đơn
+          <select
+            className="h-9 rounded-md border bg-background px-3"
+            value={view}
+            onChange={(event) =>
+              setParams((previous) => {
+                const next = new URLSearchParams(previous);
+                if (event.target.value) next.set('view', event.target.value);
+                else next.delete('view');
+                next.delete('page');
+                return next;
+              })
+            }
+          >
+            <option value="">Tất cả</option>
+            <option value="active">Đang xử lý</option>
+            <option value="completed">Hoàn tất</option>
+            <option value="cancelled">Đã hủy</option>
+            <option value="rejected">Đã từ chối</option>
+          </select>
+        </label>
+      </div>
+      {error ? (
+        <div role="alert" className="rounded-lg border border-destructive/30 p-4">
           <p className="text-destructive">{error}</p>
-          <Button variant="outline" onClick={() => void load()}>
+          <Button className="mt-3" variant="outline" onClick={() => setRetry((value) => value + 1)}>
             Thử tải lại
           </Button>
         </div>
-      ) : rows.length ? (
-        <div className={customer ? 'customer-order-grid' : 'grid gap-3'}>
-          {rows.map((order) => (
-            <OrderCard
-              key={order._id}
-              to={`${client ? '/account/rentals' : '/rental-orders'}/${order._id}`}
-              className={
-                customer
-                  ? undefined
-                  : 'rounded-xl border bg-card p-4 hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
-              }
-            >
-              <div className="flex flex-wrap justify-between gap-2">
-                <h2 className={customer ? 'customer-order-title' : 'font-semibold'}>
-                  {order.contactName} ·{' '}
-                  {order.quote?.lines[0]?.name ?? order.requestedLines[0]?.name}
-                </h2>
-                <Status className={customer ? undefined : 'text-sm text-primary'}>
-                  {rentalLabels[order.status]}
-                </Status>
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {rentalDate(order.quote?.receiveDate ?? order.requestedReceiveDate)} –{' '}
-                {rentalDate(order.quote?.returnDate ?? order.requestedReturnDate)}
-              </p>
-              {order.payment && (
-                <p className="mt-2 text-sm">
-                  {customer ? (
-                    <CustomerPrice
-                      amount={order.payment.refundDue ? order.payment.refundDue : order.payment.due}
-                      label={order.payment.refundDue ? 'Cần hoàn:' : 'Còn thu:'}
-                    />
-                  ) : order.payment.refundDue ? (
-                    'Cần hoàn: ' + rentalMoney(order.payment.refundDue)
-                  ) : (
-                    'Còn thu: ' + rentalMoney(order.payment.due)
-                  )}
-                </p>
-              )}
-            </OrderCard>
-          ))}
-        </div>
       ) : (
-        <section className={customer ? 'customer-order-surface' : 'rounded-xl border p-6'}>
-          <h2 className={customer ? 'customer-order-title' : 'font-semibold'}>Chưa có đơn thuê</h2>
-          <p className="mt-2 text-muted-foreground">
-            Chọn trang phục/phụ kiện và gửi yêu cầu để studio tư vấn.
-          </p>
-        </section>
-      )}
-      {total > 20 && (
-        <div className={customer ? 'customer-orders__pagination' : 'flex items-center gap-3'}>
-          <Button
-            variant="outline"
-            disabled={page === 1 || loading}
-            onClick={() => setPage((value) => value - 1)}
-          >
-            Trang trước
-          </Button>
-          <span>Trang {page}</span>
-          <Button
-            variant="outline"
-            disabled={page * 20 >= total || loading}
-            onClick={() => setPage((value) => value + 1)}
-          >
-            Trang sau
-          </Button>
-        </div>
+        <DataTable
+          aria-label="Đơn thuê trang phục"
+          data={rows}
+          columns={columns}
+          keyExtractor={(order) => order._id}
+          loading={loading}
+          emptyTitle="Chưa có đơn thuê phù hợp"
+          emptyDescription="Bạn có thể đổi bộ lọc trạng thái để xem các đơn khác."
+          pagination={{
+            serverSide: true,
+            page,
+            pageSize: 20,
+            total,
+            hidePageSize: true,
+            onPageChange: (next) =>
+              setParams((previous) => {
+                const updated = new URLSearchParams(previous);
+                updated.set('page', String(next));
+                return updated;
+              }),
+          }}
+        />
       )}
     </section>
   );

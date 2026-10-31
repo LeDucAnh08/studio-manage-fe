@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Check, LoaderCircle, RefreshCw } from 'lucide-react';
+import { ArrowRight, LoaderCircle } from 'lucide-react';
 import { CustomerButton } from './CustomerButton';
-import { CustomerSelect } from './CustomerFields';
+import { CustomerOrdersWorkspace, CustomerOrderProgress } from './CustomerOrdersWorkspace';
+import { vietnamDisplayDate as day } from '../../utils/vietnamCalendarDate';
 import {
   bookingWorkflowLabels,
   bookingWorkflowService,
@@ -13,15 +14,6 @@ import {
 import { bookingLabels } from '@/services/bookingService';
 
 const timeZone = 'Asia/Ho_Chi_Minh';
-const day = (value?: string | null) =>
-  value && Number.isFinite(Date.parse(value))
-    ? new Date(value).toLocaleDateString('vi-VN', {
-        timeZone,
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      })
-    : 'Chưa xác định';
 const time = (value: string) =>
   new Date(value).toLocaleTimeString('vi-VN', {
     timeZone,
@@ -43,7 +35,9 @@ function OrderProgress({ record }: { record: BookingWorkflowDto }) {
   const terminal =
     ['rejected', 'cancelled'].includes(booking.status) || workflow.lifecycle === 'cancelled';
   const confirmed = !!workflow.resources?.scheduleId;
-  const accepted = !!workflow.quote?.acceptedAt;
+  const packageFlow = !!booking.packageAgreement;
+  const accepted = packageFlow ? !!workflow.resources?.scheduleId : !!workflow.quote?.acceptedAt;
+  const held = workflow.packageReservation?.status === 'held';
   const completed = workflow.lifecycle === 'completed';
   const events = workflow.events;
   const sentAt =
@@ -78,10 +72,27 @@ function OrderProgress({ record }: { record: BookingWorkflowDto }) {
       description: !workflow.quote ? 'Studio sẽ kiểm tra và phản hồi yêu cầu của lớp.' : '',
     },
     {
-      label: accepted ? 'Đã thống nhất báo giá' : 'Báo giá & đặt cọc',
-      at: workflow.quote?.acceptedAt,
+      label: packageFlow
+        ? accepted
+          ? 'Đã đặt cọc'
+          : held
+            ? 'Duyệt yêu cầu & đặt cọc'
+            : 'Chờ studio duyệt'
+        : accepted
+          ? 'Đã thống nhất báo giá'
+          : 'Báo giá & đặt cọc',
+      at: packageFlow
+        ? workflow.payments?.entries.filter((entry) => entry.kind === 'deposit').slice(-1)[0]
+            ?.receivedAt
+        : workflow.quote?.acceptedAt,
       done: accepted,
-      description: !accepted && workflow.quote ? 'Mở hồ sơ để xem báo giá và các điều khoản.' : '',
+      description: packageFlow
+        ? held
+          ? 'Lịch đang được giữ tạm. Mở hồ sơ để xem hạn đặt cọc và hướng dẫn thanh toán.'
+          : 'Studio kiểm tra lịch và ekip trước khi duyệt.'
+        : !accepted && workflow.quote
+          ? 'Mở hồ sơ để xem báo giá và các điều khoản.'
+          : '',
     },
     {
       label: confirmed ? 'Đã chốt lịch' : 'Xác nhận lịch chụp',
@@ -89,7 +100,9 @@ function OrderProgress({ record }: { record: BookingWorkflowDto }) {
       done: confirmed,
       description: confirmed
         ? 'Ekip và lịch chụp đã được studio xác nhận.'
-        : 'Lịch được xác nhận sau khi thống nhất báo giá và tiền cọc.',
+        : packageFlow
+          ? 'Lịch tự xác nhận khi studio ghi nhận đủ cọc trong thời hạn.'
+          : 'Lịch được xác nhận sau khi thống nhất báo giá và tiền cọc.',
     },
     {
       label: completed ? 'Đã hoàn tất dịch vụ' : 'Chụp & bàn giao',
@@ -104,33 +117,7 @@ function OrderProgress({ record }: { record: BookingWorkflowDto }) {
             : 'Theo lịch chụp đã thống nhất với studio.',
     },
   ];
-  return (
-    <section className="customer-orders-progress" aria-labelledby="orders-progress-title">
-      <h3 id="orders-progress-title">Tiến độ đơn</h3>
-      <ol>
-        {stages.map((stage, index) =>
-          terminal && !stage.done ? null : (
-            <li
-              key={stage.label}
-              className={`${!terminal && index === active ? 'is-current' : ''} ${stage.done ? 'is-complete' : ''}`}
-              aria-current={!terminal && index === active ? 'step' : undefined}
-            >
-              <span className="customer-orders-progress__marker" aria-hidden="true">
-                {stage.done && <Check size={16} />}
-              </span>
-              <div>
-                <p className="customer-orders-progress__label">{stage.label}</p>
-                {stage.at && <time dateTime={stage.at}>{day(stage.at)}</time>}
-                {stage.description &&
-                  !terminal &&
-                  (index === active || index === 3 || completed) && <p>{stage.description}</p>}
-              </div>
-            </li>
-          ),
-        )}
-      </ol>
-    </section>
-  );
+  return <CustomerOrderProgress stages={stages} currentStep={active} terminal={terminal} />;
 }
 
 function OrderPreview({ order, reload }: { order: WorkflowSummary; reload: number }) {
@@ -313,138 +300,55 @@ export function CustomerBookingOrders() {
   }, [page, view, reload]);
   const selected = items.find((item) => item.bookingId === selectedId) || items[0];
   return (
-    <div className="customer-orders-workspace__columns">
-      <section className="customer-orders-list" aria-labelledby="orders-list-title">
-        <div className="customer-orders-list__toolbar">
-          <h2 id="orders-list-title">{loading ? 'Đơn chụp ảnh' : `${total} đơn chụp ảnh`}</h2>
-          <div>
-            <label className="sr-only" htmlFor="order-view">
-              Trạng thái
-            </label>
-            <CustomerSelect
-              id="order-view"
-              value={view}
-              onChange={(event) => {
-                changeList(event.target.value as CustomerOrderView);
-              }}
-            >
-              <option value="">Tất cả</option>
-              <option value="active">Đang thực hiện</option>
-              <option value="completed">Hoàn tất</option>
-              <option value="cancelled">Đã hủy</option>
-              <option value="rejected">Đã từ chối</option>
-            </CustomerSelect>
-            <CustomerButton
-              variant="text"
-              aria-label="Tải lại đơn"
-              title="Tải lại đơn"
-              disabled={loading}
-              onClick={() => setReload((value) => value + 1)}
-            >
-              <RefreshCw size={18} aria-hidden="true" />
-            </CustomerButton>
-          </div>
-        </div>
-        {loading ? (
-          <p role="status" className="customer-orders-workspace__state">
-            Đang tải danh sách đơn…
-          </p>
-        ) : error ? (
-          <div role="alert" className="customer-orders-workspace__state">
-            <p>{error}</p>
-            <CustomerButton variant="secondary" onClick={() => setReload((value) => value + 1)}>
-              Thử lại
-            </CustomerButton>
-          </div>
-        ) : !items.length ? (
-          <p className="customer-orders-workspace__state">
-            {view
-              ? 'Chưa có đơn phù hợp với trạng thái này.'
-              : 'Bạn chưa có đơn chụp ảnh. Chọn Đặt dịch vụ để bắt đầu.'}
-          </p>
-        ) : (
-          <ul className="customer-orders-list__items" aria-label="Danh sách đơn chụp ảnh">
-            {items.map((item) => (
-              <li key={item.bookingId}>
-                <button
-                  type="button"
-                  aria-pressed={selected?.bookingId === item.bookingId}
-                  aria-controls="selected-order-panel"
-                  onClick={() =>
-                    setParams(
-                      (current) => {
-                        current.set('order', item.bookingId);
-                        return current;
-                      },
-                      { replace: true },
-                    )
-                  }
-                >
-                  <span className="customer-orders-list__item-heading">
-                    <span>{item.packageName}</span>
-                    <span
-                      className={`customer-orders-state ${item.lifecycle === 'completed' ? 'is-neutral' : ''}`}
-                    >
-                      {statusLabel(item)}
-                    </span>
-                  </span>
-                  <span className="customer-orders-workspace__muted">
-                    {[item.className && `Lớp ${item.className}`, item.school]
-                      .filter(Boolean)
-                      .join(' · ') || 'Yêu cầu chụp ảnh'}
-                  </span>
-                  <span className="customer-orders-workspace__muted">
-                    {day(item.shootDate)}
-                    {item.startTime && ` · ${item.startTime}`}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        {!loading && !error && (total > 20 || page > 1) && (
-          <nav className="customer-orders-list__pagination" aria-label="Trang đơn chụp ảnh">
-            <CustomerButton
-              variant="secondary"
-              disabled={page === 1}
-              onClick={() => {
-                changeList(view, page - 1);
-              }}
-            >
-              Trước
-            </CustomerButton>
-            <span>
-              Trang {page} / {Math.max(page, Math.ceil(total / 20))}
+    <CustomerOrdersWorkspace
+      kind="chụp ảnh"
+      loading={loading}
+      error={error}
+      total={total}
+      page={page}
+      view={view}
+      emptyMessage="Bạn chưa có đơn chụp ảnh. Chọn Đặt dịch vụ để bắt đầu."
+      onViewChange={(value) => changeList(value as CustomerOrderView)}
+      onPageChange={(value) => changeList(view, value)}
+      onReload={() => setReload((value) => value + 1)}
+      preview={selected ? <OrderPreview order={selected} reload={reload} /> : null}
+    >
+      {items.map((item) => (
+        <li key={item.bookingId}>
+          <button
+            type="button"
+            aria-pressed={selected?.bookingId === item.bookingId}
+            aria-controls="selected-order-panel"
+            onClick={() =>
+              setParams(
+                (current) => {
+                  current.set('order', item.bookingId);
+                  return current;
+                },
+                { replace: true },
+              )
+            }
+          >
+            <span className="customer-orders-list__item-heading">
+              <span>{item.packageName}</span>
+              <span
+                className={`customer-orders-state ${item.lifecycle === 'completed' ? 'is-neutral' : ''}`}
+              >
+                {statusLabel(item)}
+              </span>
             </span>
-            <CustomerButton
-              variant="secondary"
-              disabled={page * 20 >= total}
-              onClick={() => {
-                changeList(view, page + 1);
-              }}
-            >
-              Sau
-            </CustomerButton>
-          </nav>
-        )}
-      </section>
-      <div
-        id="selected-order-panel"
-        className="customer-orders-workspace__detail"
-        aria-live="polite"
-      >
-        {!loading && !error && selected && items.length > 0 ? (
-          <OrderPreview order={selected} reload={reload} />
-        ) : (
-          <div className="customer-orders-workspace__placeholder">
-            {loading
-              ? 'Đang chuẩn bị hồ sơ…'
-              : error
-                ? 'Danh sách đơn chưa tải được.'
-                : 'Tiến độ và thông tin đơn sẽ hiển thị tại đây.'}
-          </div>
-        )}
-      </div>
-    </div>
+            <span className="customer-orders-workspace__muted">
+              {[item.className && `Lớp ${item.className}`, item.school]
+                .filter(Boolean)
+                .join(' · ') || 'Yêu cầu chụp ảnh'}
+            </span>
+            <span className="customer-orders-workspace__muted">
+              {day(item.shootDate)}
+              {item.startTime && ` · ${item.startTime}`}
+            </span>
+          </button>
+        </li>
+      ))}
+    </CustomerOrdersWorkspace>
   );
 }

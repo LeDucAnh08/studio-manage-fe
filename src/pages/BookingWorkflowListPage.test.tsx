@@ -76,7 +76,7 @@ describe('unified photography workspace', () => {
     );
     open();
     expect(screen.getByRole('heading', { name: 'Đơn chụp ảnh' })).toBeInTheDocument();
-    await screen.findByRole('heading', { name: '12A1' });
+    await screen.findByRole('link', { name: '12A1' });
     expect(screen.getAllByText('Chờ duyệt')).toHaveLength(2);
     expect(screen.getByText('Đã chốt lịch')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Thông báo yêu cầu' })).toHaveAttribute(
@@ -128,13 +128,13 @@ describe('unified photography workspace', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Trạng thái đơn' }), {
       target: { value: 'rejected' },
     });
-    expect(await screen.findByRole('heading', { name: 'Đơn từ chối' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Đơn từ chối' })).toBeInTheDocument();
     await waitFor(() =>
       expect(bookingWorkflowService.list).toHaveBeenLastCalledWith(1, 20, 'rejected', ''),
     );
     resolveOld(response([booking]));
     await waitFor(() =>
-      expect(screen.queryByRole('heading', { name: '12A1' })).not.toBeInTheDocument(),
+      expect(screen.queryByRole('link', { name: '12A1' })).not.toBeInTheDocument(),
     );
     expect(screen.getAllByText('Đã từ chối')).toHaveLength(2);
     expect(screen.getByTestId('location')).not.toHaveTextContent('page=3');
@@ -142,7 +142,7 @@ describe('unified photography workspace', () => {
   it('preserves staff-specific controls and financial visibility', async () => {
     auth.user = { _id: 'photographer', roles: [3] };
     open();
-    await screen.findByRole('heading', { name: '12A1' });
+    await screen.findByRole('link', { name: '12A1' });
     expect(screen.getByText('Lịch bận của tôi')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Thông báo yêu cầu' })).not.toBeInTheDocument();
     expect(screen.queryByText('Quản lý lịch bận')).not.toBeInTheDocument();
@@ -152,6 +152,7 @@ describe('unified photography workspace', () => {
       response([{ ...booking, bookingStatus: 'cancelled', className: 'Đơn quá hạn' }]),
     );
     open('/workflow-bookings?view=cancelled');
-    expect(await screen.findByRole('link', { name: /Đơn quá hạn/ })).toHaveTextContent('Đã hủy');
+    const link = await screen.findByRole('link', { name: /Đơn quá hạn/ });
+    expect(link.closest('tr')).toHaveTextContent('Đã hủy');
   });
 });

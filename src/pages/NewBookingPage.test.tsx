@@ -104,9 +104,34 @@ function fillDetails(options: { endDays?: number } = {}) {
 async function reviewRequest() {
   fireEvent.click(screen.getByRole('button', { name: /Xem lại yêu cầu/ }));
   await screen.findByRole('heading', { name: 'Kiểm tra trước khi gửi' });
+  const consent = screen.getByRole('checkbox', { name: /Tôi đồng ý giá gói/ });
+  if (!(consent as HTMLInputElement).checked) fireEvent.click(consent);
 }
 
 describe('NewBookingPage', () => {
+  it('requires agreement to the published package price and deposit before submission', async () => {
+    render(
+      <MemoryRouter initialEntries={['/account/bookings/new']}>
+        <NewBookingPage />
+      </MemoryRouter>,
+    );
+    await choosePackage();
+    fillDetails();
+    await reviewRequest();
+    const consent = screen.getByRole('checkbox', { name: /Tôi đồng ý giá gói/ });
+    fireEvent.click(consent);
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu tới Yume' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Vui lòng xác nhận giá gói');
+    expect(bookingService.create).not.toHaveBeenCalled();
+    fireEvent.click(consent);
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu tới Yume' }));
+    await waitFor(() => expect(bookingService.create).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(bookingService.create).mock.calls[0][0].packageAgreement).toMatchObject({
+      accepted: true,
+      depositPercent: 30,
+      holdHours: 24,
+    });
+  });
   beforeEach(() => {
     sessionStorage.clear();
     vi.clearAllMocks();
@@ -120,6 +145,21 @@ describe('NewBookingPage', () => {
     ]);
     vi.mocked(bookingService.create).mockResolvedValue({ _id: 'booking-1' });
     vi.mocked(bookingService.costumes).mockResolvedValue([]);
+  });
+
+  it('rejects a package shoot spanning different calendar days before submission', async () => {
+    render(
+      <MemoryRouter>
+        <NewBookingPage />
+      </MemoryRouter>,
+    );
+    await choosePackage();
+    fillDetails({ endDays: 1 });
+    fireEvent.click(screen.getByRole('button', { name: /Xem lại yêu cầu/ }));
+    expect(
+      await screen.findByText('Buổi chụp theo gói cần bắt đầu và kết thúc trong cùng ngày.'),
+    ).toBeInTheDocument();
+    expect(bookingService.create).not.toHaveBeenCalled();
   });
 
   it('keeps discovery context and package comparison while collecting class and VN schedule details', async () => {
@@ -527,6 +567,7 @@ describe('NewBookingPage', () => {
       await screen.findByText('Gói thử');
       expect(screen.getByRole('heading', { name: 'Kiểm tra trước khi gửi' })).toBeInTheDocument();
       expect(screen.getByText('Bản nháp cũ')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('checkbox', { name: /Tôi đồng ý giá gói/ }));
       fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu tới Yume' }));
       await waitFor(() => expect(bookingService.create).toHaveBeenCalledTimes(1));
       expect(vi.mocked(bookingService.create).mock.calls[0][0]).not.toHaveProperty(

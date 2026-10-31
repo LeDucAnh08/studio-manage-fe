@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Button, DataTable } from '@/components/ui';
 import { photographerService, type PhotographerBlock } from '../services/photographerService';
 import { userService } from '../services/userService';
 import type { User } from '../types';
@@ -208,53 +209,53 @@ export function PhotographerUnavailability({ userId, admin }: { userId: string; 
               )}
             </div>
           </form>
-          {loading ? (
-            <p role="status" className="mt-3">
-              Đang tải lịch bận…
-            </p>
-          ) : (
-            <ul className="mt-4 space-y-3">
-              {rows.map((row) => (
-                <li
-                  key={row._id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3"
-                >
-                  <div className="min-w-0">
-                    <p>
-                      {format(row.startAt)} – {format(row.endAt)}
-                    </p>
-                    {row.note && (
-                      <p className="break-words text-sm text-muted-foreground">{row.note}</p>
-                    )}
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      disabled={busy}
-                      className="min-h-11 underline"
-                      onClick={() => {
-                        setId(row._id);
-                        setStart(localInput(row.startAt));
-                        setEnd(localInput(row.endAt));
-                        setNote(row.note);
-                      }}
-                    >
-                      Sửa
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      className="min-h-11 text-destructive underline"
-                      onClick={() => void mutate(() => photographerService.deleteBlock(row._id))}
-                    >
-                      Xóa
-                    </button>
-                  </div>
-                </li>
-              ))}
-              {!rows.length && !error && <li>Chưa có lịch bận riêng.</li>}
-            </ul>
-          )}
+          <div className="mt-4 min-w-0">
+            <DataTable<PhotographerBlock>
+              aria-label="Lịch bận riêng"
+              data={rows}
+              loading={loading}
+              keyExtractor={(row) => row._id}
+              emptyTitle="Chưa có lịch bận riêng"
+              columns={[
+                { key: 'start', header: 'Bắt đầu', render: (row) => format(row.startAt) },
+                { key: 'end', header: 'Kết thúc', render: (row) => format(row.endAt) },
+                { key: 'note', header: 'Ghi chú', render: (row) => row.note || '—' },
+                {
+                  key: 'actions',
+                  header: 'Thao tác',
+                  align: 'right',
+                  render: (row) => (
+                    <div className="staff-row-actions">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => {
+                          setId(row._id);
+                          setStart(localInput(row.startAt));
+                          setEnd(localInput(row.endAt));
+                          setNote(row.note);
+                        }}
+                      >
+                        Sửa
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive"
+                        disabled={busy}
+                        onClick={() => void mutate(() => photographerService.deleteBlock(row._id))}
+                      >
+                        Xóa
+                      </Button>
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </div>
         </>
       )}
     </details>

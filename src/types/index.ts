@@ -47,6 +47,7 @@ export interface Costume {
   _id: string;
   name: string;
   description?: string;
+  imageUrl?: string;
   gender: 'male' | 'female' | 'unisex';
   type?: string;
   itemKind?: 'clothing' | 'accessory';
@@ -67,6 +68,7 @@ export interface RentalCatalogItem {
   _id: string;
   name: string;
   description?: string;
+  imageUrl?: string;
   gender: 'male' | 'female' | 'unisex';
   itemKind: 'clothing' | 'accessory';
   categoryId?: string | null;
@@ -103,6 +105,9 @@ export interface PackageImage {
 
 export interface PackageDetails {
   audience: string;
+  deliverables?: string;
+  shootScope?: string;
+  pricingConditions?: string;
   benefits: string[];
   exclusions: string[];
   itinerary: Array<{ time: string; title: string; description: string }>;
@@ -119,6 +124,9 @@ export interface Package {
   _id: string;
   name: string;
   pricePerMember: number;
+  depositPercent?: number;
+  depositHoldHours?: number;
+  updatedAt?: string;
   duration?: 'full_day' | 'half_day' | 'two_thirds_day';
   costumes?: CostumeType[];
   crewRatio?: string;

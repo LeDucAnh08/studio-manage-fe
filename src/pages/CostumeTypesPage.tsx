@@ -157,7 +157,7 @@ const CostumeTypesPage = () => {
         </div>
       )}
 
-      <div className="hidden md:block">
+      <div className="min-w-0">
         <DataTable<CostumeType>
           aria-label="Loại trang phục"
           loading={loading}
@@ -167,48 +167,6 @@ const CostumeTypesPage = () => {
           columns={columns}
           onRowClick={openEdit}
         />
-      </div>
-
-      {/* Mobile cards */}
-      <div className="md:hidden space-y-3">
-        {loading ? (
-          <div className="rounded-xl border bg-card py-10 text-center text-muted-foreground">
-            Đang tải…
-          </div>
-        ) : types.length === 0 ? (
-          <div className="rounded-xl border bg-card py-10 text-center text-muted-foreground">
-            Chưa có loại trang phục nào
-          </div>
-        ) : (
-          types.map((t) => (
-            <div key={t._id} className="rounded-xl border bg-card p-4">
-              <div className="font-semibold">{t.name}</div>
-              {t.description && (
-                <p className="text-sm text-muted-foreground italic mt-1">{t.description}</p>
-              )}
-              <div className="flex justify-end gap-3 mt-3 pt-3 border-t">
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="staff-row-action"
-                  aria-label={`Sửa loại ${t.name}`}
-                  onClick={() => openEdit(t)}
-                >
-                  Sửa
-                </Button>
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="staff-row-action text-destructive"
-                  aria-label={`Xoá loại ${t.name}`}
-                  onClick={() => setConfirmId(t._id)}
-                >
-                  Xoá
-                </Button>
-              </div>
-            </div>
-          ))
-        )}
       </div>
 
       <ConfirmDialog
