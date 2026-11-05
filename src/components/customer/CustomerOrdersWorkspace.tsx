@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Check, RefreshCw } from 'lucide-react';
 import { CustomerButton } from './CustomerButton';
 import { CustomerSelect } from './CustomerFields';
@@ -17,6 +17,7 @@ export function CustomerOrdersWorkspace({
   onReload,
   children,
   preview,
+  statusOptions,
 }: {
   kind: string;
   loading: boolean;
@@ -30,6 +31,7 @@ export function CustomerOrdersWorkspace({
   onReload: () => void;
   children: ReactNode;
   preview: ReactNode;
+  statusOptions?: Record<string, string>;
 }) {
   return (
     <div className="customer-orders-workspace__columns">
@@ -46,10 +48,18 @@ export function CustomerOrdersWorkspace({
               onChange={(event) => onViewChange(event.target.value)}
             >
               <option value="">Tất cả</option>
-              <option value="active">Đang thực hiện</option>
-              <option value="completed">Hoàn tất</option>
-              <option value="cancelled">Đã hủy</option>
-              <option value="rejected">Đã từ chối</option>
+              {Object.entries(
+                statusOptions ?? {
+                  active: 'Đang thực hiện',
+                  completed: 'Hoàn tất',
+                  cancelled: 'Đã hủy',
+                  rejected: 'Đã từ chối',
+                },
+              ).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
             </CustomerSelect>
             <CustomerButton
               variant="text"
@@ -134,9 +144,10 @@ export function CustomerOrderProgress({
   currentStep: number;
   terminal?: boolean;
 }) {
+  const headingId = useId();
   return (
-    <section className="customer-orders-progress" aria-labelledby="orders-progress-title">
-      <h3 id="orders-progress-title">Tiến độ đơn</h3>
+    <section className="customer-orders-progress" aria-labelledby={headingId}>
+      <h3 id={headingId}>Tiến độ đơn</h3>
       <ol>
         {stages.map((stage, index) =>
           terminal && !stage.done ? null : (

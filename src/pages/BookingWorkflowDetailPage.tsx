@@ -20,14 +20,16 @@ import {
 import { useCustomerAppearance } from '../components/customer/CustomerAppearance';
 import { CustomerPrice } from '../components/customer/CustomerPrice';
 import { CustomerPriceBreakdown } from '../components/customer/CustomerPriceBreakdown';
+import { BookingOrderProgress } from '../components/customer/BookingOrderProgress';
 import { CustomerBookingIntake } from '../components/customer/CustomerBookingIntake';
+import { DepositPaymentPanel } from '../components/customer/DepositPaymentPanel';
 import { BookingCostumeDetails } from '../components/customer/BookingCostumeDetails';
 import '../styles/customer-orders.css';
 import { useAuth } from '../context/AuthContext';
 import { bookingService, type Booking } from '../services/bookingService';
 import {
   bookingWorkflowService,
-  bookingWorkflowLabels as lifecycleLabels,
+  bookingOrderStatusLabel,
   type BookingWorkflowAction,
   type BookingWorkflowDto,
   type EditableWorkflowMember,
@@ -61,16 +63,13 @@ type MemberInput = {
   height: string;
   weight: string;
   contact: string;
+  notes: string;
+  pantsSize: string;
+  shirtSize: string;
   costumeSizes: Array<{ costumeId: string; size: string }>;
 };
 
 const VN_TIME_ZONE = 'Asia/Ho_Chi_Minh';
-const progressLabels: Record<string, string> = {
-  not_started: 'Chưa bắt đầu',
-  shooting: 'Đang chụp',
-  editing: 'Đang hậu kỳ',
-  delivered: 'Đã bàn giao',
-};
 const changeStatusLabels: Record<string, string> = {
   requested: 'Khách đang chờ phản hồi',
   proposed: 'Chờ khách xác nhận đề xuất',
@@ -168,6 +167,9 @@ const defaultMemberInput = (member?: WorkflowMember): MemberInput => ({
   height: member?.height == null ? '' : String(member.height),
   weight: member?.weight == null ? '' : String(member.weight),
   contact: member?.contact ?? '',
+  notes: member?.notes ?? '',
+  pantsSize: member?.pantsSize ?? '',
+  shirtSize: member?.shirtSize ?? '',
   costumeSizes: member?.costumeSizes.map((size) => ({ ...size })) ?? [],
 });
 const defaultAllocationRows = (members: WorkflowMember[], shootDate: string): AllocationInput[] => {
@@ -275,6 +277,7 @@ export default function BookingWorkflowDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
+  const [paymentRefreshError, setPaymentRefreshError] = useState('');
   const [reviewNote, setReviewNote] = useState('');
   const [quoteLines, setQuoteLines] = useState<QuoteLineInput[]>([]);
   const [depositRequired, setDepositRequired] = useState('');
@@ -293,8 +296,6 @@ export default function BookingWorkflowDetailPage() {
   const [revisionNote, setRevisionNote] = useState('');
   const [memberDraft, setMemberDraft] = useState<MemberInput[]>([]);
   const [memberError, setMemberError] = useState('');
-  const [memberUrl, setMemberUrl] = useState('');
-  const [linkOpen, setLinkOpen] = useState(false);
   const [allocationRows, setAllocationRows] = useState<AllocationInput[]>([]);
   const [selectedPhotographerIds, setSelectedPhotographerIds] = useState<string[]>([]);
   const [changeKind, setChangeKind] = useState<'change' | 'cancel'>('change');
@@ -361,6 +362,61 @@ export default function BookingWorkflowDetailPage() {
   const booking = record?.booking;
   const workflow = record?.workflow;
   const payments = workflow?.payments ?? null;
+  const depositPayment = workflow?.depositPayment;
+  useEffect(() => {
+    const payment = depositPayment;
+    if (!isClient || !payment || payment.status !== 'pending' || busy) return;
+    let active = true,
+      inFlight = false;
+    const stopPolling = () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+    const refresh = async (final = false) => {
+      if (!final && Date.now() >= Date.parse(payment.expiresAt)) {
+        stopPolling();
+        return;
+      }
+      if (!active || inFlight || document.visibilityState === 'hidden') return;
+      inFlight = true;
+      try {
+        const updated = await bookingWorkflowService.get(id);
+        if (active) {
+          setPaymentRefreshError('');
+          setRecord((current) =>
+            current?.workflow.version === updated.workflow.version &&
+            current.booking.status === updated.booking.status &&
+            current.workflow.depositPayment?.status === updated.workflow.depositPayment?.status
+              ? current
+              : updated,
+          );
+        }
+      } catch {
+        if (active)
+          setPaymentRefreshError(
+            Date.now() >= Date.parse(payment.expiresAt)
+              ? 'Chưa cập nhật được trạng thái cuối. Hãy tải lại hồ sơ; bạn không cần chuyển khoản lần nữa.'
+              : 'Chưa cập nhật được trạng thái thanh toán. Hệ thống sẽ thử lại; bạn không cần chuyển khoản lần nữa.',
+          );
+      } finally {
+        inFlight = false;
+      }
+    };
+    const timer = window.setInterval(() => {
+      const expired = Date.now() >= Date.parse(payment.expiresAt);
+      if (expired) stopPolling();
+      void refresh(expired);
+    }, 5000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refresh();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [id, isClient, depositPayment, busy]);
   const totalQuote = workflow?.quote?.total ?? 0;
   const activeChange =
     !!workflow?.changeRequest && ['requested', 'proposed'].includes(workflow.changeRequest.status);
@@ -463,7 +519,6 @@ export default function BookingWorkflowDetailPage() {
     setEditingTerms(workflow.quote?.editingTerms.join('\n') ?? '');
     setQuoteTerms(workflow.quote?.terms.join('\n') ?? '');
     setMemberDraft(workflow.members.map(defaultMemberInput));
-    setLinkOpen(workflow.memberEntry?.opened ?? false);
     setSelectedPhotographerIds(
       workflow.resources?.photographers.length
         ? workflow.resources.photographers
@@ -608,6 +663,9 @@ export default function BookingWorkflowDetailPage() {
     const members: EditableWorkflowMember[] = memberDraft.map((member) => ({
       ...(member._id ? { _id: member._id } : {}),
       name: member.name.trim(),
+      notes: member.notes.trim(),
+      pantsSize: member.pantsSize.trim(),
+      shirtSize: member.shirtSize.trim(),
       ...(member.gender ? { gender: member.gender } : {}),
       ...(member.height ? { height: Number(member.height) } : {}),
       ...(member.weight ? { weight: Number(member.weight) } : {}),
@@ -642,23 +700,6 @@ export default function BookingWorkflowDetailPage() {
       setMemberError(errorText(saveError));
     } finally {
       setBusy('');
-    }
-  };
-
-  const openMemberLink = async () => {
-    const updated = await runAction('member-link.open');
-    const entry = updated?.workflow.memberEntry;
-    if (entry?.token) {
-      setMemberUrl(`${window.location.origin}/member-intake/${encodeURIComponent(entry.token)}`);
-      setLinkOpen(true);
-    }
-  };
-
-  const closeMemberLink = async () => {
-    const updated = await runAction('member-link.close');
-    if (updated) {
-      setLinkOpen(false);
-      setMemberUrl('');
     }
   };
 
@@ -733,16 +774,6 @@ export default function BookingWorkflowDetailPage() {
       },
       costumes,
     });
-  };
-
-  const submitMemberLinkCopy = async () => {
-    if (!memberUrl) return;
-    try {
-      await navigator.clipboard.writeText(memberUrl);
-      toast.success('Đã sao chép đường dẫn nhập thông tin.');
-    } catch {
-      setError('Không thể sao chép tự động. Hãy chọn và sao chép đường dẫn bên dưới.');
-    }
   };
 
   const submitChangeRequest = async () => {
@@ -948,7 +979,7 @@ export default function BookingWorkflowDetailPage() {
       : `${formatIntakeDateTime(booking.startAt)} – ${formatIntakeDateTime(booking.endAt)}`;
     return (
       <CustomerBookingIntake
-        booking={booking}
+        record={record!}
         title={title}
         assignedPhotographerName={workflow.assignedPhotographer?.name}
         assignedSupportPhotographerNames={workflow.assignedSupportPhotographers?.map(
@@ -1035,7 +1066,7 @@ export default function BookingWorkflowDetailPage() {
                   : 'inline-flex rounded-full bg-primary/10 px-3 py-1 text-sm font-medium'
               }
             >
-              {lifecycleLabels[workflow.lifecycle]}
+              {bookingOrderStatusLabel(booking.status, workflow.lifecycle, workflow.orderStage)}
             </span>
             <p className={customer ? 'customer-caption' : 'text-xs text-muted-foreground'}>
               Phiên bản hồ sơ {workflow.version}
@@ -1118,12 +1149,23 @@ export default function BookingWorkflowDetailPage() {
         )}
       </header>
 
+      <section className={customer ? 'customer-order-surface' : 'rounded-2xl border p-5 sm:p-6'}>
+        <BookingOrderProgress record={record!} />
+      </section>
       <BookingPhotographer
         record={record!}
         admin={isAdmin}
         busy={busy !== ''}
         onAssign={(photographerIds) => runAction('photographer.assign', { photographerIds })}
       />
+      {canSeeFinancials && booking.status === 'approved' && workflow.depositPayment && (
+        <DepositPaymentPanel payment={workflow.depositPayment} />
+      )}
+      {paymentRefreshError && (
+        <p role="status" className="customer-order-notice">
+          {paymentRefreshError}
+        </p>
+      )}
 
       {isPhotographer && !workflow.resources?.scheduleId && workflow.proposedSchedule && (
         <section className="space-y-2 rounded-2xl border p-5">
@@ -1676,12 +1718,13 @@ export default function BookingWorkflowDetailPage() {
               </p>
             )}
           {canSeeFinancials &&
+            !workflow.depositPayment &&
             workflow.quote.paymentInstructions &&
             workflow.paymentReady &&
             workflow.packageReservation?.status !== 'expired' && (
               <PaymentInstructionsPanel instructions={workflow.quote.paymentInstructions} />
             )}
-          {canSeeFinancials && !workflow.paymentReady && (
+          {canSeeFinancials && !workflow.depositPayment && !workflow.paymentReady && (
             <p
               className={
                 customer ? 'customer-order-notice' : 'rounded-xl bg-amber-500/10 p-3 text-sm'
@@ -1738,7 +1781,9 @@ export default function BookingWorkflowDetailPage() {
               Thanh toán và đối soát
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Các khoản dưới đây do Admin hoặc Kế toán ghi nhận sau khi kiểm tra giao dịch thực tế.
+              {workflow.depositPayment
+                ? 'Các khoản chuyển khoản được SePay tự ghi nhận; Admin/Kế toán xử lý tiền mặt và đối soát ngoại lệ.'
+                : 'Các khoản dưới đây do Admin hoặc Kế toán ghi nhận sau khi kiểm tra giao dịch thực tế.'}
             </p>
           </div>
           {customer ? (
@@ -1873,6 +1918,7 @@ export default function BookingWorkflowDetailPage() {
                         className="p-3"
                       >
                         {methodLabels[entry.method] ?? entry.method}
+                        {entry.source === 'sepay' && ' · SePay tự động'}
                       </td>
                       <td
                         role={customer ? 'cell' : undefined}
@@ -1948,7 +1994,12 @@ export default function BookingWorkflowDetailPage() {
                   value={paymentMethod}
                   onChange={(event) => setPaymentMethod(event.target.value)}
                 >
-                  <option value="bank_transfer">Chuyển khoản</option>
+                  <option
+                    value="bank_transfer"
+                    disabled={selectedPaymentKind === 'deposit' && !!workflow.depositPayment}
+                  >
+                    Chuyển khoản
+                  </option>
                   <option value="cash">Tiền mặt</option>
                   <option value="other">Khác</option>
                 </OrderSelect>
@@ -1964,7 +2015,13 @@ export default function BookingWorkflowDetailPage() {
                 className={customer ? 'customer-order-span-full' : 'sm:col-span-2 lg:col-span-4'}
               >
                 <Button
-                  disabled={busy !== '' || !paymentAmount}
+                  disabled={
+                    busy !== '' ||
+                    !paymentAmount ||
+                    (selectedPaymentKind === 'deposit' &&
+                      !!workflow.depositPayment &&
+                      paymentMethod === 'bank_transfer')
+                  }
                   onClick={() => void recordPayment()}
                 >
                   Ghi nhận giao dịch
@@ -2016,8 +2073,8 @@ export default function BookingWorkflowDetailPage() {
                     </h3>
                     <p className={customer ? 'customer-caption' : 'text-xs text-muted-foreground'}>
                       {booking.packageAgreement
-                        ? 'Hoàn thiện danh sách trước buổi chụp. Hãy đóng đường dẫn công khai trước khi chỉnh sửa.'
-                        : 'Lưu danh sách trước khi studio xác nhận lịch. Hãy đóng đường dẫn công khai trước khi chỉnh sửa.'}
+                        ? 'Hoàn thiện danh sách trước buổi chụp.'
+                        : 'Lưu danh sách trước khi studio xác nhận lịch.'}
                     </p>
                   </div>
                   <Button
@@ -2037,116 +2094,170 @@ export default function BookingWorkflowDetailPage() {
                         : 'rounded-lg border p-3 text-sm text-muted-foreground'
                     }
                   >
-                    Chưa có thành viên. Thêm trực tiếp hoặc mở đường dẫn để từng bạn tự nhập thông
-                    tin.
+                    Chưa có thành viên. Chọn “Thêm thành viên” để nhập thông tin trong bảng.
                   </p>
                 )}
-                {memberDraft.map((member, index) => (
-                  <article
-                    key={member._id ?? `new-${index}`}
-                    className={
-                      customer
-                        ? 'customer-order-surface'
-                        : 'space-y-3 rounded-xl border bg-card p-4'
-                    }
+                {memberDraft.length > 0 && (
+                  <div
+                    className="booking-members-table-wrap"
+                    role="region"
+                    aria-label="Bảng thông tin thành viên lớp"
+                    tabIndex={0}
                   >
-                    <div
-                      className={
-                        customer
-                          ? 'customer-order-actions'
-                          : 'flex items-center justify-between gap-2'
-                      }
-                    >
-                      <h4 className={customer ? 'customer-caption' : 'font-medium'}>
-                        Thành viên {index + 1}
-                      </h4>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          setMemberDraft((current) => current.filter((_, row) => row !== index))
-                        }
-                      >
-                        Xóa
-                      </Button>
-                    </div>
-                    <div
-                      className={
-                        customer
-                          ? 'customer-order-summary'
-                          : 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3'
-                      }
-                    >
-                      <Field label="Họ tên">
-                        <Input
-                          maxLength={100}
-                          value={member.name}
-                          onChange={(event) => updateMember(index, { name: event.target.value })}
-                        />
-                      </Field>
-                      <Field label="Giới tính">
-                        <OrderSelect
-                          className="min-h-11 w-full rounded-lg border bg-background px-3"
-                          value={member.gender}
-                          onChange={(event) => updateMember(index, { gender: event.target.value })}
-                        >
-                          <option value="">Chưa khai báo</option>
-                          <option value="male">Nam</option>
-                          <option value="female">Nữ</option>
-                          <option value="other">Khác</option>
-                        </OrderSelect>
-                      </Field>
-                      <Field label="Số liên hệ">
-                        <Input
-                          maxLength={80}
-                          value={member.contact}
-                          onChange={(event) => updateMember(index, { contact: event.target.value })}
-                        />
-                      </Field>
-                      <Field label="Chiều cao (cm)">
-                        <Input
-                          type="number"
-                          min={1}
-                          max={250}
-                          value={member.height}
-                          onChange={(event) => updateMember(index, { height: event.target.value })}
-                        />
-                      </Field>
-                      <Field label="Cân nặng (kg)">
-                        <Input
-                          type="number"
-                          min={1}
-                          max={500}
-                          value={member.weight}
-                          onChange={(event) => updateMember(index, { weight: event.target.value })}
-                        />
-                      </Field>
-                      {workflow.allowedCostumes.map((costume) => (
-                        <Field key={costume.costumeId} label={`Size · ${costume.name}`}>
-                          <OrderSelect
-                            className="min-h-11 w-full rounded-lg border bg-background px-3"
-                            value={
-                              member.costumeSizes.find(
-                                (item) => item.costumeId === costume.costumeId,
-                              )?.size ?? ''
-                            }
-                            onChange={(event) =>
-                              setMemberCostumeSize(index, costume.costumeId, event.target.value)
-                            }
-                          >
-                            <option value="">Chưa chọn</option>
-                            {costume.sizes.map((size) => (
-                              <option key={size} value={size}>
-                                {size}
-                              </option>
+                    <table className="booking-members-table">
+                      <caption className="sr-only">
+                        Danh sách thành viên lớp — chỉnh sửa trực tiếp trong bảng
+                      </caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">STT</th>
+                          <th scope="col">Họ tên</th>
+                          <th scope="col">Giới tính</th>
+                          <th scope="col">Số liên hệ</th>
+                          <th scope="col">Chiều cao (cm)</th>
+                          <th scope="col">Cân nặng (kg)</th>
+                          <th scope="col">Size quần</th>
+                          <th scope="col">Size áo</th>
+                          {workflow.allowedCostumes.map((costume) => (
+                            <th scope="col" key={costume.costumeId}>
+                              Size · {costume.name}
+                            </th>
+                          ))}
+                          <th scope="col">Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {memberDraft.map((member, index) => (
+                          <tr key={member._id ?? `new-${index}`}>
+                            <th scope="row">{index + 1}</th>
+                            <td>
+                              <Input
+                                aria-label={`Họ tên học sinh ${index + 1}`}
+                                maxLength={100}
+                                value={member.name}
+                                onChange={(event) =>
+                                  updateMember(index, { name: event.target.value })
+                                }
+                              />
+                            </td>
+                            <td>
+                              <OrderSelect
+                                aria-label={`Giới tính học sinh ${index + 1}`}
+                                className="min-h-11 w-full rounded-lg border bg-background px-3"
+                                value={member.gender}
+                                onChange={(event) =>
+                                  updateMember(index, { gender: event.target.value })
+                                }
+                              >
+                                <option value="">Chưa khai báo</option>
+                                <option value="male">Nam</option>
+                                <option value="female">Nữ</option>
+                                <option value="other">Khác</option>
+                              </OrderSelect>
+                            </td>
+                            <td>
+                              <Input
+                                aria-label={`Số liên hệ học sinh ${index + 1}`}
+                                maxLength={80}
+                                value={member.contact}
+                                onChange={(event) =>
+                                  updateMember(index, { contact: event.target.value })
+                                }
+                              />
+                            </td>
+                            <td>
+                              <Input
+                                aria-label={`Chiều cao (cm) học sinh ${index + 1}`}
+                                type="number"
+                                min={1}
+                                max={250}
+                                value={member.height}
+                                onChange={(event) =>
+                                  updateMember(index, { height: event.target.value })
+                                }
+                              />
+                            </td>
+                            <td>
+                              <Input
+                                aria-label={`Cân nặng (kg) học sinh ${index + 1}`}
+                                type="number"
+                                min={1}
+                                max={500}
+                                value={member.weight}
+                                onChange={(event) =>
+                                  updateMember(index, { weight: event.target.value })
+                                }
+                              />
+                            </td>
+                            <td>
+                              <Input
+                                aria-label={`Size quần học sinh ${index + 1}`}
+                                maxLength={20}
+                                value={member.pantsSize}
+                                onChange={(event) =>
+                                  updateMember(index, { pantsSize: event.target.value })
+                                }
+                              />
+                            </td>
+                            <td>
+                              <Input
+                                aria-label={`Size áo học sinh ${index + 1}`}
+                                maxLength={20}
+                                value={member.shirtSize}
+                                onChange={(event) =>
+                                  updateMember(index, { shirtSize: event.target.value })
+                                }
+                              />
+                            </td>
+                            {workflow.allowedCostumes.map((costume) => (
+                              <td key={costume.costumeId}>
+                                <OrderSelect
+                                  aria-label={`Size · ${costume.name} học sinh ${index + 1}`}
+                                  className="min-h-11 w-full rounded-lg border bg-background px-3"
+                                  value={
+                                    member.costumeSizes.find(
+                                      (item) => item.costumeId === costume.costumeId,
+                                    )?.size ?? ''
+                                  }
+                                  onChange={(event) =>
+                                    setMemberCostumeSize(
+                                      index,
+                                      costume.costumeId,
+                                      event.target.value,
+                                    )
+                                  }
+                                >
+                                  <option value="">Chưa chọn</option>
+                                  {costume.sizes.map((size) => (
+                                    <option key={size} value={size}>
+                                      {size}
+                                    </option>
+                                  ))}
+                                </OrderSelect>
+                              </td>
                             ))}
-                          </OrderSelect>
-                        </Field>
-                      ))}
-                    </div>
-                  </article>
-                ))}
+
+                            <td>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                aria-label={`Xóa học sinh ${index + 1}`}
+                                onClick={() =>
+                                  setMemberDraft((current) =>
+                                    current.filter((_, row) => row !== index),
+                                  )
+                                }
+                              >
+                                Xóa
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
                 {memberError && (
                   <p
                     role="alert"
@@ -2160,100 +2271,62 @@ export default function BookingWorkflowDetailPage() {
                 </Button>
               </div>
             )}
-            {(isAdmin || isClient) && (
+            {!canEditMembers && workflow.members.length > 0 && (
               <div
-                className={
-                  customer
-                    ? 'customer-order-inset customer-order-stack'
-                    : 'space-y-3 rounded-xl border p-4'
-                }
+                className="booking-members-table-wrap"
+                role="region"
+                aria-label="Bảng thông tin thành viên lớp"
+                tabIndex={0}
               >
-                <div>
-                  <h3 className={customer ? 'customer-order-title' : 'font-semibold'}>
-                    Đường dẫn nhập thông tin riêng
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Mỗi thành viên chỉ thấy biểu mẫu của mình. Đóng hoặc tạo lại đường dẫn khi cần
-                    thay đổi quyền truy cập.
-                  </p>
-                </div>
-                <p className="text-sm">
-                  Trạng thái: {workflow.memberEntry?.opened || linkOpen ? 'Đang mở' : 'Đã đóng'}
-                </p>
-                {memberUrl && (
-                  <div
-                    className={
-                      customer ? 'customer-order-actions' : 'flex flex-col gap-2 sm:flex-row'
-                    }
-                  >
-                    <Input aria-label="Đường dẫn thành viên" readOnly value={memberUrl} />
-                    <Button variant="outline" onClick={() => void submitMemberLinkCopy()}>
-                      Sao chép link
-                    </Button>
-                  </div>
-                )}
-                {!memberUrl && workflow.memberEntry?.opened && (
-                  <p
-                    className={
-                      customer ? 'customer-order-notice' : 'rounded-lg bg-amber-500/10 p-3 text-sm'
-                    }
-                  >
-                    Link hiện đang mở nhưng mã chia sẻ chỉ hiển thị ngay sau khi tạo. Tạo link mới
-                    để sao chép và vô hiệu hóa link cũ.
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  <Button disabled={busy !== ''} onClick={() => void openMemberLink()}>
-                    {workflow.memberEntry?.opened ? 'Tạo link mới' : 'Mở link nhập thông tin'}
-                  </Button>
-                  {(workflow.memberEntry?.opened || linkOpen) && (
-                    <Button
-                      variant="outline"
-                      disabled={busy !== ''}
-                      onClick={() => void closeMemberLink()}
-                    >
-                      Đóng link
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-            {workflow.members.length > 0 && (
-              <div className={customer ? 'customer-order-summary' : 'grid gap-3 sm:grid-cols-2'}>
-                {workflow.members.map((member, index) => (
-                  <article
-                    key={member._id}
-                    className={customer ? 'customer-order-surface' : 'rounded-xl border p-4'}
-                  >
-                    <h3 className={customer ? 'customer-order-title' : 'font-semibold'}>
-                      {index + 1}. {member.name}
-                    </h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {member.gender === 'male'
-                        ? 'Nam'
-                        : member.gender === 'female'
-                          ? 'Nữ'
-                          : member.gender === 'other'
-                            ? 'Khác'
-                            : 'Chưa khai báo'}
-                      {member.height ? ` · ${member.height} cm` : ''}
-                      {member.weight ? ` · ${member.weight} kg` : ''}
-                    </p>
-                    {member.contact && <p className="mt-1 text-sm">Liên hệ: {member.contact}</p>}
-                    {member.costumeSizes.length > 0 && (
-                      <ul className="mt-2 space-y-1 text-sm">
-                        {member.costumeSizes.map((size) => (
-                          <li key={size.costumeId}>
-                            {workflow.allowedCostumes.find(
-                              (item) => item.costumeId === size.costumeId,
-                            )?.name ?? 'Trang phục'}{' '}
-                            · cỡ {size.size}
-                          </li>
+                <table className="booking-members-table">
+                  <caption className="sr-only">Danh sách thành viên lớp đã lưu</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">STT</th>
+                      <th scope="col">Họ tên</th>
+                      <th scope="col">Giới tính</th>
+                      <th scope="col">Số liên hệ</th>
+                      <th scope="col">Chiều cao (cm)</th>
+                      <th scope="col">Cân nặng (kg)</th>
+                      <th scope="col">Size quần</th>
+                      <th scope="col">Size áo</th>
+                      {workflow.allowedCostumes.map((costume) => (
+                        <th scope="col" key={costume.costumeId}>
+                          Size · {costume.name}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {workflow.members.map((member, index) => (
+                      <tr key={member._id}>
+                        <th scope="row">{index + 1}</th>
+                        <td>{member.name}</td>
+                        <td>
+                          {member.gender === 'male'
+                            ? 'Nam'
+                            : member.gender === 'female'
+                              ? 'Nữ'
+                              : member.gender === 'other'
+                                ? 'Khác'
+                                : 'Chưa khai báo'}
+                        </td>
+                        <td>{member.contact || '—'}</td>
+                        <td>{member.height ?? '—'}</td>
+                        <td>{member.weight ?? '—'}</td>
+                        <td>{member.pantsSize || '—'}</td>
+                        <td>{member.shirtSize || '—'}</td>
+                        {workflow.allowedCostumes.map((costume) => (
+                          <td key={costume.costumeId}>
+                            {member.costumeSizes.find(
+                              (size) => size.costumeId === costume.costumeId,
+                            )?.size || '—'}
+                          </td>
                         ))}
-                      </ul>
-                    )}
-                  </article>
-                ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </section>
@@ -2598,11 +2671,8 @@ export default function BookingWorkflowDetailPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
-                Tiến độ chụp và bàn giao
+                Bàn giao ảnh
               </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {progressLabels[workflow.progress.status] ?? workflow.progress.status}
-              </p>
             </div>
             {workflow.progress.deliveryVersion > 0 && (
               <span

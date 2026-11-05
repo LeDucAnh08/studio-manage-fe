@@ -46,7 +46,7 @@
   line-height: 1.5;
 }
 .customer-ui .customer-orders-list__toolbar select {
-  width: 144px;
+  width: 180px;
   min-height: 48px;
   height: 48px;
   font-size: 14px;
@@ -199,11 +199,11 @@
   left: 19px;
   top: 44px;
   bottom: -12px;
-  border-left: 1px solid var(--customer-hairline);
+  border-left: 1px solid var(--customer-hairline, hsl(var(--border)));
 }
 .customer-orders-progress li.is-current {
   border-radius: 10px;
-  background: #fff1f4;
+  background: var(--customer-surface-soft, hsl(var(--muted)));
 }
 .customer-orders-progress__marker {
   position: relative;
@@ -213,30 +213,30 @@
   justify-content: center;
   height: 30px;
   width: 30px;
-  border: 1px solid var(--customer-border-strong);
+  border: 1px solid var(--customer-border-strong, hsl(var(--border)));
   border-radius: 50%;
-  background: var(--customer-canvas);
+  background: var(--customer-canvas, hsl(var(--background)));
 }
 .customer-orders-progress .is-complete .customer-orders-progress__marker {
   color: white;
-  background: var(--customer-ink);
-  border-color: var(--customer-ink);
+  background: var(--customer-ink, hsl(var(--foreground)));
+  border-color: var(--customer-ink, hsl(var(--foreground)));
 }
 .customer-orders-progress .is-current .customer-orders-progress__marker {
   color: white;
-  background: var(--customer-primary);
-  border-color: var(--customer-primary);
+  background: var(--customer-primary, hsl(var(--primary)));
+  border-color: var(--customer-primary, hsl(var(--primary)));
 }
 .customer-orders-progress__label {
   font-weight: 600;
-  color: var(--customer-ink);
+  color: var(--customer-ink, hsl(var(--foreground)));
 }
 .customer-orders-progress li > div > p:not(:first-child),
 .customer-orders-progress time {
   display: block;
   margin-top: 4px;
   font-size: 14px;
-  color: var(--customer-muted);
+  color: var(--customer-muted, hsl(var(--muted-foreground)));
   line-height: 1.6;
 }
 .customer-orders-preview__footer {

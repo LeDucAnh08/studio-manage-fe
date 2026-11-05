@@ -14,6 +14,7 @@ import NewRentalPage from './NewRentalPage';
 const mocks = vi.hoisted(() => ({
   workflowGet: vi.fn(),
   workflowAct: vi.fn(),
+  workflowUpdateMembers: vi.fn(),
   legacyGet: vi.fn(),
   bookingList: vi.fn(),
   bookingNotifications: vi.fn(),
@@ -30,7 +31,11 @@ vi.mock('../context/AuthContext', () => ({ useAuth: () => mocks.auth }));
 vi.mock('../config/features', () => ({ clientPortalEnabled: true }));
 vi.mock('../services/bookingWorkflowService', async () => ({
   ...(await vi.importActual('../services/bookingWorkflowService')),
-  bookingWorkflowService: { get: mocks.workflowGet, act: mocks.workflowAct },
+  bookingWorkflowService: {
+    get: mocks.workflowGet,
+    act: mocks.workflowAct,
+    updateMembers: mocks.workflowUpdateMembers,
+  },
   createWorkflowRequestId: mocks.requestId,
 }));
 vi.mock('../services/bookingService', async () => ({
@@ -262,8 +267,77 @@ describe('Customer order presentation preserves workflow contracts', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('polls a pending QR every five seconds and stops when the deposit confirms the schedule', async () => {
+    const record = bookingFixture();
+    record.booking.packageAgreement = packageAgreement();
+    record.workflow.lifecycle = 'awaiting_deposit';
+    record.workflow.resources = null;
+    record.workflow.depositPayment = {
+      provider: 'sepay',
+      mode: 'sandbox',
+      reference: 'YUME0123456789ABCDEF',
+      bankName: 'MBBank',
+      accountName: 'STUDIO SANDBOX',
+      accountNumber: 'SBSTUDIO001',
+      amount: 450000,
+      depositRequired: 450000,
+      expiresAt: new Date(Date.now() + 86400000).toISOString(),
+      status: 'pending',
+      qrUrl: 'https://vietqr.app/img?amount=450000',
+      downloadUrl: 'https://vietqr.app/img?download=true',
+    };
+    mocks.workflowGet.mockResolvedValueOnce(record);
+    const paid = structuredClone(record);
+    paid.workflow.version += 1;
+    paid.workflow.lifecycle = 'confirmed';
+    paid.workflow.resources = { scheduleId: 'paid-schedule', photographers: [], costumes: [] };
+    paid.workflow.depositPayment = {
+      ...record.workflow.depositPayment,
+      status: 'paid',
+      amount: 0,
+      qrUrl: null,
+      downloadUrl: null,
+    };
+    mocks.workflowGet.mockResolvedValue(paid);
+    vi.useFakeTimers();
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    const page = renderBooking();
+    await act(async () => {});
+    expect(screen.getByRole('img', { name: 'Mã QR thanh toán tiền cọc' })).toBeInTheDocument();
+    try {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5001);
+      });
+      expect(mocks.workflowGet).toHaveBeenCalledTimes(2);
+      expect(
+        screen.queryByRole('img', { name: 'Mã QR thanh toán tiền cọc' }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByText('Đã nhận cọc — lịch đã được xác nhận.')).toBeInTheDocument();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15000);
+      });
+      expect(mocks.workflowGet).toHaveBeenCalledTimes(2);
+    } finally {
+      page.unmount();
+      visibility.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
   it('lets the client complete the member roster after the package schedule is confirmed', async () => {
     const record = bookingFixture();
+    record.booking.members = 25;
+    record.workflow.members = Array.from({ length: 25 }, (_, index) => ({
+      _id: `member-${index}`,
+      studentId: `student-${index}`,
+      name: `Học sinh ${index + 1}`,
+      contact: '0901234567',
+      height: 165,
+      weight: 50,
+      pantsSize: '28',
+      shirtSize: 'M',
+      costumeSizes: [],
+    }));
     record.booking.packageAgreement = packageAgreement();
     record.workflow.packageReservation = {
       status: 'confirmed',
@@ -271,11 +345,68 @@ describe('Customer order presentation preserves workflow contracts', () => {
       photographers: ['photo-1'],
     };
     mocks.workflowGet.mockResolvedValue(record);
+    mocks.workflowUpdateMembers.mockResolvedValue(record);
     renderBooking();
     expect(
       await screen.findByRole('heading', { name: 'Thông tin thành viên lớp' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Thêm thành viên' })).toBeEnabled();
+    const table = screen.getByRole('table', { name: /Danh sách thành viên lớp/ });
+    expect(screen.getAllByRole('table', { name: /Danh sách thành viên lớp/ })).toHaveLength(1);
+    expect(within(table).getAllByRole('row')).toHaveLength(26);
+    expect(screen.getByRole('button', { name: 'Thêm thành viên' })).toBeDisabled();
+    fireEvent.change(within(table).getByLabelText('Họ tên học sinh 25'), {
+      target: { value: 'Tên đã sửa' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu danh sách thành viên' }));
+    await waitFor(() =>
+      expect(mocks.workflowUpdateMembers).toHaveBeenCalledWith(
+        'booking-1',
+        7,
+        expect.arrayContaining([
+          expect.objectContaining({
+            _id: 'member-24',
+            name: 'Tên đã sửa',
+            pantsSize: '28',
+            shirtSize: 'M',
+          }),
+        ]),
+        expect.any(String),
+      ),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Xóa học sinh 25' }));
+    expect(within(table).getAllByRole('row')).toHaveLength(25);
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm thành viên' }));
+    expect(within(table).getAllByRole('row')).toHaveLength(26);
+    expect(within(table).getByLabelText('Họ tên học sinh 25')).toHaveValue('');
+  });
+  it('keeps a single read-only roster table while member entry is open', async () => {
+    const record = bookingFixture();
+    record.booking.packageAgreement = packageAgreement();
+    record.workflow.memberEntry = { opened: true };
+    record.workflow.members = [
+      {
+        _id: 'member-1',
+        studentId: null,
+        name: 'Nguyễn An',
+        gender: 'female',
+        contact: '0901234567',
+        height: 165,
+        weight: 50,
+        pantsSize: '28',
+        shirtSize: 'M',
+        costumeSizes: [],
+      },
+    ];
+    mocks.workflowGet.mockResolvedValue(record);
+    renderBooking();
+    const table = await screen.findByRole('table', { name: 'Danh sách thành viên lớp đã lưu' });
+    expect(within(table).getAllByRole('row')).toHaveLength(2);
+    for (const value of ['Nguyễn An', 'Nữ', '0901234567', '165', '50', '28', 'M']) {
+      expect(within(table).getByRole('cell', { name: value })).toBeInTheDocument();
+    }
+    expect(
+      screen.queryByRole('button', { name: 'Lưu danh sách thành viên' }),
+    ).not.toBeInTheDocument();
   });
   it('lets admin prepare package costumes after automatic confirmation without confirming the schedule again', async () => {
     const record = bookingFixture();
@@ -298,6 +429,50 @@ describe('Customer order presentation preserves workflow contracts', () => {
     expect(screen.queryByRole('button', { name: 'Kiểm tra và giữ lịch' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Bắt đầu buổi chụp' })).toBeDisabled();
   });
+  it('removes polling and visibility refresh after expiry even if the last status request fails', async () => {
+    const record = bookingFixture();
+    record.booking.packageAgreement = packageAgreement();
+    record.workflow.lifecycle = 'awaiting_deposit';
+    record.workflow.resources = null;
+    record.workflow.depositPayment = {
+      provider: 'sepay',
+      mode: 'sandbox',
+      reference: 'YUME0123456789ABCDEF',
+      bankName: 'MBBank',
+      accountName: 'Sandbox',
+      accountNumber: 'SBSTUDIO001',
+      amount: 450000,
+      depositRequired: 450000,
+      expiresAt: new Date(Date.now() + 1000).toISOString(),
+      status: 'pending',
+      qrUrl: 'https://vietqr.app/img',
+      downloadUrl: 'https://vietqr.app/img?download=true',
+    };
+    mocks.workflowGet.mockResolvedValueOnce(record).mockRejectedValue(new Error('offline'));
+    vi.useFakeTimers();
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    const page = renderBooking();
+    try {
+      await act(async () => {});
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5001);
+      });
+      expect(mocks.workflowGet).toHaveBeenCalledTimes(2);
+      await act(async () => {
+        document.dispatchEvent(new Event('visibilitychange'));
+        await vi.advanceTimersByTimeAsync(15000);
+      });
+      expect(mocks.workflowGet).toHaveBeenCalledTimes(2);
+      expect(
+        screen.queryByRole('img', { name: 'Mã QR thanh toán tiền cọc' }),
+      ).not.toBeInTheDocument();
+    } finally {
+      page.unmount();
+      visibility.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
@@ -363,6 +538,11 @@ describe('Customer order presentation preserves workflow contracts', () => {
     mocks.workflowGet.mockResolvedValue(record);
     const { container } = renderBooking();
     await screen.findByRole('heading', { name: 'Yêu cầu của lớp 12A1' });
+    expect(screen.getAllByRole('region', { name: 'Tiến độ đơn' })).toHaveLength(1);
+    expect(
+      within(screen.getByRole('region', { name: 'Tiến độ đơn' })).getAllByRole('listitem'),
+    ).toHaveLength(6);
+    expect(container.querySelector('[aria-current="step"]')).toHaveTextContent('Chờ duyệt');
     expect(container.querySelector('.customer-booking-intake')).toHaveTextContent('18/10/2026');
     expect(
       screen.getByText('Yêu cầu đang chờ studio xem xét. Thời gian đề xuất chưa giữ lịch.'),

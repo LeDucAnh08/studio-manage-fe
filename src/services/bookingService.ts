@@ -2,6 +2,15 @@ import api from './api';
 import type { ApiResponse, PaginatedApiResponse } from '../types';
 
 export type BookingStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+export interface BookingStudentInput {
+  name: string;
+  phone: string;
+  height?: number;
+  weight?: number;
+  pantsSize: string;
+  shirtSize: string;
+  notes?: string;
+}
 export interface BookingCostumeInput {
   costumeId: string;
   size: string;
@@ -95,6 +104,7 @@ export const bookingService = {
       className: string;
       school?: string;
       members: number;
+      students?: BookingStudentInput[];
       contactName: string;
       phone: string;
       startAt: string;

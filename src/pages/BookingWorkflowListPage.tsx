@@ -3,29 +3,14 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Badge, Button, DataTable, PageHeader, type Column } from '@/components/ui';
 import {
   bookingWorkflowService,
-  type BookingWorkflowLifecycle,
+  bookingOrderStageLabels,
+  bookingOrderStatusLabel,
+  type BookingOrderStage,
   type WorkflowSummary,
-  type CustomerOrderView,
 } from '../services/bookingWorkflowService';
 import { useAuth } from '../context/AuthContext';
 import { PhotographerUnavailability } from '../components/PhotographerUnavailability';
 import { BookingNotifications } from './BookingsPage';
-
-const lifecycleLabels: Record<BookingWorkflowLifecycle, string> = {
-  intake: 'Mới tiếp nhận',
-  quoting: 'Đang báo giá',
-  awaiting_deposit: 'Chờ cọc',
-  ready_to_confirm: 'Đủ điều kiện xác nhận',
-  confirmed: 'Đã chốt lịch',
-  shooting: 'Đang chụp',
-  editing: 'Đang hậu kỳ',
-  delivered: 'Đã bàn giao',
-  revision_requested: 'Đang chỉnh sửa',
-  accepted: 'Khách đã nghiệm thu',
-  completed: 'Hoàn tất',
-  change_pending: 'Chờ xác nhận thay đổi',
-  cancelled: 'Đã hủy',
-};
 
 const money = (amount: number) => amount.toLocaleString('vi-VN') + ' đ';
 const progressLabels: Record<string, string> = {
@@ -44,10 +29,12 @@ export default function BookingWorkflowListPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<WorkflowSummary[]>([]);
   const [params, setParams] = useSearchParams();
-  const views = ['', 'pending', 'active', 'completed', 'cancelled', 'rejected'];
-  const filter = views.includes(params.get('view') || '') ? params.get('view') || '' : '';
-  const view: CustomerOrderView = filter === 'pending' ? '' : (filter as CustomerOrderView);
-  const status = filter === 'pending' ? 'pending' : filter === 'active' ? 'approved' : '';
+  const requestedStage = params.get('view') || '';
+  const filter: BookingOrderStage | '' = Object.keys(bookingOrderStageLabels).includes(
+    requestedStage,
+  )
+    ? (requestedStage as BookingOrderStage)
+    : '';
   const requestedPage = Number(params.get('page') || 1);
   const page =
     Number.isSafeInteger(requestedPage) && requestedPage > 0 && requestedPage <= 100000
@@ -69,7 +56,7 @@ export default function BookingWorkflowListPage() {
     setLoading(true);
     setError('');
     bookingWorkflowService
-      .list(page, 20, view, status)
+      .list(page, 20, filter)
       .then((response) => {
         if (active) {
           setItems(response.data);
@@ -85,7 +72,7 @@ export default function BookingWorkflowListPage() {
     return () => {
       active = false;
     };
-  }, [page, view, status, reloadKey]);
+  }, [page, filter, reloadKey]);
 
   const isAccountant = !!user?.roles.includes(5);
   const isPhotographer = !!user?.roles.includes(3);
@@ -135,13 +122,7 @@ export default function BookingWorkflowListPage() {
                 : 'secondary'
           }
         >
-          {item.bookingStatus === 'cancelled'
-            ? 'Đã hủy'
-            : item.bookingStatus === 'rejected'
-              ? 'Đã từ chối'
-              : item.bookingStatus === 'pending'
-                ? 'Chờ duyệt'
-                : lifecycleLabels[item.lifecycle]}
+          {bookingOrderStatusLabel(item.bookingStatus, item.lifecycle, item.orderStage)}
         </Badge>
       ),
     },
@@ -253,11 +234,11 @@ export default function BookingWorkflowListPage() {
             }
           >
             <option value="">Tất cả</option>
-            <option value="pending">Chờ duyệt</option>
-            <option value="active">Đang xử lý</option>
-            <option value="completed">Hoàn tất</option>
-            <option value="cancelled">Đã hủy</option>
-            <option value="rejected">Đã từ chối</option>
+            {Object.entries(bookingOrderStageLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
           </select>
         </label>
       </div>

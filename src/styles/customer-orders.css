@@ -215,6 +215,70 @@
   border-radius: var(--customer-radius-card);
 }
 
+.booking-members-table-wrap {
+  max-width: 100%;
+  max-height: 32rem;
+  overflow: auto;
+  border: 1px solid var(--customer-hairline, hsl(var(--border)));
+  border-radius: 0.75rem;
+}
+
+.booking-members-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.booking-members-table th,
+.booking-members-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--customer-hairline, hsl(var(--border)));
+  white-space: nowrap;
+}
+
+.booking-members-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--customer-surface-soft, hsl(var(--background)));
+}
+
+.booking-members-table input,
+.booking-members-table select,
+.customer-ui .booking-members-table .customer-control,
+:root.dark .customer-ui .booking-members-table .customer-control {
+  width: 100%;
+  min-width: 6rem;
+  height: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.booking-members-table button,
+.customer-ui .booking-members-table .customer-order-button {
+  min-width: 4rem;
+  min-height: 2.5rem;
+  white-space: nowrap;
+  padding: 0.5rem;
+}
+
+.customer-ui .booking-members-table .customer-control:focus,
+:root.dark .customer-ui .booking-members-table .customer-control:focus {
+  padding: calc(0.5rem - 1px);
+}
+
+.booking-members-table td:nth-child(2) {
+  min-width: 13rem;
+}
+
+.booking-members-table td:nth-child(3),
+.booking-members-table td:nth-child(4) {
+  min-width: 10rem;
+}
+
 .customer-order-table {
   width: 100%;
   table-layout: fixed;

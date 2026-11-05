@@ -1,15 +1,19 @@
-import { ArrowLeft, Circle, CircleCheck, CircleDot, Clock3 } from 'lucide-react';
+import { ArrowLeft, Circle, Clock3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { portfolioImages } from '@/assets/images/portfolio-images';
-import type { BookingWorkflowDto } from '@/services/bookingWorkflowService';
+import {
+  bookingOrderStatusLabel,
+  type BookingWorkflowDto,
+} from '@/services/bookingWorkflowService';
 import { CustomerImage } from './CustomerImage';
 import { CustomerPrice } from './CustomerPrice';
 import { OrderButton } from './CustomerOrderControls';
+import { BookingOrderProgress } from './BookingOrderProgress';
 import { BookingCostumeDetails } from './BookingCostumeDetails';
 import '../../styles/customer-booking-intake.css';
 
 interface CustomerBookingIntakeProps {
-  booking: BookingWorkflowDto['booking'];
+  record: BookingWorkflowDto;
   title: string;
   assignedPhotographerName?: string;
   assignedSupportPhotographerNames?: string[];
@@ -26,7 +30,7 @@ interface CustomerBookingIntakeProps {
 }
 
 export function CustomerBookingIntake({
-  booking,
+  record,
   title,
   assignedPhotographerName,
   assignedSupportPhotographerNames,
@@ -41,6 +45,7 @@ export function CustomerBookingIntake({
   busy,
   onReload,
 }: CustomerBookingIntakeProps) {
+  const { booking } = record;
   return (
     <section className="customer-booking-intake" aria-labelledby="customer-intake-title">
       <div className="customer-booking-intake__toolbar">
@@ -71,7 +76,7 @@ export function CustomerBookingIntake({
           </h1>
           <span className="customer-booking-intake__status">
             <Circle size={8} fill="currentColor" aria-hidden="true" />
-            Mới tiếp nhận
+            {bookingOrderStatusLabel(booking.status, 'intake')}
           </span>
         </div>
         <p className="customer-booking-intake__subtitle">
@@ -104,47 +109,7 @@ export function CustomerBookingIntake({
             </p>
           </section>
         )}
-        <ol className="customer-booking-intake__steps" aria-label="Tiến trình yêu cầu">
-          <li className="customer-booking-intake__step">
-            <CircleCheck
-              className="customer-booking-intake__step-icon customer-booking-intake__step-icon--complete"
-              size={44}
-              aria-hidden="true"
-            />
-            <div className="customer-booking-intake__step-copy">
-              <p className="customer-booking-intake__step-label">Đã gửi yêu cầu</p>
-              <p className="customer-booking-intake__step-caption">
-                <time dateTime={sentAt}>{formatDateTime(sentAt)}</time>
-              </p>
-            </div>
-          </li>
-          <li className="customer-booking-intake__step" aria-current="step">
-            <CircleDot
-              className="customer-booking-intake__step-icon customer-booking-intake__step-icon--current"
-              size={44}
-              aria-hidden="true"
-            />
-            <div className="customer-booking-intake__step-copy">
-              <p className="customer-booking-intake__step-label">Chờ studio xem xét</p>
-              <p className="customer-booking-intake__step-caption">
-                Studio sẽ kiểm tra và phản hồi
-              </p>
-            </div>
-          </li>
-          <li className="customer-booking-intake__step">
-            <Circle
-              className="customer-booking-intake__step-icon customer-booking-intake__step-icon--future"
-              size={44}
-              aria-hidden="true"
-            />
-            <div className="customer-booking-intake__step-copy">
-              <p className="customer-booking-intake__step-label">
-                {booking.packageAgreement ? 'Đặt cọc & chốt lịch' : 'Báo giá & xác nhận'}
-              </p>
-              <p className="customer-booking-intake__step-caption">Chưa bắt đầu</p>
-            </div>
-          </li>
-        </ol>
+        <BookingOrderProgress record={record} />
         <div className="customer-booking-intake__notice">
           <Clock3 size={16} aria-hidden="true" />
           <p>Yêu cầu đang chờ studio xem xét. Thời gian đề xuất chưa giữ lịch.</p>

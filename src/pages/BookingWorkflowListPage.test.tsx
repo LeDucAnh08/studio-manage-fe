@@ -6,7 +6,8 @@ import { bookingWorkflowService, type WorkflowSummary } from '../services/bookin
 
 const { auth } = vi.hoisted(() => ({ auth: { user: { _id: 'admin', roles: [0] } } }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => auth }));
-vi.mock('../services/bookingWorkflowService', () => ({
+vi.mock('../services/bookingWorkflowService', async () => ({
+  ...(await vi.importActual('../services/bookingWorkflowService')),
   bookingWorkflowService: { list: vi.fn() },
 }));
 vi.mock('./BookingsPage', () => ({
@@ -78,7 +79,7 @@ describe('unified photography workspace', () => {
     expect(screen.getByRole('heading', { name: 'Đơn chụp ảnh' })).toBeInTheDocument();
     await screen.findByRole('link', { name: '12A1' });
     expect(screen.getAllByText('Chờ duyệt')).toHaveLength(2);
-    expect(screen.getByText('Đã chốt lịch')).toBeInTheDocument();
+    expect(screen.getAllByText('Đã chốt lịch')).toHaveLength(2);
     expect(screen.getByRole('link', { name: 'Thông báo yêu cầu' })).toHaveAttribute(
       'href',
       '/workflow-bookings/notice',
@@ -91,7 +92,7 @@ describe('unified photography workspace', () => {
     );
     open('/workflow-bookings?view=completed&page=2');
     await waitFor(() =>
-      expect(bookingWorkflowService.list).toHaveBeenLastCalledWith(2, 20, 'completed', ''),
+      expect(bookingWorkflowService.list).toHaveBeenLastCalledWith(2, 20, 'completed'),
     );
     expect(screen.getByRole('combobox', { name: 'Trạng thái đơn' })).toHaveValue('completed');
     fireEvent.click(await screen.findByRole('link', { name: /12A1/ }));
@@ -102,14 +103,14 @@ describe('unified photography workspace', () => {
   it('filters new requests separately from accepted work without client-side pagination filtering', async () => {
     open('/workflow-bookings?view=pending&page=2');
     await waitFor(() =>
-      expect(bookingWorkflowService.list).toHaveBeenLastCalledWith(2, 20, '', 'pending'),
+      expect(bookingWorkflowService.list).toHaveBeenLastCalledWith(2, 20, 'pending'),
     );
     expect(screen.getByRole('combobox', { name: 'Trạng thái đơn' })).toHaveValue('pending');
     fireEvent.change(screen.getByRole('combobox', { name: 'Trạng thái đơn' }), {
       target: { value: 'active' },
     });
     await waitFor(() =>
-      expect(bookingWorkflowService.list).toHaveBeenLastCalledWith(1, 20, 'active', 'approved'),
+      expect(bookingWorkflowService.list).toHaveBeenLastCalledWith(1, 20, 'active'),
     );
   });
   it('resets the page on a filter change and ignores stale list responses', async () => {
@@ -130,7 +131,7 @@ describe('unified photography workspace', () => {
     });
     expect(await screen.findByRole('link', { name: 'Đơn từ chối' })).toBeInTheDocument();
     await waitFor(() =>
-      expect(bookingWorkflowService.list).toHaveBeenLastCalledWith(1, 20, 'rejected', ''),
+      expect(bookingWorkflowService.list).toHaveBeenLastCalledWith(1, 20, 'rejected'),
     );
     resolveOld(response([booking]));
     await waitFor(() =>
@@ -154,5 +155,39 @@ describe('unified photography workspace', () => {
     open('/workflow-bookings?view=cancelled');
     const link = await screen.findByRole('link', { name: /Đơn quá hạn/ });
     expect(link.closest('tr')).toHaveTextContent('Đã hủy');
+  });
+  it('uses the same stage names for filters and order badges', async () => {
+    vi.mocked(bookingWorkflowService.list).mockResolvedValue(
+      response([
+        {
+          ...booking,
+          bookingId: 'editing',
+          className: 'Hậu kỳ',
+          lifecycle: 'revision_requested',
+          bookingStatus: 'approved',
+          orderStage: 'active',
+        },
+        {
+          ...booking,
+          bookingId: 'deposit',
+          className: 'Chờ cọc',
+          lifecycle: 'awaiting_deposit',
+          bookingStatus: 'approved',
+          orderStage: 'awaiting_confirmation',
+        },
+      ]),
+    );
+    open('/workflow-bookings?view=awaiting_confirmation');
+    const deposit = await screen.findByRole('link', { name: 'Chờ cọc' });
+    expect(deposit.closest('tr')).toHaveTextContent('Chờ chốt lịch');
+    expect(screen.getByRole('link', { name: 'Hậu kỳ' }).closest('tr')).toHaveTextContent(
+      'Đang thực hiện',
+    );
+    expect(screen.getByRole('combobox', { name: 'Trạng thái đơn' })).toHaveValue(
+      'awaiting_confirmation',
+    );
+    expect(screen.getAllByRole('option')).toHaveLength(9);
+    expect(screen.queryByRole('option', { name: 'Đang xử lý' })).not.toBeInTheDocument();
+    expect(bookingWorkflowService.list).toHaveBeenLastCalledWith(1, 20, 'awaiting_confirmation');
   });
 });

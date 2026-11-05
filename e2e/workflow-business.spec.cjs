@@ -148,8 +148,8 @@ test('role-specific screens complete photography with a revision and settlement'
     await open('client');
     await command('client', 'Tôi đồng ý báo giá phiên bản 1');
     await pages.client.getByRole('button', { name: 'Thêm thành viên', exact: true }).click();
-    await pages.client.getByLabel('Họ tên', { exact: true }).fill('Thành viên workflow');
-    await pages.client.getByLabel(`Size · Áo dài workflow ${suffix}`).selectOption('M');
+    await pages.client.getByLabel('Họ tên học sinh 1', { exact: true }).fill('Thành viên workflow');
+    await pages.client.getByLabel(`Size · Áo dài workflow ${suffix} học sinh 1`).selectOption('M');
     await command('client', 'Lưu danh sách thành viên');
 
     await open('accountant');

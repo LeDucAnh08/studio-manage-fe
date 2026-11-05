@@ -21,9 +21,12 @@ import {
   clearBookingDraft,
   createIdempotencyKey,
   createBookingDraft,
+  createStudentDraft,
+  hasStudentDetails,
   readBookingDraft,
   writeBookingDraft,
   type BookingDraft,
+  type BookingStudentDraft,
 } from '../services/bookingDraft';
 import { useAuth } from '../context/AuthContext';
 import { safeBookingReturnTo } from '../utils/returnTo';
@@ -84,6 +87,7 @@ type WizardErrors = Partial<
     | 'contactName'
     | 'phone'
     | 'members'
+    | `student-${number}-${keyof BookingStudentDraft}`
     | 'startAt'
     | 'endAt'
     | 'location'
@@ -140,6 +144,9 @@ function validateStepTwo(draft: BookingDraft): WizardErrors {
   const members = Number(draft.members);
   if (!/^\d+$/.test(draft.members.trim()) || members < 1 || members > 1000) {
     errors.members = 'Nhập số thành viên là số nguyên từ 1 đến 1.000.';
+  } else if (draft.students.slice(members).some(hasStudentDetails)) {
+    errors.members =
+      'Các hàng ngoài số lượng mới vẫn có thông tin. Tăng lại số thành viên để kiểm tra và xóa nội dung các hàng đó trước khi giảm.';
   }
   const start = parseVietnamDateTime(draft.startAt);
   const end = parseVietnamDateTime(draft.endAt);
@@ -156,6 +163,127 @@ function validateStepTwo(draft: BookingDraft): WizardErrors {
   if (!draft.location.trim()) errors.location = 'Nhập địa điểm mong muốn.';
   if (draft.note.length > 2000) errors.note = 'Ghi chú tối đa 2.000 ký tự.';
   return errors;
+}
+
+const studentColumns: {
+  key: keyof BookingStudentDraft;
+  label: string;
+  maxLength?: number;
+  max?: number;
+}[] = [
+  { key: 'name', label: 'Họ tên', maxLength: 100 },
+  { key: 'phone', label: 'Số điện thoại', maxLength: 25 },
+  { key: 'height', label: 'Chiều cao (cm)', max: 250 },
+  { key: 'weight', label: 'Cân nặng (kg)', max: 500 },
+  { key: 'pantsSize', label: 'Size quần', maxLength: 20 },
+  { key: 'shirtSize', label: 'Size áo', maxLength: 20 },
+];
+
+function validateStudents(draft: BookingDraft): WizardErrors {
+  const errors: WizardErrors = {};
+  draft.students.slice(0, Number(draft.members)).forEach((student, index) => {
+    if (!hasStudentDetails(student)) return;
+    for (const { key, label, maxLength, max } of studentColumns) {
+      const value = student[key].trim();
+      let error: string | undefined;
+      if (key === 'name' && !value) error = 'Nhập họ tên cho hàng đã có thông tin.';
+      else if (maxLength && value.length > maxLength) error = `${label} tối đa ${maxLength} ký tự.`;
+      else if (key === 'phone' && value) error = validatePhone(value);
+      else if (
+        max &&
+        value &&
+        (!Number.isFinite(Number(value)) || Number(value) < 1 || Number(value) > max)
+      )
+        error = `${label} phải từ 1 đến ${max}.`;
+      if (error) errors[`student-${index}-${key}`] = error;
+    }
+  });
+  return errors;
+}
+
+function StudentTable({
+  students,
+  errors = {},
+  onChange,
+}: {
+  students: (BookingStudentDraft & { rowNumber?: number })[];
+  errors?: WizardErrors;
+  onChange?: (index: number, key: keyof BookingStudentDraft, value: string) => void;
+}) {
+  return (
+    <div
+      className="customer-wizard__student-scroll"
+      role="region"
+      aria-label="Bảng thông tin học sinh"
+      tabIndex={0}
+    >
+      <table className="customer-wizard__student-table">
+        <caption className="sr-only">
+          Thông tin {students.length} học sinh, theo thứ tự từng hàng
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col" className="customer-wizard__student-number">
+              STT
+            </th>
+            {studentColumns.map(({ key, label }) => (
+              <th key={key} scope="col">
+                {label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {students.map((student, index) => (
+            <tr key={index} aria-label={`Học sinh ${student.rowNumber ?? index + 1}`}>
+              <th scope="row" className="customer-wizard__student-number">
+                {student.rowNumber ?? index + 1}
+              </th>
+              {studentColumns.map(({ key, label, maxLength, max }) => {
+                const id = `student-${index}-${key}` as const;
+                const error = errors[id];
+                return (
+                  <td key={key}>
+                    {onChange ? (
+                      <>
+                        <Input
+                          id={id}
+                          aria-label={`${label} học sinh ${index + 1}`}
+                          type={max ? 'number' : key === 'phone' ? 'tel' : 'text'}
+                          min={max ? 1 : undefined}
+                          max={max}
+                          step={max ? 'any' : undefined}
+                          maxLength={maxLength}
+                          value={student[key]}
+                          aria-invalid={!!error}
+                          aria-describedby={error ? `${id}-error` : undefined}
+                          placeholder={
+                            key === 'pantsSize'
+                              ? 'VD: 28, M'
+                              : key === 'shirtSize'
+                                ? 'VD: M, L'
+                                : undefined
+                          }
+                          onChange={(event) => onChange(index, key, event.target.value)}
+                        />
+                        {error && (
+                          <p id={`${id}-error`} role="alert" className="customer-wizard__error">
+                            {error}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      student[key] || '—'
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 function Field({
@@ -278,6 +406,18 @@ export default function BookingWizardPage() {
       contactName: draft.contactName.trim(),
       phone: draft.phone.trim(),
       members: Number(draft.members),
+      students: draft.students
+        .slice(0, Number(draft.members))
+        .filter(hasStudentDetails)
+        .map((student) => ({
+          name: student.name.trim(),
+          phone: student.phone.trim(),
+          ...(student.height.trim() ? { height: Number(student.height) } : {}),
+          ...(student.weight.trim() ? { weight: Number(student.weight) } : {}),
+          pantsSize: student.pantsSize.trim(),
+          shirtSize: student.shirtSize.trim(),
+          notes: student.notes.trim(),
+        })),
       startAt: new Date(parseVietnamDateTime(draft.startAt)).toISOString(),
       endAt: new Date(parseVietnamDateTime(draft.endAt)).toISOString(),
       location: draft.location.trim(),
@@ -294,12 +434,25 @@ export default function BookingWizardPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const continueFrom = (step: 1 | 2) => {
-    const nextErrors = step === 1 ? validateStepOne(draft, packages) : validateStepTwo(draft);
+  const continueFrom = (step: 1 | 2 | 3) => {
+    const nextErrors =
+      step === 1
+        ? validateStepOne(draft, packages)
+        : step === 2
+          ? validateStepTwo(draft)
+          : validateStudents(draft);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) {
       document.getElementById(Object.keys(nextErrors)[0])?.focus();
       return;
+    }
+    if (step === 2) {
+      updateDraft({
+        students: Array.from(
+          { length: Number(draft.members) },
+          (_, index) => draft.students[index] ?? createStudentDraft(),
+        ),
+      });
     }
     goToStep((step + 1) as BookingDraft['step']);
   };
@@ -323,10 +476,15 @@ export default function BookingWizardPage() {
     const validation = {
       ...validateStepOne(draft, packages),
       ...validateStepTwo(draft),
+      ...validateStudents(draft),
     };
     if (Object.keys(validation).length) {
       setErrors(validation);
-      const firstStep = validation.packageId ? 1 : 2;
+      const firstStep = validation.packageId
+        ? 1
+        : Object.keys(validation).some((key) => !key.startsWith('student-'))
+          ? 2
+          : 3;
       updateDraft({ step: firstStep });
       window.setTimeout(() => document.getElementById(Object.keys(validation)[0])?.focus(), 0);
       return;
@@ -419,23 +577,25 @@ export default function BookingWizardPage() {
             </p>
           </header>
           <ol aria-label="Các bước gửi yêu cầu" className="customer-wizard__steps">
-            {['Chọn dịch vụ', 'Lớp & thời gian', 'Kiểm tra yêu cầu'].map((label, index) => {
-              const step = (index + 1) as BookingDraft['step'];
-              const active = draft.step === step;
-              const complete = draft.step > step;
-              return (
-                <li
-                  key={label}
-                  aria-current={active ? 'step' : undefined}
-                  className={active ? 'is-active' : complete ? 'is-complete' : undefined}
-                >
-                  <span className="customer-wizard__step-number">
-                    {complete ? <Check aria-hidden="true" /> : step}
-                  </span>
-                  <span className="customer-wizard__step-label">{label}</span>
-                </li>
-              );
-            })}
+            {['Chọn dịch vụ', 'Lớp & thời gian', 'Thông tin học sinh', 'Kiểm tra yêu cầu'].map(
+              (label, index) => {
+                const step = (index + 1) as BookingDraft['step'];
+                const active = draft.step === step;
+                const complete = draft.step > step;
+                return (
+                  <li
+                    key={label}
+                    aria-current={active ? 'step' : undefined}
+                    className={active ? 'is-active' : complete ? 'is-complete' : undefined}
+                  >
+                    <span className="customer-wizard__step-number">
+                      {complete ? <Check aria-hidden="true" /> : step}
+                    </span>
+                    <span className="customer-wizard__step-label">{label}</span>
+                  </li>
+                );
+              },
+            )}
           </ol>
         </div>
       </aside>
@@ -822,13 +982,56 @@ export default function BookingWizardPage() {
                 <ArrowLeft aria-hidden="true" /> Quay lại
               </Button>
               <Button type="button" onClick={() => continueFrom(2)}>
-                Xem lại yêu cầu <ArrowRight aria-hidden="true" />
+                Nhập thông tin học sinh <ArrowRight aria-hidden="true" />
               </Button>
             </div>
           </section>
         )}
 
         {draft.step === 3 && (
+          <section className="customer-wizard__section" aria-labelledby="students-step-title">
+            <div className="customer-wizard__section-intro">
+              <h2 id="students-step-title" className="customer-section-title">
+                Thông tin học sinh
+              </h2>
+              <p className="customer-caption">
+                {draft.className} · {draft.members} học sinh. Mỗi hàng là một học sinh. Bạn có thể
+                để trống các hàng chưa có thông tin và bổ sung sau.
+              </p>
+              <p className="customer-caption customer-wizard__student-hint">
+                Vuốt ngang bảng để xem đủ 7 cột.
+              </p>
+            </div>
+            <StudentTable
+              students={Array.from(
+                { length: Math.min(1000, Math.max(0, Number(draft.members) || 0)) },
+                (_, index) => draft.students[index] ?? createStudentDraft(),
+              )}
+              errors={errors}
+              onChange={(index, key, value) => {
+                setDraft((current) => {
+                  const students = Array.from(
+                    { length: Math.max(current.students.length, index + 1) },
+                    (_, row) => current.students[row] ?? createStudentDraft(),
+                  );
+                  students[index] = { ...(students[index] ?? createStudentDraft()), [key]: value };
+                  return { ...current, students };
+                });
+                setErrors((current) => ({ ...current, [`student-${index}-${key}`]: undefined }));
+              }}
+            />
+            <div className="customer-wizard__actions">
+              <Button type="button" variant="secondary" onClick={() => goToStep(2)}>
+                <ArrowLeft aria-hidden="true" /> Quay lại
+              </Button>
+              <Button type="button" onClick={() => continueFrom(3)}>
+                Xem lại yêu cầu <ArrowRight aria-hidden="true" />
+              </Button>
+            </div>
+          </section>
+        )}
+
+        {draft.step === 4 && (
           <section className="customer-wizard__section" aria-labelledby="review-step-title">
             <div className="customer-wizard__section-intro">
               <h2 id="review-step-title" className="customer-section-title">
@@ -1005,6 +1208,27 @@ export default function BookingWizardPage() {
                 </label>
               </div>
             )}
+            <div>
+              <div className="customer-wizard__heading-row">
+                <h3 className="customer-wizard__title">Danh sách học sinh</h3>
+                <Button type="button" variant="text" onClick={() => goToStep(3)}>
+                  Sửa học sinh
+                </Button>
+              </div>
+              <p className="customer-caption">
+                Đã nhập{' '}
+                {draft.students.slice(0, Number(draft.members)).filter(hasStudentDetails).length} /{' '}
+                {draft.members} học sinh.
+              </p>
+              {draft.students.some(hasStudentDetails) && (
+                <StudentTable
+                  students={draft.students
+                    .slice(0, Number(draft.members))
+                    .map((student, index) => ({ ...student, rowNumber: index + 1 }))
+                    .filter(hasStudentDetails)}
+                />
+              )}
+            </div>
             {submitError && (
               <CustomerSurface padding="compact">
                 <p role="alert" className="customer-wizard__error">

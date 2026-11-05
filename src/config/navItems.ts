@@ -34,6 +34,7 @@ import BookingWorkflowListPage from '../pages/BookingWorkflowListPage';
 import { clientPortalEnabled } from './features';
 import RentalListPage from '../pages/RentalListPage';
 import ReportsPage from '../pages/ReportsPage';
+import SePayReceiptsPage from '../pages/SePayReceiptsPage';
 
 export type NavIcon = ComponentType<{ className?: string }>;
 
@@ -137,6 +138,13 @@ export const adminItems: NavItem[] = [
         iconClassName: 'text-green-300',
         allowedRoles: [0, 1, 5],
         component: FinancePage,
+      },
+      {
+        to: '/payment-receipts',
+        label: 'Đối soát tiền cọc',
+        icon: Banknote,
+        allowedRoles: [0, 1, 5],
+        component: SePayReceiptsPage,
       },
       {
         to: '/reports',

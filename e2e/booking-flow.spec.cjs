@@ -67,6 +67,7 @@ test('guest signs in before booking and continues through studio review', async 
   await page.getByLabel('Ngày và giờ bắt đầu mong muốn').fill(vietnamInputAfter(30, 10));
   await page.getByLabel('Ngày và giờ kết thúc mong muốn').fill(vietnamInputAfter(30, 12));
   await page.getByLabel('Điều Yume nên biết thêm').fill('Luồng E2E với bản nháp qua đăng nhập.');
+  await page.getByRole('button', { name: 'Nhập thông tin học sinh' }).click();
   await page.getByRole('button', { name: 'Xem lại yêu cầu' }).click();
   await expect(page.getByRole('heading', { name: 'Kiểm tra trước khi gửi' })).toBeVisible();
   await expect(page.getByText('12A1 E2E')).toBeVisible();

@@ -1,15 +1,43 @@
 import type { User } from '../types';
 
-export const BOOKING_DRAFT_KEY = 'yume.booking-draft.v3';
-const LEGACY_BOOKING_DRAFT_KEYS = ['yume.booking-draft.v2', 'yume.booking-draft.v1'];
+export const BOOKING_DRAFT_KEY = 'yume.booking-draft.v4';
+const LEGACY_BOOKING_DRAFT_KEYS = [
+  'yume.booking-draft.v3',
+  'yume.booking-draft.v2',
+  'yume.booking-draft.v1',
+];
+
+export interface BookingStudentDraft {
+  name: string;
+  phone: string;
+  height: string;
+  weight: string;
+  pantsSize: string;
+  shirtSize: string;
+  notes: string;
+}
+
+export const createStudentDraft = (): BookingStudentDraft => ({
+  name: '',
+  phone: '',
+  height: '',
+  weight: '',
+  pantsSize: '',
+  shirtSize: '',
+  notes: '',
+});
+export const hasStudentDetails = (student: BookingStudentDraft) =>
+  Object.keys(createStudentDraft()).some(
+    (key) => key !== 'notes' && student[key as keyof BookingStudentDraft].trim(),
+  );
 
 export interface BookingDraft {
-  version: 3;
+  version: 4;
   ownerId: string | null;
   idempotencyKey: string;
   submissionFingerprint?: string;
   packageConsentKey?: string;
-  step: 1 | 2 | 3;
+  step: 1 | 2 | 3 | 4;
   source: string;
   concept: string;
   itemId: string;
@@ -21,6 +49,7 @@ export interface BookingDraft {
   contactName: string;
   phone: string;
   members: string;
+  students: BookingStudentDraft[];
   startAt: string;
   endAt: string;
   location: string;
@@ -33,7 +62,7 @@ export const createIdempotencyKey = () =>
     : `booking-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 export const createBookingDraft = (ownerId: string | null = null): BookingDraft => ({
-  version: 3,
+  version: 4,
   ownerId,
   idempotencyKey: createIdempotencyKey(),
   step: 1,
@@ -48,23 +77,25 @@ export const createBookingDraft = (ownerId: string | null = null): BookingDraft 
   contactName: '',
   phone: '',
   members: '1',
+  students: [],
   startAt: '',
   endAt: '',
   location: '',
   note: '',
 });
 
-type StoredBookingDraft = Omit<BookingDraft, 'version' | 'step' | 'members'> & {
-  version: 1 | 2 | 3;
+type StoredBookingDraft = Omit<BookingDraft, 'version' | 'step' | 'members' | 'students'> & {
+  version: 1 | 2 | 3 | 4;
   step: 1 | 2 | 3 | 4;
   members: string | number;
+  students?: BookingStudentDraft[];
   costumeSelections?: unknown;
 };
 const isBookingDraft = (value: unknown): value is StoredBookingDraft => {
   if (!value || typeof value !== 'object') return false;
   const draft = value as Partial<StoredBookingDraft>;
   return (
-    (draft.version === 1 || draft.version === 2 || draft.version === 3) &&
+    (draft.version === 1 || draft.version === 2 || draft.version === 3 || draft.version === 4) &&
     (draft.ownerId === null || typeof draft.ownerId === 'string') &&
     typeof draft.idempotencyKey === 'string' &&
     (draft.submissionFingerprint === undefined ||
@@ -72,7 +103,19 @@ const isBookingDraft = (value: unknown): value is StoredBookingDraft => {
     (draft.step === 1 ||
       draft.step === 2 ||
       draft.step === 3 ||
-      (draft.version === 2 && draft.step === 4)) &&
+      ((draft.version === 2 || draft.version === 4) && draft.step === 4)) &&
+    (draft.students === undefined ||
+      (Array.isArray(draft.students) &&
+        draft.students.length <= 1000 &&
+        draft.students.every(
+          (student) =>
+            student &&
+            Object.keys(createStudentDraft()).every(
+              (key) =>
+                (key === 'notes' && student.notes === undefined) ||
+                typeof student[key as keyof BookingStudentDraft] === 'string',
+            ),
+        ))) &&
     typeof draft.source === 'string' &&
     typeof draft.concept === 'string' &&
     typeof draft.itemId === 'string' &&
@@ -105,11 +148,15 @@ export const readBookingDraft = (): BookingDraft | null => {
     const { costumeSelections: _selections, ...draft } = parsed;
     return {
       ...draft,
-      version: 3,
-      step: parsed.step === 4 ? 3 : parsed.step,
+      version: 4,
+      step: parsed.version !== 4 && parsed.step >= 3 ? 3 : parsed.step,
       className: parsed.className ?? '',
       school: parsed.school ?? '',
       members: String(parsed.members),
+      students: (parsed.students ?? []).map((student) => ({
+        ...student,
+        notes: student.notes ?? '',
+      })),
     };
   } catch {
     return null;

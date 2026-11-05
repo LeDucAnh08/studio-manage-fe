@@ -3,6 +3,7 @@ import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CustomerAppearanceContext } from '../components/customer/CustomerAppearance';
 import CustomerOrdersPage from './CustomerOrdersPage';
+import { BookingOrderProgress } from '../components/customer/BookingOrderProgress';
 import CustomerHeader from '../components/Layout/CustomerHeader';
 import type { BookingWorkflowDto } from '../services/bookingWorkflowService';
 import type { RentalOrder } from '../services/rentalService';
@@ -214,6 +215,30 @@ describe('Unified orders tabs', () => {
     shootDate: '2026-11-19',
     updatedAt: '2026-10-24',
   });
+  it('matches booking filter labels with badges in both the list and selected record', async () => {
+    mocks.bookings.mockResolvedValue({
+      data: [{ ...summary('order-1', 'change_pending'), orderStage: 'active' }],
+      pagination: { total: 1 },
+    });
+    const selected = record('order-1', 'change_pending');
+    selected.workflow.orderStage = 'active';
+    mocks.workflow.mockResolvedValue(selected);
+    open('?view=active');
+    const list = await screen.findByRole('list', { name: 'Danh sách đơn chụp ảnh' });
+    expect(within(list).getByText('Đang thực hiện')).toBeInTheDocument();
+    const preview = await screen.findByRole('region', { name: 'Ngoại cảnh' });
+    expect(await within(preview).findByRole('region', { name: 'Tiến độ đơn' })).toHaveTextContent(
+      'Đang thực hiện',
+    );
+    expect(screen.getByRole('option', { name: 'Đang thực hiện' })).toHaveValue('active');
+    expect(screen.getAllByRole('option')).toHaveLength(9);
+    fireEvent.change(screen.getByLabelText('Trạng thái'), {
+      target: { value: 'awaiting_confirmation' },
+    });
+    await waitFor(() =>
+      expect(mocks.bookings).toHaveBeenLastCalledWith(1, 20, 'awaiting_confirmation'),
+    );
+  });
   function record(
     id = 'order-1',
     lifecycle: BookingWorkflowDto['workflow']['lifecycle'] = 'confirmed',
@@ -269,6 +294,34 @@ describe('Unified orders tabs', () => {
     };
   }
 
+  it.each([
+    ['intake', 'pending', 'Chờ duyệt'],
+    ['quoting', 'awaiting_confirmation', 'Chờ chốt lịch'],
+    ['confirmed', 'confirmed', 'Đã chốt lịch'],
+    ['shooting', 'active', 'Đang thực hiện'],
+    ['revision_requested', 'active', 'Đang thực hiện'],
+    ['delivered', 'delivered', 'Đã bàn giao'],
+    ['accepted', 'delivered', 'Đã bàn giao'],
+    ['completed', 'completed', 'Hoàn tất'],
+  ] as const)('keeps the same six progress milestones for %s', (lifecycle, stage, current) => {
+    const data = record('order-1', lifecycle);
+    data.booking.status = lifecycle === 'intake' ? 'pending' : 'approved';
+    data.workflow.orderStage = stage;
+    render(<BookingOrderProgress record={data} />);
+    const progress = screen.getByRole('region', { name: 'Tiến độ đơn' });
+    const items = within(progress).getAllByRole('listitem');
+    expect(items.map((item) => item.querySelector('p')?.textContent)).toEqual([
+      'Chờ duyệt',
+      'Chờ chốt lịch',
+      'Đã chốt lịch',
+      'Đang thực hiện',
+      'Đã bàn giao',
+      'Hoàn tất',
+    ]);
+    expect(progress.querySelectorAll('[aria-current="step"]')).toHaveLength(1);
+    expect(progress.querySelector('[aria-current="step"]')).toHaveTextContent(current);
+  });
+
   it('selects orders, uses confirmed schedule details, links to the full record and discards a late response', async () => {
     mocks.bookings.mockResolvedValue({
       data: [summary(), summary('order-2', 'completed')],
@@ -287,7 +340,9 @@ describe('Unified orders tabs', () => {
     expect(screen.getByRole('tab', { name: 'Chụp ảnh' })).toHaveAttribute('aria-selected', 'true');
     fireEvent.click(within(list).getByRole('button', { name: /Sân trường/ }));
     const preview = await screen.findByRole('region', { name: 'Sân trường' });
-    expect(await within(preview).findByText('Đã hoàn tất dịch vụ')).toBeInTheDocument();
+    expect(await within(preview).findByRole('region', { name: 'Tiến độ đơn' })).toHaveTextContent(
+      'Hoàn tất',
+    );
     expect(within(preview).getByText('Địa điểm đã chốt')).toBeInTheDocument();
     expect(within(preview).queryByText('Địa điểm yêu cầu')).not.toBeInTheDocument();
     expect(screen.getByTestId('url')).toHaveTextContent('order=order-2');
@@ -324,8 +379,9 @@ describe('Unified orders tabs', () => {
       mocks.workflow.mockResolvedValue(item);
       open();
       await screen.findByText('Tiến độ đơn');
-      expect(screen.queryByText('Chụp & bàn giao')).not.toBeInTheDocument();
-      expect(screen.queryByText('Xác nhận lịch chụp')).not.toBeInTheDocument();
+      const progress = screen.getByRole('region', { name: 'Tiến độ đơn' });
+      expect(within(progress).queryByText('Đang thực hiện')).not.toBeInTheDocument();
+      expect(within(progress).queryByText('Hoàn tất')).not.toBeInTheDocument();
     },
   );
 

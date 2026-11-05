@@ -102,6 +102,8 @@ function fillDetails(options: { endDays?: number } = {}) {
 }
 
 async function reviewRequest() {
+  fireEvent.click(screen.getByRole('button', { name: /Nhập thông tin học sinh/ }));
+  await screen.findByRole('heading', { name: 'Thông tin học sinh' });
   fireEvent.click(screen.getByRole('button', { name: /Xem lại yêu cầu/ }));
   await screen.findByRole('heading', { name: 'Kiểm tra trước khi gửi' });
   const consent = screen.getByRole('checkbox', { name: /Tôi đồng ý giá gói/ });
@@ -109,6 +111,115 @@ async function reviewRequest() {
 }
 
 describe('NewBookingPage', () => {
+  it('numbers 25 student rows without a notes column and preserves details through reload and resizing', async () => {
+    const page = render(
+      <MemoryRouter>
+        <NewBookingPage />
+      </MemoryRouter>,
+    );
+    await choosePackage();
+    fillDetails();
+    fireEvent.change(screen.getByLabelText('Số thành viên dự kiến'), { target: { value: '25' } });
+    fireEvent.click(screen.getByRole('button', { name: /Nhập thông tin học sinh/ }));
+    const table = screen.getByRole('table');
+    expect(within(table).getAllByRole('row')).toHaveLength(26);
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map((cell) => cell.textContent),
+    ).toEqual([
+      'STT',
+      'Họ tên',
+      'Số điện thoại',
+      'Chiều cao (cm)',
+      'Cân nặng (kg)',
+      'Size quần',
+      'Size áo',
+    ]);
+    expect(
+      within(table)
+        .getAllByRole('rowheader')
+        .map((cell) => cell.textContent),
+    ).toEqual(Array.from({ length: 25 }, (_, index) => String(index + 1)));
+    for (const [label, value] of [
+      ['Họ tên', 'Nguyễn An'],
+      ['Số điện thoại', '0901234567'],
+      ['Chiều cao (cm)', '165.5'],
+      ['Cân nặng (kg)', '52.5'],
+      ['Size quần', '28'],
+      ['Size áo', 'M'],
+    ])
+      fireEvent.change(screen.getByLabelText(`${label} học sinh 1`), { target: { value } });
+    page.unmount();
+    render(
+      <MemoryRouter>
+        <NewBookingPage />
+      </MemoryRouter>,
+    );
+    await screen.findByRole('heading', { name: 'Thông tin học sinh' });
+    expect(screen.getByLabelText('Họ tên học sinh 1')).toHaveValue('Nguyễn An');
+    expect(screen.getByLabelText('Size quần học sinh 1')).toHaveValue('28');
+    expect(screen.queryByLabelText('Ghi chú học sinh 1')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Quay lại/ }));
+    fireEvent.change(screen.getByLabelText('Số thành viên dự kiến'), { target: { value: '26' } });
+    fireEvent.click(screen.getByRole('button', { name: /Nhập thông tin học sinh/ }));
+    expect(screen.getAllByRole('row')).toHaveLength(27);
+    expect(screen.getByLabelText('Họ tên học sinh 1')).toHaveValue('Nguyễn An');
+    fireEvent.click(screen.getByRole('button', { name: /Xem lại yêu cầu/ }));
+    expect(screen.getByText('Nguyễn An')).toBeInTheDocument();
+    expect(screen.getByText('Đã nhập 1 / 26 học sinh.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: /Tôi đồng ý giá gói/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu tới Yume' }));
+    await waitFor(() => expect(bookingService.create).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(bookingService.create).mock.calls[0][0].students).toEqual([
+      {
+        name: 'Nguyễn An',
+        phone: '0901234567',
+        height: 165.5,
+        weight: 52.5,
+        pantsSize: '28',
+        shirtSize: 'M',
+        notes: '',
+      },
+    ]);
+  });
+
+  it('validates entered student details and prevents reducing the count over populated rows', async () => {
+    render(
+      <MemoryRouter>
+        <NewBookingPage />
+      </MemoryRouter>,
+    );
+    await choosePackage();
+    fillDetails();
+    fireEvent.change(screen.getByLabelText('Số thành viên dự kiến'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: /Nhập thông tin học sinh/ }));
+    fireEvent.change(screen.getByLabelText('Chiều cao (cm) học sinh 2'), {
+      target: { value: '251' },
+    });
+    fireEvent.change(screen.getByLabelText('Cân nặng (kg) học sinh 2'), {
+      target: { value: '-1' },
+    });
+    fireEvent.change(screen.getByLabelText('Số điện thoại học sinh 2'), {
+      target: { value: 'abc' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Xem lại yêu cầu/ }));
+    for (const label of ['Họ tên', 'Số điện thoại', 'Chiều cao (cm)', 'Cân nặng (kg)']) {
+      expect(screen.getByLabelText(`${label} học sinh 2`)).toHaveAttribute('aria-invalid', 'true');
+    }
+    expect(bookingService.create).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('Họ tên học sinh 2'), { target: { value: 'Bạn B' } });
+    fireEvent.click(screen.getByRole('button', { name: /Quay lại/ }));
+    fireEvent.change(screen.getByLabelText('Số thành viên dự kiến'), { target: { value: '1' } });
+    fireEvent.click(screen.getByRole('button', { name: /Nhập thông tin học sinh/ }));
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Các hàng ngoài số lượng mới vẫn có thông tin',
+    );
+    fireEvent.change(screen.getByLabelText('Số thành viên dự kiến'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: /Nhập thông tin học sinh/ }));
+    expect(screen.getByLabelText('Họ tên học sinh 2')).toHaveValue('Bạn B');
+  });
+
   it('requires agreement to the published package price and deposit before submission', async () => {
     render(
       <MemoryRouter initialEntries={['/account/bookings/new']}>
@@ -155,7 +266,7 @@ describe('NewBookingPage', () => {
     );
     await choosePackage();
     fillDetails({ endDays: 1 });
-    fireEvent.click(screen.getByRole('button', { name: /Xem lại yêu cầu/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Nhập thông tin học sinh/ }));
     expect(
       await screen.findByText('Buổi chụp theo gói cần bắt đầu và kết thúc trong cùng ngày.'),
     ).toBeInTheDocument();
@@ -264,7 +375,7 @@ describe('NewBookingPage', () => {
     const saved = JSON.parse(sessionStorage.getItem(BOOKING_DRAFT_KEY) || 'null');
     expect(saved).toMatchObject({
       ownerId: null,
-      step: 3,
+      step: 4,
       packageId: 'package-1',
       className: '12A1',
       school: 'THPT Yume',
@@ -382,7 +493,7 @@ describe('NewBookingPage', () => {
     );
     await choosePackage();
     fillDetails({ endDays: 8 });
-    fireEvent.click(screen.getByRole('button', { name: /Xem lại yêu cầu/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Nhập thông tin học sinh/ }));
     expect(
       await screen.findByText('Khoảng thời gian yêu cầu không được dài quá 7 ngày.'),
     ).toBeInTheDocument();
@@ -417,7 +528,7 @@ describe('NewBookingPage', () => {
       expect(screen.getByRole('alert')).toHaveTextContent(
         value.trim() ? 'Nhập số điện thoại gồm 10 chữ số' : 'Vui lòng nhập số điện thoại.',
       );
-      fireEvent.click(screen.getByRole('button', { name: /Xem lại yêu cầu/ }));
+      fireEvent.click(screen.getByRole('button', { name: /Nhập thông tin học sinh/ }));
       expect(
         screen.queryByRole('heading', { name: 'Kiểm tra trước khi gửi' }),
       ).not.toBeInTheDocument();
@@ -470,7 +581,7 @@ describe('NewBookingPage', () => {
     expect(restored).toHaveValue('');
     for (const value of ['', '0', '-1', '1.5', '1e2', 'abc', '1001']) {
       fireEvent.change(restored, { target: { value } });
-      fireEvent.click(screen.getByRole('button', { name: /Xem lại yêu cầu/ }));
+      fireEvent.click(screen.getByRole('button', { name: /Nhập thông tin học sinh/ }));
       expect(restored).toHaveAttribute('aria-invalid', 'true');
       expect(screen.getByRole('alert')).toHaveTextContent(
         'Nhập số thành viên là số nguyên từ 1 đến 1.000.',
@@ -512,7 +623,7 @@ describe('NewBookingPage', () => {
     await reviewRequest();
     expect(
       within(screen.getByRole('list', { name: 'Các bước gửi yêu cầu' })).getAllByRole('listitem'),
-    ).toHaveLength(3);
+    ).toHaveLength(4);
     expect(screen.getByRole('heading', { name: 'Trang phục đã bao gồm' })).toBeInTheDocument();
     expect(screen.getByText('Áo dài, Vest')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Sửa trang phục' })).not.toBeInTheDocument();
@@ -529,8 +640,10 @@ describe('NewBookingPage', () => {
     [1, 3],
     [2, 3],
     [2, 4],
+    [3, 3],
+    [4, 3],
   ] as const)(
-    'migrates version %i step %i to the three-step flow, preserving entered details and dropping obsolete costume choices',
+    'migrates version %i step %i to student intake, preserving entered details and dropping obsolete costume choices',
     async (version, step) => {
       const { start, end } = futureWindow();
       sessionStorage.setItem(
@@ -549,22 +662,40 @@ describe('NewBookingPage', () => {
           startAt: start,
           endAt: end,
           note: 'Bản nháp cũ',
+          students: [
+            {
+              name: 'Học sinh trước cập nhật',
+              phone: '',
+              height: '',
+              weight: '',
+              pantsSize: '',
+              shirtSize: '',
+            },
+          ],
           costumeSelections: [{ costumeId: 'obsolete', size: 'M', quantity: 20 }],
         }),
       );
       expect(readBookingDraft()).toMatchObject({
-        version: 3,
+        version: 4,
         step: 3,
         className: '12A cũ',
         note: 'Bản nháp cũ',
       });
       expect(readBookingDraft()).not.toHaveProperty('costumeSelections');
+      expect(readBookingDraft()?.students[0].notes).toBe('');
       render(
         <MemoryRouter initialEntries={['/account/bookings/new']}>
           <NewBookingPage />
         </MemoryRouter>,
       );
+      await screen.findByRole('heading', { name: 'Thông tin học sinh' });
+      fireEvent.change(screen.getByLabelText('Họ tên học sinh 30'), {
+        target: { value: 'Học sinh cuối danh sách' },
+      });
+      expect(readBookingDraft()?.students[29].name).toBe('Học sinh cuối danh sách');
+      fireEvent.click(screen.getByRole('button', { name: /Xem lại yêu cầu/ }));
       await screen.findByText('Gói thử');
+      expect(screen.getByRole('row', { name: 'Học sinh 30' })).toHaveTextContent('30');
       expect(screen.getByRole('heading', { name: 'Kiểm tra trước khi gửi' })).toBeInTheDocument();
       expect(screen.getByText('Bản nháp cũ')).toBeInTheDocument();
       fireEvent.click(screen.getByRole('checkbox', { name: /Tôi đồng ý giá gói/ }));

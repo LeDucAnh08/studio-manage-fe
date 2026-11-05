@@ -55,11 +55,60 @@ export const bookingWorkflowLabels: Record<BookingWorkflowLifecycle, string> = {
 };
 export type CustomerOrderView = '' | 'active' | 'completed' | 'cancelled' | 'rejected';
 
+export const bookingOrderStageLabels = {
+  pending: 'Chờ duyệt',
+  awaiting_confirmation: 'Chờ chốt lịch',
+  confirmed: 'Đã chốt lịch',
+  active: 'Đang thực hiện',
+  delivered: 'Đã bàn giao',
+  completed: 'Hoàn tất',
+  cancelled: 'Đã hủy',
+  rejected: 'Đã từ chối',
+} as const;
+export type BookingOrderStage = keyof typeof bookingOrderStageLabels;
+
+export const getBookingOrderStage = (
+  status: BookingStatus,
+  lifecycle: BookingWorkflowLifecycle,
+  stage?: BookingOrderStage,
+): BookingOrderStage => {
+  if (stage) return stage;
+  if (status === 'rejected') return 'rejected';
+  if (status === 'cancelled' || lifecycle === 'cancelled') return 'cancelled';
+  if (status === 'pending') return 'pending';
+  if (['shooting', 'editing', 'revision_requested'].includes(lifecycle)) return 'active';
+  if (['delivered', 'accepted'].includes(lifecycle)) return 'delivered';
+  if (lifecycle === 'completed') return 'completed';
+  if (['confirmed', 'change_pending'].includes(lifecycle)) return 'confirmed';
+  return 'awaiting_confirmation';
+};
+
+export const bookingOrderStatusLabel = (
+  status: BookingStatus,
+  lifecycle: BookingWorkflowLifecycle,
+  stage?: BookingOrderStage,
+) => bookingOrderStageLabels[getBookingOrderStage(status, lifecycle, stage)];
+
 export interface PaymentInstructions {
   bankName: string;
   accountName: string;
   accountNumber: string;
   transferTemplate: string;
+}
+
+export interface DepositPayment {
+  provider: 'sepay';
+  mode: 'sandbox' | 'live';
+  reference: string;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  amount: number;
+  depositRequired: number;
+  expiresAt: string;
+  status: 'pending' | 'paid' | 'expired' | 'unavailable';
+  qrUrl: string | null;
+  downloadUrl: string | null;
 }
 
 export interface WorkflowMember {
@@ -70,6 +119,9 @@ export interface WorkflowMember {
   height?: number;
   weight?: number;
   contact?: string;
+  notes?: string;
+  pantsSize?: string;
+  shirtSize?: string;
   costumeSizes: Array<{ costumeId: string; size: string }>;
 }
 
@@ -99,6 +151,7 @@ export interface BookingWorkflowDto {
     reviewNote?: string;
   };
   workflow: {
+    orderStage?: BookingOrderStage;
     packageReservation?: {
       status: 'held' | 'confirmed' | 'expired' | 'released';
       expiresAt: string;
@@ -141,6 +194,7 @@ export interface BookingWorkflowDto {
         amount: number;
         method: string;
         reference?: string;
+        source?: 'manual' | 'sepay';
         receivedAt: string;
       }>;
     };
@@ -201,6 +255,7 @@ export interface BookingWorkflowDto {
     deliveryHistory: Array<{ version: number; deliveryUrl: string; deliveredAt: string }>;
     paymentInstructions: PaymentInstructions | null;
     paymentReady: boolean;
+    depositPayment?: DepositPayment | null;
     events: Array<{ action: string; message: string; at: string }>;
     memberEntry: null | {
       opened: boolean;
@@ -214,6 +269,7 @@ export interface BookingWorkflowDto {
 }
 
 export interface WorkflowSummary {
+  orderStage?: BookingOrderStage;
   assignedPhotographer?: AssignedPhotographer | null;
   assignedSupportPhotographers?: AssignedPhotographer[];
   bookingId: string;
@@ -254,6 +310,9 @@ export interface EditableWorkflowMember {
   height?: number;
   weight?: number;
   contact?: string;
+  notes?: string;
+  pantsSize?: string;
+  shirtSize?: string;
   costumeSizes: Array<{ costumeId: string; size: string }>;
 }
 
@@ -263,11 +322,11 @@ export interface WorkflowPage {
 }
 
 export const bookingWorkflowService = {
-  list: (page = 1, limit = 20, view: CustomerOrderView = '', status: BookingStatus | '' = '') =>
+  list: (page = 1, limit = 20, stage: BookingOrderStage | '' = '') =>
     api
       .get<
         PaginatedApiResponse<WorkflowSummary>
-      >('/workflows', { params: { page, limit, ...(view ? { view } : {}), ...(status ? { status } : {}) } })
+      >('/workflows', { params: { page, limit, ...(stage ? { stage } : {}) } })
       .then((response) => response.data),
   get: (id: string) =>
     api

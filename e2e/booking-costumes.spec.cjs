@@ -78,6 +78,7 @@ for (const [name, viewport] of [
     const day = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
     await page.getByLabel('Ngày và giờ bắt đầu mong muốn').fill(`${day}T08:00`);
     await page.getByLabel('Ngày và giờ kết thúc mong muốn').fill(`${day}T10:00`);
+    await page.getByRole('button', { name: 'Nhập thông tin học sinh', exact: true }).click();
     await page.getByRole('button', { name: 'Xem lại yêu cầu', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Kiểm tra trước khi gửi' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Trang phục đã bao gồm' })).toBeVisible();
@@ -86,7 +87,7 @@ for (const [name, viewport] of [
     await expect(page.getByRole('button', { name: 'Sửa trang phục' })).toHaveCount(0);
     await expect(
       page.getByRole('list', { name: 'Các bước gửi yêu cầu' }).getByRole('listitem'),
-    ).toHaveCount(3);
+    ).toHaveCount(4);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBeTruthy();

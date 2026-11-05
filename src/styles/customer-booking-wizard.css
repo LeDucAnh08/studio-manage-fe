@@ -474,6 +474,58 @@
   min-width: 0;
 }
 
+.customer-ui .customer-wizard__student-scroll {
+  max-height: 65vh;
+  overflow: auto;
+  min-width: 0;
+  border: 1px solid var(--customer-hairline);
+  border-radius: var(--customer-radius-control);
+}
+
+.customer-ui .customer-wizard__student-hint {
+  display: none;
+}
+
+.customer-ui .customer-wizard__student-table {
+  width: 100%;
+  min-width: 1000px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.customer-ui .customer-wizard__student-table th,
+.customer-ui .customer-wizard__student-table td {
+  padding: var(--customer-space-12);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--customer-hairline-soft);
+}
+
+.customer-ui .customer-wizard__student-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--customer-surface-soft);
+  white-space: nowrap;
+}
+
+.customer-ui .customer-wizard__student-table td {
+  min-width: 130px;
+  overflow-wrap: anywhere;
+}
+
+.customer-ui .customer-wizard__student-table td:nth-child(2),
+.customer-ui .customer-wizard__student-table td:nth-child(3) {
+  min-width: 190px;
+}
+
+.customer-ui .customer-wizard__student-table .customer-wizard__student-number {
+  width: 52px;
+  min-width: 52px;
+  text-align: center;
+  vertical-align: middle;
+}
+
 .customer-ui .customer-wizard__fields .customer-field {
   min-width: 0;
 }
@@ -615,7 +667,7 @@
 }
 
 .customer-ui .customer-wizard--account .customer-wizard__steps {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--customer-space-16);
 }
 
@@ -688,7 +740,7 @@
   }
 
   .customer-ui .customer-wizard__steps {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: var(--customer-space-16);
     margin-top: 0;
   }
@@ -699,6 +751,10 @@
 }
 
 @media (max-width: 743px) {
+  .customer-ui .customer-wizard__student-hint {
+    display: block;
+  }
+
   .customer-ui .customer-wizard__story,
   .customer-ui .customer-wizard__content {
     padding: var(--customer-space-24) var(--customer-space-16);

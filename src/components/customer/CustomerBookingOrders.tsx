@@ -2,16 +2,17 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowRight, LoaderCircle } from 'lucide-react';
 import { CustomerButton } from './CustomerButton';
-import { CustomerOrdersWorkspace, CustomerOrderProgress } from './CustomerOrdersWorkspace';
+import { BookingOrderProgress } from './BookingOrderProgress';
+import { CustomerOrdersWorkspace } from './CustomerOrdersWorkspace';
 import { vietnamDisplayDate as day } from '../../utils/vietnamCalendarDate';
 import {
-  bookingWorkflowLabels,
+  bookingOrderStageLabels,
+  bookingOrderStatusLabel,
   bookingWorkflowService,
   type BookingWorkflowDto,
-  type CustomerOrderView,
+  type BookingOrderStage,
   type WorkflowSummary,
 } from '@/services/bookingWorkflowService';
-import { bookingLabels } from '@/services/bookingService';
 
 const timeZone = 'Asia/Ho_Chi_Minh';
 const time = (value: string) =>
@@ -23,102 +24,8 @@ const time = (value: string) =>
 const errorMessage = (error: unknown) =>
   (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
   'Chưa tải được thông tin. Vui lòng thử lại.';
-const statusLabel = (order: Pick<WorkflowSummary, 'bookingStatus' | 'lifecycle'>) =>
-  order.bookingStatus === 'cancelled'
-    ? bookingLabels.cancelled
-    : order.bookingStatus === 'rejected'
-      ? bookingLabels.rejected
-      : bookingWorkflowLabels[order.lifecycle];
-
-function OrderProgress({ record }: { record: BookingWorkflowDto }) {
-  const { workflow, booking } = record;
-  const terminal =
-    ['rejected', 'cancelled'].includes(booking.status) || workflow.lifecycle === 'cancelled';
-  const confirmed = !!workflow.resources?.scheduleId;
-  const packageFlow = !!booking.packageAgreement;
-  const accepted = packageFlow ? !!workflow.resources?.scheduleId : !!workflow.quote?.acceptedAt;
-  const held = workflow.packageReservation?.status === 'held';
-  const completed = workflow.lifecycle === 'completed';
-  const events = workflow.events;
-  const sentAt =
-    [...events].sort((a, b) => Date.parse(a.at) - Date.parse(b.at))[0]?.at || workflow.createdAt;
-  const confirmedAt = events
-    .filter((event) => ['resources.confirm', 'resources.confirmed'].includes(event.action))
-    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))[0]?.at;
-  const completedAt = events
-    .filter((event) =>
-      ['workflow.completed', 'payment.record', 'delivery.accept'].includes(event.action),
-    )
-    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))[0]?.at;
-  const active = [
-    'shooting',
-    'editing',
-    'delivered',
-    'revision_requested',
-    'accepted',
-    'completed',
-  ].includes(workflow.lifecycle)
-    ? 3
-    : confirmed || workflow.lifecycle === 'ready_to_confirm'
-      ? 2
-      : workflow.quote
-        ? 1
-        : 0;
-  const stages = [
-    {
-      label: 'Đã gửi yêu cầu',
-      at: sentAt,
-      done: true,
-      description: !workflow.quote ? 'Studio sẽ kiểm tra và phản hồi yêu cầu của lớp.' : '',
-    },
-    {
-      label: packageFlow
-        ? accepted
-          ? 'Đã đặt cọc'
-          : held
-            ? 'Duyệt yêu cầu & đặt cọc'
-            : 'Chờ studio duyệt'
-        : accepted
-          ? 'Đã thống nhất báo giá'
-          : 'Báo giá & đặt cọc',
-      at: packageFlow
-        ? workflow.payments?.entries.filter((entry) => entry.kind === 'deposit').slice(-1)[0]
-            ?.receivedAt
-        : workflow.quote?.acceptedAt,
-      done: accepted,
-      description: packageFlow
-        ? held
-          ? 'Lịch đang được giữ tạm. Mở hồ sơ để xem hạn đặt cọc và hướng dẫn thanh toán.'
-          : 'Studio kiểm tra lịch và ekip trước khi duyệt.'
-        : !accepted && workflow.quote
-          ? 'Mở hồ sơ để xem báo giá và các điều khoản.'
-          : '',
-    },
-    {
-      label: confirmed ? 'Đã chốt lịch' : 'Xác nhận lịch chụp',
-      at: confirmedAt,
-      done: confirmed,
-      description: confirmed
-        ? 'Ekip và lịch chụp đã được studio xác nhận.'
-        : packageFlow
-          ? 'Lịch tự xác nhận khi studio ghi nhận đủ cọc trong thời hạn.'
-          : 'Lịch được xác nhận sau khi thống nhất báo giá và tiền cọc.',
-    },
-    {
-      label: completed ? 'Đã hoàn tất dịch vụ' : 'Chụp & bàn giao',
-      at: completed ? completedAt : workflow.progress?.acceptedAt || workflow.progress?.deliveredAt,
-      done: completed,
-      description: completed
-        ? 'Ảnh đã được nghiệm thu và các khoản tiền đã đối soát.'
-        : active === 3
-          ? bookingWorkflowLabels[workflow.lifecycle]
-          : workflow.resources?.scheduleDetails?.shootDate
-            ? `Sau buổi chụp ngày ${day(workflow.resources.scheduleDetails.shootDate)}`
-            : 'Theo lịch chụp đã thống nhất với studio.',
-    },
-  ];
-  return <CustomerOrderProgress stages={stages} currentStep={active} terminal={terminal} />;
-}
+const statusLabel = (order: WorkflowSummary) =>
+  bookingOrderStatusLabel(order.bookingStatus, order.lifecycle, order.orderStage);
 
 function OrderPreview({ order, reload }: { order: WorkflowSummary; reload: number }) {
   const location = useLocation();
@@ -148,13 +55,9 @@ function OrderPreview({ order, reload }: { order: WorkflowSummary; reload: numbe
   const schedule = workflow?.resources?.scheduleDetails || workflow?.quote?.proposedSchedule;
   const scheduled = !!workflow?.resources?.scheduleDetails;
   const label =
-    booking?.status === 'cancelled'
-      ? bookingLabels.cancelled
-      : booking?.status === 'rejected'
-        ? bookingLabels.rejected
-        : workflow
-          ? bookingWorkflowLabels[workflow.lifecycle]
-          : statusLabel(order);
+    booking && workflow
+      ? bookingOrderStatusLabel(booking.status, workflow.lifecycle, workflow.orderStage)
+      : statusLabel(order);
   const summary = [booking?.school || order.school, booking && `${booking.members} thành viên`]
     .filter(Boolean)
     .join(' · ');
@@ -227,7 +130,7 @@ function OrderPreview({ order, reload }: { order: WorkflowSummary; reload: numbe
               </dd>
             </div>
           </dl>
-          <OrderProgress record={record} />
+          <BookingOrderProgress record={record} />
         </>
       )}
       <footer className="customer-orders-preview__footer">
@@ -250,17 +153,15 @@ export function CustomerBookingOrders() {
   const [items, setItems] = useState<WorkflowSummary[]>([]);
   const selectedId = params.get('order') || '';
   const requestedView = params.get('view') || '';
-  const view: CustomerOrderView = ['active', 'completed', 'cancelled', 'rejected'].includes(
-    requestedView,
-  )
-    ? (requestedView as CustomerOrderView)
+  const view: BookingOrderStage | '' = Object.keys(bookingOrderStageLabels).includes(requestedView)
+    ? (requestedView as BookingOrderStage)
     : '';
   const requestedPage = Number(params.get('page') || 1);
   const page =
     Number.isInteger(requestedPage) && requestedPage >= 1 && requestedPage <= 100_000
       ? requestedPage
       : 1;
-  const changeList = (nextView: CustomerOrderView, nextPage = 1) =>
+  const changeList = (nextView: BookingOrderStage | '', nextPage = 1) =>
     setParams(
       (current) => {
         if (nextView) current.set('view', nextView);
@@ -302,13 +203,14 @@ export function CustomerBookingOrders() {
   return (
     <CustomerOrdersWorkspace
       kind="chụp ảnh"
+      statusOptions={bookingOrderStageLabels}
       loading={loading}
       error={error}
       total={total}
       page={page}
       view={view}
       emptyMessage="Bạn chưa có đơn chụp ảnh. Chọn Đặt dịch vụ để bắt đầu."
-      onViewChange={(value) => changeList(value as CustomerOrderView)}
+      onViewChange={(value) => changeList(value as BookingOrderStage | '')}
       onPageChange={(value) => changeList(view, value)}
       onReload={() => setReload((value) => value + 1)}
       preview={selected ? <OrderPreview order={selected} reload={reload} /> : null}

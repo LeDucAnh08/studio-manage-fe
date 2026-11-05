@@ -18,7 +18,7 @@ test('published package checkout approves a temporary crew hold and confirms aut
   test.setTimeout(180000);
   const suffix = randomUUID().slice(0, 8),
     password = 'PackageE2e123!';
-  const audit = path.resolve(__dirname, '../../audit/package-checkout-2026-10-31');
+  const audit = path.resolve(__dirname, '../../audit/student-intake-2026-11-05');
   await mkdir(audit, { recursive: true });
   let pkg;
   await mongoose.connect(isolatedMongoUri());
@@ -94,7 +94,33 @@ test('published package checkout approves a temporary crew hold and confirms aut
     await client.getByLabel('Địa điểm mong muốn').fill('Sân trường test');
     await client.getByLabel('Ngày và giờ bắt đầu mong muốn').fill(`${shootDay}T08:00`);
     await client.getByLabel('Ngày và giờ kết thúc mong muốn').fill(`${shootDay}T10:00`);
+    await client.getByLabel('Số thành viên dự kiến').fill('25');
+    await client.getByRole('button', { name: 'Nhập thông tin học sinh' }).click();
+    await expect(client.getByRole('table').getByRole('row')).toHaveCount(26);
+    await expect(client.getByRole('columnheader')).toHaveCount(7);
+    await expect(client.getByRole('rowheader').last()).toHaveText('25');
+    await client.getByLabel('Họ tên học sinh 1', { exact: true }).fill('Học sinh từ bước đặt lịch');
+    await client.getByLabel('Số điện thoại học sinh 1', { exact: true }).fill('0901234567');
+    await client.getByLabel('Chiều cao (cm) học sinh 1', { exact: true }).fill('165.5');
+    await client.getByLabel('Cân nặng (kg) học sinh 1', { exact: true }).fill('52.5');
+    await client.getByLabel('Size quần học sinh 1', { exact: true }).fill('28');
+    await client.getByLabel('Size áo học sinh 1', { exact: true }).fill('M');
+    await client.screenshot({ path: path.join(audit, '00-students-desktop.png'), fullPage: true });
+    await client.setViewportSize({ width: 390, height: 844 });
+    expect(
+      await client.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+    await client.screenshot({ path: path.join(audit, '00-students-mobile.png'), fullPage: true });
+    await client.reload();
+    await expect(client.getByLabel('Họ tên học sinh 1', { exact: true })).toHaveValue(
+      'Học sinh từ bước đặt lịch',
+    );
+    await client.getByRole('button', { name: 'Quay lại', exact: true }).click();
+    await client.getByLabel('Số thành viên dự kiến').fill('1');
+    await client.getByRole('button', { name: 'Nhập thông tin học sinh' }).click();
+    await expect(client.getByRole('table').getByRole('row')).toHaveCount(2);
     await client.getByRole('button', { name: /Xem lại yêu cầu/ }).click();
+    await client.setViewportSize({ width: 1440, height: 1000 });
     await expect(client.getByRole('heading', { name: 'Tổng tiền gói' })).toBeVisible();
     await expect(client.getByText('Tiền cọc 30%:', { exact: true })).toBeVisible();
     await client.getByRole('checkbox', { name: /Tôi đồng ý giá gói/ }).check();
@@ -102,6 +128,21 @@ test('published package checkout approves a temporary crew hold and confirms aut
     await client.getByRole('button', { name: 'Gửi yêu cầu tới Yume' }).click();
     await expect(client).toHaveURL(/\/account\/bookings\/[a-f0-9]{24}$/);
     const id = new URL(client.url()).pathname.split('/').pop();
+    await mongoose.connect(isolatedMongoUri());
+    try {
+      const saved = await model('Booking').findById(id).lean();
+      expect(saved.students).toHaveLength(1);
+      expect(saved.students[0]).toMatchObject({
+        name: 'Học sinh từ bước đặt lịch',
+        contact: '0901234567',
+        height: 165.5,
+        weight: 52.5,
+        pantsSize: '28',
+        shirtSize: 'M',
+      });
+    } finally {
+      await mongoose.disconnect();
+    }
     await expect(client.getByRole('heading', { name: 'Thông tin gói đã xác nhận' })).toBeVisible();
     const admin = pages.admin;
     await admin.goto(`/workflow-bookings/${id}`);
@@ -127,7 +168,7 @@ test('published package checkout approves a temporary crew hold and confirms aut
     await accountant.getByRole('button', { name: 'Ghi nhận giao dịch', exact: true }).click();
     await expect(accountant.getByText('Đã chốt lịch', { exact: true }).first()).toBeVisible();
     await admin.reload();
-    await expect(admin.getByRole('button', { name: 'Bắt đầu buổi chụp' })).toBeDisabled();
+    await expect(admin.getByRole('button', { name: 'Bắt đầu buổi chụp' })).toBeEnabled();
     await expect(
       admin.getByRole('heading', { name: 'Chuẩn bị trang phục cho buổi chụp' }),
     ).toBeVisible();
@@ -148,11 +189,30 @@ test('published package checkout approves a temporary crew hold and confirms aut
       client.getByRole('heading', { name: 'Lịch và nguồn lực đã xác nhận' }),
     ).toBeVisible();
     await expect(client.getByRole('button', { name: /Tôi đồng ý báo giá/ })).toHaveCount(0);
-    await client.getByRole('button', { name: 'Thêm thành viên', exact: true }).click();
-    await client.getByLabel('Họ tên', { exact: true }).fill('Thành viên sau chốt lịch');
-    await client.getByLabel('Giới tính', { exact: true }).selectOption('female');
+    await expect(client.getByLabel('Họ tên học sinh 1', { exact: true })).toHaveValue(
+      'Học sinh từ bước đặt lịch',
+    );
+    await expect(client.getByLabel('Size quần học sinh 1', { exact: true })).toHaveValue('28');
+    await expect(client.getByLabel('Size áo học sinh 1', { exact: true })).toHaveValue('M');
+    await expect(client.getByLabel('Ghi chú', { exact: true })).toHaveCount(0);
+    await client.getByLabel('Họ tên học sinh 1', { exact: true }).fill('Thành viên sau chốt lịch');
+    await client.getByLabel('Giới tính học sinh 1', { exact: true }).selectOption('female');
     await client.getByRole('button', { name: 'Lưu danh sách thành viên', exact: true }).click();
     await expect(client.getByText('Đã khai báo 1 / 1 thành viên.', { exact: false })).toBeVisible();
+    await mongoose.connect(isolatedMongoUri());
+    try {
+      const workflow = await model('BookingWorkflow').findOne({ booking: id }).lean();
+      const student = await model('Student').findOne({ customer: workflow.customer }).lean();
+      expect(student).toMatchObject({
+        name: 'Thành viên sau chốt lịch',
+        pantsSize: '28',
+        shirtSize: 'M',
+        height: 165.5,
+        weight: 52.5,
+      });
+    } finally {
+      await mongoose.disconnect();
+    }
     await client.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
     await client.screenshot({ path: path.join(audit, '03-confirmed-package.png'), fullPage: true });
     await client.setViewportSize({ width: 390, height: 844 });
