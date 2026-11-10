@@ -12,6 +12,7 @@ export interface SePayReceipt {
   transactionDate: string;
   booking?: string;
   rentalOrder?: string;
+  conceptOrder?: string;
   status: 'pending' | 'review' | 'applied' | 'ignored';
   hasConflict?: boolean;
   conflicts?: Array<{

@@ -1,6 +1,5 @@
 import { Outlet } from 'react-router-dom';
 import { CustomerContainer } from '../customer/CustomerContainer';
-import { CustomerFooter } from '../customer/CustomerFooter';
 import CustomerHeader from './CustomerHeader';
 
 export default function ClientLayout() {
@@ -18,7 +17,7 @@ export default function ClientLayout() {
       >
         <Outlet />
       </CustomerContainer>
-      <CustomerFooter minimal account />
+      {/* Footer tạm ẩn. Giữ CustomerFooter để bật lại khi cần. */}
     </div>
   );
 }

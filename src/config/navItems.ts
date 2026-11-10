@@ -31,7 +31,9 @@ import PackagesPage from '../pages/PackagesPage';
 import FeedbackPage from '../pages/FeedbackPage';
 import SeasonPage from '@/pages/SeasonPage';
 import BookingWorkflowListPage from '../pages/BookingWorkflowListPage';
-import { clientPortalEnabled } from './features';
+import { clientPortalEnabled, conceptBookingEnabled } from './features';
+import ConceptOrdersPage from '../pages/ConceptOrdersPage';
+import ConceptManagePage from '../pages/ConceptManagePage';
 import RentalListPage from '../pages/RentalListPage';
 import ReportsPage from '../pages/ReportsPage';
 import SePayReceiptsPage from '../pages/SePayReceiptsPage';
@@ -51,6 +53,24 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
+  ...(conceptBookingEnabled
+    ? [
+        {
+          to: '/concept-orders',
+          label: 'Chụp concept',
+          icon: ClipboardList,
+          allowedRoles: [0, 1, 2, 3, 5] as UserRole[],
+          component: ConceptOrdersPage,
+        },
+        {
+          to: '/settings/concepts',
+          label: 'Quản lý concept',
+          icon: Layers,
+          allowedRoles: [0, 1] as UserRole[],
+          component: ConceptManagePage,
+        },
+      ]
+    : []),
   ...(clientPortalEnabled
     ? [
         {

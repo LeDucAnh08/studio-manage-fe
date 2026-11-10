@@ -9,7 +9,7 @@ function ResolveRental({ receipt }: { receipt: SePayReceipt }) {
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
-  if (receipt.booking || receipt.hasConflict) return null;
+  if (receipt.booking || receipt.hasConflict || receipt.conceptOrder) return null;
   return (
     <details className="mt-2">
       <summary>Đối soát vào đơn thuê</summary>
@@ -122,6 +122,10 @@ const columns: Column<SePayReceipt>[] = [
       row.booking ? (
         <Link className="underline" to={`/workflow-bookings/${row.booking}`}>
           Mở đơn
+        </Link>
+      ) : row.conceptOrder ? (
+        <Link className="underline" to={`/concept-orders/${row.conceptOrder}`}>
+          Mở đơn concept
         </Link>
       ) : row.rentalOrder ? (
         <Link className="underline" to={`/rental-orders/${row.rentalOrder}`}>

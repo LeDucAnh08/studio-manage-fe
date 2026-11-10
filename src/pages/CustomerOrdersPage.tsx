@@ -2,6 +2,8 @@ import * as Tabs from '@radix-ui/react-tabs';
 import { useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ConceptOrdersPage from './ConceptOrdersPage';
+import { conceptBookingEnabled } from '../config/features';
 import { CustomerBookingOrders } from '../components/customer/CustomerBookingOrders';
 import { CustomerRentalOrders } from '../components/customer/CustomerRentalOrders';
 import '../styles/customer-orders-workspace.css';
@@ -10,7 +12,12 @@ export default function CustomerOrdersPage() {
   const { user } = useAuth();
   const [params, setParams] = useSearchParams();
   const requested = params.get('tab');
-  const tab = requested === 'rentals' ? 'rentals' : 'bookings';
+  const tab =
+    conceptBookingEnabled && requested === 'concepts'
+      ? 'concepts'
+      : requested === 'rentals'
+        ? 'rentals'
+        : 'bookings';
   useEffect(() => {
     if (requested !== null && requested !== tab) {
       setParams(
@@ -46,6 +53,7 @@ export default function CustomerOrdersPage() {
         <Tabs.List aria-label="Loại đơn" className="customer-order-tabs">
           <Tabs.Trigger value="bookings">Chụp ảnh</Tabs.Trigger>
           <Tabs.Trigger value="rentals">Thuê trang phục</Tabs.Trigger>
+          {conceptBookingEnabled && <Tabs.Trigger value="concepts">Chụp concept</Tabs.Trigger>}
         </Tabs.List>
         <Tabs.Content value="bookings" className="customer-order-panel">
           {tab === 'bookings' && <CustomerBookingOrders />}
@@ -53,6 +61,11 @@ export default function CustomerOrdersPage() {
         <Tabs.Content value="rentals" className="customer-order-panel">
           {tab === 'rentals' && <CustomerRentalOrders />}
         </Tabs.Content>
+        {conceptBookingEnabled && (
+          <Tabs.Content value="concepts" className="customer-order-panel">
+            {tab === 'concepts' && <ConceptOrdersPage />}
+          </Tabs.Content>
+        )}
       </Tabs.Root>
     </div>
   );

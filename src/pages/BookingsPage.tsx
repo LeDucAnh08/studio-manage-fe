@@ -83,7 +83,7 @@ export function BookingNotifications({ base }: { base: string }) {
         {items.map((i) => (
           <Link
             key={i._id}
-            to={`${base}/${i.bookingId}`}
+            to={i.href || `${base}/${i.bookingId}`}
             className={
               customer
                 ? `customer-order-notification ${i.unread ? 'customer-order-notification--unread' : ''}`
@@ -317,7 +317,9 @@ export function BookingDetailPage({ admin = false }: { admin?: boolean }) {
       setItem(await bookingService.get(id!));
       toast.success('Đã gửi phản hồi cho khách');
     } catch (e) {
-      setError(errorText(e));
+      const message = errorText(e);
+      setError(message);
+      toast.error(message);
     } finally {
       setBusy(false);
     }
@@ -395,7 +397,11 @@ export function BookingDetailPage({ admin = false }: { admin?: boolean }) {
                 onChange={(e) => setNote(e.target.value)}
               />
               <div className="flex gap-3">
-                <Button disabled={busy || !note.trim()} onClick={() => review('approved')}>
+                <Button
+                  disabled={busy || !note.trim()}
+                  aria-describedby={!note.trim() ? 'legacy-review-feedback' : undefined}
+                  onClick={() => review('approved')}
+                >
                   Duyệt yêu cầu
                 </Button>
                 <Button
@@ -406,6 +412,11 @@ export function BookingDetailPage({ admin = false }: { admin?: boolean }) {
                   Từ chối
                 </Button>
               </div>
+              {!note.trim() && (
+                <p id="legacy-review-feedback" className="text-sm text-muted-foreground">
+                  Nhập nội dung phản hồi cho khách trước khi duyệt hoặc từ chối yêu cầu.
+                </p>
+              )}
             </section>
           )}
           <section className="space-y-3">

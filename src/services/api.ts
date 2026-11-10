@@ -17,14 +17,19 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401 && error.config?.url !== '/auth/login') {
       // Account bootstrap may fail while a guest is opening an independent album link.
-      if (window.location.pathname.startsWith('/albums/')) return Promise.reject(error);
+      if (
+        window.location.pathname.startsWith('/albums/') ||
+        window.location.pathname.startsWith('/concept-albums/')
+      )
+        return Promise.reject(error);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       const path = `${window.location.pathname}${window.location.search}${window.location.hash}`;
       const canResume =
         path.startsWith('/account/') ||
         path.startsWith('/booking/start') ||
-        path.startsWith('/rental/start');
+        path.startsWith('/rental/start') ||
+        path.startsWith('/concept-booking');
       window.location.href = canResume ? `/login?returnTo=${encodeURIComponent(path)}` : '/login';
     }
     return Promise.reject(error);

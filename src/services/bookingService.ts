@@ -76,6 +76,7 @@ export interface Booking {
   costumeHold?: BookingCostumeHold | null;
 }
 export interface BookingNotification {
+  href?: string;
   _id: string;
   bookingId: string;
   message: string;

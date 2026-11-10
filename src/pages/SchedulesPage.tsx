@@ -36,6 +36,10 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
+import { conceptBookingEnabled } from '../config/features';
+import type { CalendarScheduleItem } from '../components/organisms/ScheduleCalendar';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
 import { ScheduleCalendar } from '../components/organisms';
@@ -356,6 +360,25 @@ interface ScheduleFormValues {
 }
 
 const SchedulesPage = () => {
+  const navigate = useNavigate();
+  const [conceptHolds, setConceptHolds] = useState<CalendarScheduleItem[]>([]);
+  useEffect(() => {
+    if (!conceptBookingEnabled) return;
+    let active = true;
+    const load = () =>
+      api
+        .get<{ data: CalendarScheduleItem[] }>('/concept-orders/calendar-holds')
+        .then((r) => {
+          if (active) setConceptHolds(r.data.data);
+        })
+        .catch(() => {});
+    void load();
+    const timer = window.setInterval(load, 30000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, []);
   const dispatch = useAppDispatch();
   const { list: schedules, total, loading, error } = useAppSelector((s) => s.schedules);
   const { list: customers } = useAppSelector((s) => s.customers);
@@ -443,6 +466,10 @@ const SchedulesPage = () => {
   };
 
   const openEdit = (s: ScheduleResponse) => {
+    if (s.conceptOrder) {
+      navigate(`/concept-orders/${s.conceptOrder}`);
+      return;
+    }
     if (s.workflowBooking) {
       toast.error(
         'Lịch này đã liên kết đơn chụp ảnh. Quản trị viên xử lý thay đổi trong Đơn chụp ảnh.',
@@ -537,6 +564,10 @@ const SchedulesPage = () => {
   };
 
   const handleDelete = (id: string) => {
+    if (schedules.find((schedule) => schedule._id === id)?.conceptOrder) {
+      toast.error('Quản lý lịch này qua hồ sơ concept.');
+      return;
+    }
     if (schedules.find((schedule) => schedule._id === id)?.workflowBooking) {
       toast.error('Lịch có hồ sơ dịch vụ cần được hủy qua đề xuất và xác nhận của khách.');
       return;
@@ -619,8 +650,9 @@ const SchedulesPage = () => {
   };
 
   const calendarItems = useMemo(
-    () =>
-      schedules.map((s) => ({
+    () => [
+      ...conceptHolds,
+      ...schedules.map((s) => ({
         _id: s._id,
         shootDate: s.shootDate,
         startTime: s.startTime,
@@ -628,14 +660,15 @@ const SchedulesPage = () => {
         location: s.location,
         status: s.status,
         notes: s.notes,
-        className: s.customer?.className ?? '—',
+        className: s.conceptTitle || s.customer?.className || '—',
         leadName: s.leadPhotographer?.name ?? s.leadPhotographer?.username,
       })),
-    [schedules],
+    ],
+    [schedules, conceptHolds],
   );
 
   const scheduleDescription = (s: ScheduleResponse) =>
-    `${s.customer?.className ?? 'Chưa có lớp'} · ${formatDate(s.shootDate)}`;
+    `${s.conceptTitle || s.customer?.className || 'Chưa có lớp'} · ${formatDate(s.shootDate)}`;
   const pagination = {
     page,
     pageSize,
@@ -670,7 +703,7 @@ const SchedulesPage = () => {
             onClick={() => setDetail(s)}
             aria-label={`Xem lịch ${scheduleDescription(s)}`}
           >
-            {s.customer?.className ?? '—'}
+            {s.conceptTitle || s.customer?.className || '—'}
           </button>
           <span className="text-muted-foreground text-xs">{s.customer?.school ?? ''}</span>
         </div>
@@ -886,10 +919,20 @@ const SchedulesPage = () => {
           <ScheduleCalendar
             items={calendarItems}
             onEdit={(id) => {
+              if (id.startsWith('concept:')) {
+                navigate(`/concept-orders/${id.slice(8)}`);
+                return;
+              }
               const s = schedules.find((x) => x._id === id);
               if (s) openEdit(s);
             }}
-            onDelete={handleDelete}
+            onDelete={(id) => {
+              if (id.startsWith('concept:')) {
+                navigate(`/concept-orders/${id.slice(8)}`);
+                return;
+              }
+              void handleDelete(id);
+            }}
           />
         </div>
       ) : (
@@ -1201,7 +1244,7 @@ const SchedulesPage = () => {
                     {statusLabel[detail.status]}
                   </Badge>
                   <h3 className="text-xl font-semibold break-words">
-                    {detail.customer?.className ?? '—'}
+                    {detail.conceptTitle || detail.customer?.className || '—'}
                   </h3>
                   <p className="text-sm text-muted-foreground">{detail.customer?.school}</p>
                   <p className="text-sm tabular-nums">

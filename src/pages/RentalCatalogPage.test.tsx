@@ -13,6 +13,7 @@ vi.mock('../components/Layout/PublicSiteLayout', () => ({
 }));
 
 vi.mock('../config/features', () => ({
+  conceptBookingEnabled: false,
   get clientPortalEnabled() {
     return flags.portal;
   },
@@ -369,17 +370,6 @@ describe('date-first rental catalog', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('opens a standalone rental request with the chosen period without a photography package', async () => {
-    renderCatalog(periodQuery);
-    fireEvent.click(await screen.findByRole('link', { name: 'Tạo yêu cầu thuê riêng' }));
-    const url = catalogUrl();
-    expect(url.pathname).toBe('/rental/start');
-    expect(url.searchParams.get('receiveDate')).toBe(receiveDate);
-    expect(url.searchParams.get('returnDate')).toBe(returnDate);
-    expect(url.searchParams.has('source')).toBe(false);
-    expect(url.searchParams.has('package')).toBe(false);
-  });
-
   it('locks the existing period while adding, preserves the mode through filters, and offers a return path', async () => {
     renderCatalog(`${periodQuery}&add=1`);
     await screen.findByRole('heading', { name: item.name });
@@ -402,11 +392,11 @@ describe('date-first rental catalog', () => {
     expect(costumeService.getPublicCatalog).toHaveBeenLastCalledWith({ receiveDate, returnDate });
   });
 
-  it('offers both request creation and card selection by default', async () => {
+  it('offers card selection without a separate request creation button', async () => {
     renderCatalog(periodQuery);
     await screen.findByRole('heading', { name: item.name });
     expect(screen.getByLabelText(/Ngày nhận/)).toHaveValue(receiveDate);
-    expect(screen.getByRole('link', { name: 'Tạo yêu cầu thuê riêng' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Tạo yêu cầu thuê riêng' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Liên hệ thuê riêng' })).not.toBeInTheDocument();
     const select = screen.getByRole('link', { name: `Chọn mẫu ${item.name}` });
     expect(select).toHaveAttribute('href', `/rental/start?item=${item._id}&${periodQuery}`);

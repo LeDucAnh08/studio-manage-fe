@@ -268,6 +268,7 @@ export default function BookingWorkflowDetailPage() {
   const [busy, setBusy] = useState('');
   const [paymentRefreshError, setPaymentRefreshError] = useState('');
   const [reviewNote, setReviewNote] = useState('');
+  const [reviewError, setReviewError] = useState('');
   const [quoteLines, setQuoteLines] = useState<QuoteLineInput[]>([]);
   const [depositRequired, setDepositRequired] = useState('');
   const [quoteDate, setQuoteDate] = useState('');
@@ -298,6 +299,7 @@ export default function BookingWorkflowDetailPage() {
     try {
       const detail = await bookingWorkflowService.get(id);
       setRecord(detail);
+      setReviewError('');
       if (isAdmin || isClient) {
         const legacy = await bookingService.get(id).catch(() => null);
         setLegacyBooking(legacy);
@@ -515,7 +517,9 @@ export default function BookingWorkflowDetailPage() {
       mutationKeys.current.delete(signature);
       return updated;
     } catch (actionError) {
-      setError(errorText(actionError));
+      const message = errorText(actionError);
+      setError(message);
+      toast.error(message);
       return null;
     } finally {
       setBusy('');
@@ -523,9 +527,18 @@ export default function BookingWorkflowDetailPage() {
   };
 
   const submitReview = async (status: 'approved' | 'rejected') => {
-    if (!reviewNote.trim() && !(booking?.packageAgreement && status === 'approved')) return;
+    if (!reviewNote.trim() && !(booking?.packageAgreement && status === 'approved')) {
+      const message =
+        status === 'rejected'
+          ? 'Nhập lý do từ chối để phản hồi cho khách.'
+          : 'Nhập nội dung phản hồi cho khách trước khi duyệt yêu cầu.';
+      setReviewError(message);
+      toast.error(message);
+      return;
+    }
     setBusy('review');
     setError('');
+    setReviewError('');
     try {
       await bookingService.review(
         id,
@@ -535,7 +548,9 @@ export default function BookingWorkflowDetailPage() {
       toast.success('Đã gửi phản hồi cho khách.');
       await load();
     } catch (reviewError) {
-      setError(errorText(reviewError));
+      const message = errorText(reviewError);
+      setReviewError(message);
+      toast.error(message);
     } finally {
       setBusy('');
     }
@@ -1119,19 +1134,36 @@ export default function BookingWorkflowDetailPage() {
               maxLength={2000}
               rows={3}
               value={reviewNote}
-              onChange={(event) => setReviewNote(event.target.value)}
+              onChange={(event) => {
+                setReviewNote(event.target.value);
+                setReviewError('');
+              }}
             />
           </Field>
+          {(reviewError || (!booking.packageAgreement && !reviewNote.trim())) && (
+            <p
+              id="booking-review-feedback"
+              role={reviewError ? 'alert' : undefined}
+              className={`text-sm ${reviewError ? 'text-destructive' : 'text-muted-foreground'}`}
+            >
+              {reviewError || 'Nhập nội dung phản hồi cho khách trước khi duyệt yêu cầu.'}
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
             <Button
-              disabled={busy !== '' || (!booking.packageAgreement && !reviewNote.trim())}
+              disabled={busy !== ''}
+              aria-describedby={
+                reviewError || (!booking.packageAgreement && !reviewNote.trim())
+                  ? 'booking-review-feedback'
+                  : undefined
+              }
               onClick={() => void submitReview('approved')}
             >
               {booking.packageAgreement ? 'Duyệt và giữ lịch tạm' : 'Duyệt yêu cầu'}
             </Button>
             <Button
               variant="outline"
-              disabled={busy !== '' || !reviewNote.trim()}
+              disabled={busy !== ''}
               onClick={() => void submitReview('rejected')}
             >
               Từ chối

@@ -155,6 +155,8 @@ export interface Schedule {
   package: string | null;
   costumes: string[];
   workflowBooking?: string;
+  conceptOrder?: string;
+  conceptTitle?: string;
   costumeReservations?: ScheduleCostumeReservation[];
   shootDate: string;
   startTime?: string;

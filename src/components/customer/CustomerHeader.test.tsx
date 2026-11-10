@@ -22,6 +22,7 @@ vi.mock('../../services/bookingService', () => ({
 }));
 
 vi.mock('../../config/features', () => ({
+  conceptBookingEnabled: false,
   get clientPortalEnabled() {
     return mocks.flags.portal;
   },
@@ -292,24 +293,6 @@ describe('Customer shared navigation', () => {
       });
     },
   );
-
-  it('takes the account footer booking link to the shared booking entry', () => {
-    render(
-      <MemoryRouter initialEntries={['/account/bookings']}>
-        <ClientLayout />
-        <LocationProbe />
-      </MemoryRouter>,
-    );
-    const footer = screen.getByRole('navigation', { name: 'Khám phá và đặt dịch vụ' });
-    const booking = within(footer).getByRole('link', { name: 'Đặt dịch vụ' });
-    expect(booking).toHaveAttribute('href', '/account/bookings/new');
-
-    fireEvent.click(booking);
-    expect(JSON.parse(screen.getByTestId('location').textContent || '{}')).toMatchObject({
-      pathname: '/account/bookings/new',
-      search: '',
-    });
-  });
 
   it('uses consultation without unavailable account routes when the portal is disabled', async () => {
     mocks.flags.portal = false;

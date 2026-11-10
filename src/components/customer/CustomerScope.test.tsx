@@ -18,6 +18,7 @@ vi.mock('../../context/AuthContext', () => ({
 }));
 
 vi.mock('../../config/features', () => ({
+  conceptBookingEnabled: false,
   get clientPortalEnabled() {
     return mocks.flags.portal;
   },

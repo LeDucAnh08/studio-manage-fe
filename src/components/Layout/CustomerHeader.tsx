@@ -1,7 +1,7 @@
 import { UserRound } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { clientPortalEnabled } from '../../config/features';
+import { clientPortalEnabled, conceptBookingEnabled } from '../../config/features';
 import Logo from '../atoms/Logo';
 import { CustomerButton } from '../customer/CustomerButton';
 import { CustomerContainer } from '../customer/CustomerContainer';
@@ -22,6 +22,7 @@ const publicLinks = [
   { to: '/pricing', label: 'Bảng giá' },
 ];
 const clientLinks = [
+  ...(conceptBookingEnabled ? [{ to: '/concept-booking', label: 'Chụp concept' }] : []),
   { to: '/account/bookings/new', label: 'Đặt dịch vụ' },
   { to: '/costumes', label: 'Trang phục' },
   { to: '/pricing', label: 'Bảng giá' },

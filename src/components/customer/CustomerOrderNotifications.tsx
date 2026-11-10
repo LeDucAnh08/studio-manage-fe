@@ -96,7 +96,7 @@ export function CustomerOrderNotifications() {
                 <li key={item._id}>
                   <Popover.Close asChild>
                     <Link
-                      to={`/account/bookings/${item.bookingId}`}
+                      to={item.href || `/account/bookings/${item.bookingId}`}
                       className={item.unread ? 'is-unread' : ''}
                     >
                       <p>{item.message}</p>

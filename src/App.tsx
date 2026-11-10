@@ -42,7 +42,10 @@ import CustomerToastContainer from './components/customer/CustomerToastContainer
 import 'react-toastify/dist/ReactToastify.css';
 import { usePageTitle } from './hooks/usePageTitle';
 import { TooltipProvider } from '@/components/ui';
-import { clientPortalEnabled } from './config/features';
+import { clientPortalEnabled, conceptBookingEnabled } from './config/features';
+import ConceptBookingPage from './pages/ConceptBookingPage';
+import ConceptOrderPage from './pages/ConceptOrderPage';
+import { GuestConceptAlbumPage } from './pages/ConceptAlbumPanel';
 
 function PageTitleManager() {
   usePageTitle();
@@ -188,6 +191,9 @@ function App() {
           <BrowserRouter>
             <PageTitleManager />
             <Routes>
+              {conceptBookingEnabled && (
+                <Route path="/concept-albums/:publicId" element={<GuestConceptAlbumPage />} />
+              )}
               <Route path="/albums/:publicId" element={<AlbumEntry />} />
               <Route
                 path="/workflow-bookings/:id/album"
@@ -210,7 +216,13 @@ function App() {
                   }
                 />
                 <Route path="/services" element={<PublicDiscoveryPage page="services" />} />
-                <Route path="/concepts" element={<ConceptEntry />} />
+                <Route
+                  path="/concepts"
+                  element={conceptBookingEnabled ? <ConceptBookingPage /> : <ConceptEntry />}
+                />
+                {conceptBookingEnabled && (
+                  <Route path="/concept-booking" element={<ConceptBookingPage />} />
+                )}
                 <Route path="/pricing" element={<PublicDiscoveryPage page="pricing" />} />
                 <Route path="/pricing/:id" element={<PublicPackageDetailPage />} />
                 <Route path="/consultation" element={<Navigate to="/services" replace />} />
@@ -237,6 +249,9 @@ function App() {
                   >
                     <Route index element={<Navigate to="orders" replace />} />
                     <Route path="orders" element={<CustomerOrdersPage />} />
+                    {conceptBookingEnabled && (
+                      <Route path="concept-orders/:id" element={<ConceptOrderPage />} />
+                    )}
                     <Route
                       path="bookings"
                       element={<Navigate to="/account/orders?tab=bookings" replace />}
@@ -245,6 +260,16 @@ function App() {
                     <Route path="bookings/:id" element={<BookingWorkflowDetailPage />} />
                     <Route path="bookings/:id/delivery" element={<BookingDeliveryPage />} />
                     <Route path="profile" element={<ProfilePage />} />
+                    {conceptBookingEnabled && (
+                      <Route
+                        path="concept-orders/:id"
+                        element={
+                          <ProtectedRoute allowedRoles={[0, 1, 2, 3, 5]}>
+                            <ConceptOrderPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                    )}
                     <Route path="verify-email" element={<VerifyEmailPage />} />
                     <Route
                       path="rentals"
@@ -299,6 +324,16 @@ function App() {
                 >
                   {[...navItems, ...adminItems].map(renderRouteItem)}
                   <Route path="profile" element={<ProfilePage />} />
+                  {conceptBookingEnabled && (
+                    <Route
+                      path="concept-orders/:id"
+                      element={
+                        <ProtectedRoute allowedRoles={[0, 1, 2, 3, 5]}>
+                          <ConceptOrderPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                  )}
                   <Route
                     path="settings/packages/:id/content"
                     element={

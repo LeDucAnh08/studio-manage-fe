@@ -75,6 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const logout = useCallback(() => {
+    sessionStorage.removeItem('yume-concept-draft-v1');
     clearBookingDraft();
     clearRentalDraft();
     localStorage.removeItem('token');

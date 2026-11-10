@@ -1,0 +1,293 @@
+.concept-workspace {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 0 48px;
+  color: var(--customer-text, #222);
+  line-height: 1.6;
+}
+.concept-workspace h1 {
+  font-size: clamp(26px, 4vw, 38px);
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 8px 0 16px;
+}
+.concept-workspace h2 {
+  font-size: 24px;
+  font-weight: 650;
+  margin: 24px 0 16px;
+}
+.concept-workspace h3 {
+  font-size: 19px;
+  font-weight: 600;
+}
+.concept-workspace a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.concept-eyebrow {
+  color: #656565;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+.concept-steps,
+.concept-tabs,
+.concept-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+.concept-steps {
+  list-style: none;
+  padding: 0;
+  counter-reset: step;
+}
+.concept-steps li {
+  padding: 8px 12px;
+  border-bottom: 2px solid #eee;
+  color: #666;
+}
+.concept-steps [aria-current] {
+  color: #b51c40;
+  border-color: #e42c53;
+}
+.concept-workspace button,
+.concept-workspace .concept-button {
+  padding: 10px 16px;
+  min-height: 44px;
+  border: 1px solid #d5d5d5;
+  background: white;
+  border-radius: 8px;
+  color: #222;
+  cursor: pointer;
+  text-decoration: none;
+}
+.concept-workspace button:hover:not(:disabled) {
+  background: #fff2f5;
+  border-color: #bd2147;
+}
+.concept-workspace button[aria-pressed='true'] {
+  background: #ffe7ed;
+  border-color: #bd2147;
+}
+.concept-workspace button:disabled {
+  background: #ededed;
+  color: #777;
+  cursor: not-allowed;
+}
+.concept-workspace :focus-visible {
+  outline: 3px solid #b51c40;
+  outline-offset: 3px;
+}
+.concept-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 20px;
+}
+.concept-card {
+  border: 1px solid #e2e2e2;
+  border-radius: 12px;
+  padding: 22px;
+  margin: 16px 0;
+  background: #fff;
+  min-width: 0;
+}
+.concept-card > img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.concept-workspace label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 12px 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.concept-workspace input:not([type='checkbox']),
+.concept-workspace select,
+.concept-workspace textarea {
+  padding: 10px 12px;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  min-height: 44px;
+  width: 100%;
+  background: white;
+  color: #222;
+}
+.concept-workspace textarea {
+  min-height: 100px;
+}
+.concept-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 16px;
+}
+.concept-workspace .concept-check {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+}
+.concept-check input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+}
+.concept-date-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+.concept-date-grid button {
+  padding: 12px 4px;
+}
+.concept-date-grid small {
+  display: block;
+  font-size: 11px;
+}
+.concept-error {
+  padding: 14px;
+  border: 1px solid #c52f49;
+  background: #fff0f2;
+  color: #981a32;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+.concept-notice {
+  padding: 14px;
+  background: #f6f6f6;
+  border-radius: 8px;
+}
+.concept-portfolio {
+  display: flex;
+  gap: 8px;
+  overflow: auto;
+}
+.concept-portfolio img {
+  width: 130px;
+  height: 130px;
+  object-fit: cover;
+}
+.concept-order-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid #eee;
+  padding: 18px 0;
+  flex-wrap: wrap;
+}
+.concept-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
+  gap: 14px;
+}
+.concept-photo img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  background: #eee;
+}
+.concept-photo {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px;
+  overflow: hidden;
+}
+.concept-photo p {
+  overflow-wrap: anywhere;
+}
+.concept-photo [aria-pressed='true'] {
+  color: #a51437;
+}
+.concept-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000b;
+  z-index: 1000;
+}
+.concept-dialog {
+  position: fixed;
+  inset: 4vh 4vw;
+  background: #fff;
+  z-index: 1001;
+  padding: 18px;
+  border-radius: 12px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.concept-dialog figure {
+  overflow: auto;
+  flex: 1;
+  min-height: 100px;
+  background: #f5f5f5;
+}
+.concept-dialog figure img {
+  display: block;
+  max-width: 100%;
+  max-height: 65vh;
+  margin: auto;
+  object-fit: contain;
+}
+.concept-dialog figure[data-zoom='true'] img {
+  max-width: none;
+  max-height: none;
+  width: 150%;
+}
+.concept-qr {
+  width: 230px;
+  height: 230px;
+  max-width: 100%;
+  object-fit: contain;
+}
+.concept-payments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.concept-payments article {
+  flex: 1;
+  min-width: min(100%, 250px);
+}
+.concept-workspace pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.concept-workspace table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.concept-workspace td,
+.concept-workspace th {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+@media (max-width: 600px) {
+  .concept-workspace {
+    padding: 16px 0 32px;
+  }
+  .concept-card {
+    padding: 16px;
+  }
+  .concept-date-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .concept-steps {
+    gap: 4px;
+  }
+  .concept-steps li {
+    padding: 6px;
+    font-size: 12px;
+  }
+  .concept-dialog {
+    inset: 2vh 2vw;
+    padding: 12px;
+  }
+  .concept-photo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

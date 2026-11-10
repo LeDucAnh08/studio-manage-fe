@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { toast } from 'react-toastify';
 import { CustomerAppearanceContext } from '@/components/customer/CustomerAppearance';
 import type { BookingWorkflowDto } from '../services/bookingWorkflowService';
 import type { RentalOrder } from '../services/rentalService';
@@ -18,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   legacyGet: vi.fn(),
   bookingList: vi.fn(),
   bookingNotifications: vi.fn(),
+  bookingReview: vi.fn(),
   photographers: vi.fn(),
   rentalGet: vi.fn(),
   rentalAct: vi.fn(),
@@ -29,7 +31,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../context/AuthContext', () => ({ useAuth: () => mocks.auth }));
-vi.mock('../config/features', () => ({ clientPortalEnabled: true }));
+vi.mock('../config/features', () => ({
+  conceptBookingEnabled: false,
+  clientPortalEnabled: true,
+}));
 vi.mock('../services/bookingWorkflowService', async () => ({
   ...(await vi.importActual('../services/bookingWorkflowService')),
   bookingWorkflowService: {
@@ -45,6 +50,7 @@ vi.mock('../services/bookingService', async () => ({
     get: mocks.legacyGet,
     list: mocks.bookingList,
     notifications: mocks.bookingNotifications,
+    review: mocks.bookingReview,
   },
 }));
 vi.mock('../services/userService', () => ({
@@ -250,6 +256,41 @@ describe('Customer order presentation preserves workflow contracts', () => {
     expect(
       screen.queryByRole('heading', { name: 'Lập báo giá và đề xuất lịch' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('notifies the exact approval failure beside the button and permits retry after assignment', async () => {
+    const record = intakeFixture();
+    record.booking.packageAgreement = packageAgreement();
+    const reason =
+      'Cần phân công ít nhất 3 thợ chụp trước khi duyệt giữ lịch. Hiện có 2 thợ; cần thêm 1 thợ.';
+    mocks.workflowGet.mockResolvedValue(record);
+    mocks.bookingReview
+      .mockRejectedValueOnce(apiFailure(reason))
+      .mockResolvedValueOnce({ _id: 'booking-1' });
+    mocks.auth.user = { _id: 'admin-1', name: 'Admin', roles: [0] };
+    renderBooking(false);
+    const approve = await screen.findByRole('button', { name: 'Duyệt và giữ lịch tạm' });
+    fireEvent.click(approve);
+    const notification = await screen.findByRole('alert');
+    expect(notification).toHaveTextContent(reason);
+    expect(notification.closest('section')).toContainElement(approve);
+    expect(approve).toHaveAccessibleDescription(reason);
+    expect(toast.error).toHaveBeenCalledWith(reason);
+    expect(approve).toBeEnabled();
+    expect(toast.success).not.toHaveBeenCalled();
+    const updated = structuredClone(record);
+    updated.booking.status = 'approved';
+    updated.workflow.lifecycle = 'awaiting_deposit';
+    mocks.workflowGet.mockResolvedValue(updated);
+    fireEvent.click(approve);
+    await waitFor(() => expect(mocks.bookingReview).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: 'Duyệt và giữ lịch tạm' }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(toast.success).toHaveBeenCalledWith('Đã gửi phản hồi cho khách.');
   });
 
   it('shows the deposit deadline for a package and does not ask the client to accept another quote', async () => {
@@ -696,8 +737,24 @@ describe('Customer order presentation preserves workflow contracts', () => {
     expect(feedback).not.toHaveClass('customer-control');
     const approve = screen.getByRole('button', { name: 'Duyệt yêu cầu' });
     const reject = screen.getByRole('button', { name: 'Từ chối' });
-    expect(approve).toBeDisabled();
-    expect(reject).toBeDisabled();
+    expect(approve).toBeEnabled();
+    expect(reject).toBeEnabled();
+    expect(approve).toHaveAccessibleDescription(
+      'Nhập nội dung phản hồi cho khách trước khi duyệt yêu cầu.',
+    );
+    fireEvent.click(approve);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Nhập nội dung phản hồi cho khách trước khi duyệt yêu cầu.',
+    );
+    expect(toast.error).toHaveBeenCalledWith(
+      'Nhập nội dung phản hồi cho khách trước khi duyệt yêu cầu.',
+    );
+    expect(mocks.bookingReview).not.toHaveBeenCalled();
+    fireEvent.click(reject);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Nhập lý do từ chối để phản hồi cho khách.',
+    );
+    expect(mocks.bookingReview).not.toHaveBeenCalled();
     fireEvent.change(feedback, { target: { value: 'Studio đã nhận yêu cầu của lớp.' } });
     expect(approve).toBeEnabled();
     expect(reject).toBeEnabled();
@@ -781,6 +838,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
     renderBooking();
     fireEvent.click(await screen.findByRole('button', { name: 'Tôi đồng ý báo giá phiên bản 2' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Báo giá đã thay đổi');
+    expect(toast.error).toHaveBeenCalledWith('Báo giá đã thay đổi');
     expect(screen.getByRole('button', { name: 'Tôi đồng ý báo giá phiên bản 2' })).toBeEnabled();
     expect(mocks.workflowAct).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'Tải lại hồ sơ' }));

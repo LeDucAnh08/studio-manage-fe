@@ -17,6 +17,7 @@ vi.mock('./context/ThemeContext', () => ({
   useTheme: () => ({ themeMode: 'light', resolvedTheme: 'light', setThemeMode: vi.fn() }),
 }));
 vi.mock('./config/features', () => ({
+  conceptBookingEnabled: false,
   get clientPortalEnabled() {
     return mocks.flags.portal;
   },

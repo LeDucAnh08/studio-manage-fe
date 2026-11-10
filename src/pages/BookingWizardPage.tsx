@@ -64,6 +64,12 @@ const durationLabel: Record<NonNullable<Package['duration']>, string> = {
   half_day: 'Nửa ngày',
   two_thirds_day: '2/3 ngày',
 };
+const durationHours: Record<NonNullable<Package['duration']>, number> = {
+  full_day: 12,
+  half_day: 6,
+  two_thirds_day: 8,
+};
+const DEFAULT_SHOOT_START = '07:00';
 const editingLabel: Record<NonNullable<Package['editingScope']>, string> = {
   full: 'Chỉnh sửa toàn bộ ảnh',
   partial: 'Chỉnh sửa một phần ảnh',
@@ -135,7 +141,7 @@ function validatePhone(value: string): string | undefined {
   }
 }
 
-function validateStepTwo(draft: BookingDraft): WizardErrors {
+function validateStepTwo(draft: BookingDraft, automaticEnd = false): WizardErrors {
   const errors: WizardErrors = {};
   if (!draft.className.trim()) errors.className = 'Nhập tên lớp hoặc nhóm.';
   if (!draft.contactName.trim()) errors.contactName = 'Nhập tên người liên hệ.';
@@ -151,7 +157,9 @@ function validateStepTwo(draft: BookingDraft): WizardErrors {
   const start = parseVietnamDateTime(draft.startAt);
   const end = parseVietnamDateTime(draft.endAt);
   if (!draft.startAt || !Number.isFinite(start) || start <= Date.now()) {
-    errors.startAt = 'Chọn thời gian bắt đầu trong tương lai.';
+    errors.startAt = automaticEnd
+      ? 'Chọn ngày chụp có giờ bắt đầu 07:00 trong tương lai.'
+      : 'Chọn thời gian bắt đầu trong tương lai.';
   }
   if (!draft.endAt || !Number.isFinite(end) || end <= start) {
     errors.endAt = 'Thời gian kết thúc phải sau lúc bắt đầu.';
@@ -331,6 +339,12 @@ export default function BookingWizardPage() {
   const [submitting, setSubmitting] = useState(false);
   const submittedRef = useRef(false);
   const [minimumTime] = useState(() => vietnamDateTimeInput(new Date(Date.now() + 5 * 60_000)));
+  const minimumShootDay =
+    minimumTime.slice(11) < DEFAULT_SHOOT_START
+      ? minimumTime.slice(0, 10)
+      : vietnamDateTimeInput(
+          new Date(parseVietnamDateTime(minimumTime) + 24 * 60 * 60 * 1000),
+        ).slice(0, 10);
 
   const loadPackages = useCallback(() => {
     setLoadingPackages(true);
@@ -348,6 +362,23 @@ export default function BookingWizardPage() {
   }, [draft]);
 
   const selectedPackage = packages.find((item) => item._id === draft.packageId);
+  const shootingHours = selectedPackage?.duration
+    ? durationHours[selectedPackage.duration]
+    : undefined;
+  useEffect(() => {
+    if (!shootingHours) return;
+    const startAt = draft.startAt ? `${draft.startAt.slice(0, 10)}T${DEFAULT_SHOOT_START}` : '';
+    const start = parseVietnamDateTime(startAt);
+    const endAt = Number.isFinite(start)
+      ? vietnamDateTimeInput(new Date(start + shootingHours * 60 * 60 * 1000))
+      : '';
+    setDraft((current) =>
+      current.startAt === startAt && current.endAt === endAt
+        ? current
+        : { ...current, startAt, endAt },
+    );
+  }, [draft.startAt, shootingHours]);
+
   const packageConsentKey = selectedPackage
     ? JSON.stringify([
         selectedPackage._id,
@@ -439,7 +470,7 @@ export default function BookingWizardPage() {
       step === 1
         ? validateStepOne(draft, packages)
         : step === 2
-          ? validateStepTwo(draft)
+          ? validateStepTwo(draft, !!shootingHours)
           : validateStudents(draft);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) {
@@ -475,7 +506,7 @@ export default function BookingWizardPage() {
     if (loadingPackages) return;
     const validation = {
       ...validateStepOne(draft, packages),
-      ...validateStepTwo(draft),
+      ...validateStepTwo(draft, !!shootingHours),
       ...validateStudents(draft),
     };
     if (Object.keys(validation).length) {
@@ -854,7 +885,9 @@ export default function BookingWizardPage() {
                 {selectedPackage.duration && (
                   <div>
                     <p className="customer-caption">Thời lượng</p>
-                    <p className="customer-caption">{durationLabel[selectedPackage.duration]}</p>
+                    <p className="customer-caption">
+                      {durationLabel[selectedPackage.duration]} · {shootingHours} giờ
+                    </p>
                   </div>
                 )}
                 <div>
@@ -943,14 +976,24 @@ export default function BookingWizardPage() {
                   onChange={(event) => updateDraft({ location: event.target.value })}
                 />
               </Field>
-              <Field id="startAt" label="Ngày và giờ bắt đầu mong muốn" error={errors.startAt}>
+              <Field
+                id="startAt"
+                label={shootingHours ? 'Ngày bắt đầu mong muốn' : 'Ngày và giờ bắt đầu mong muốn'}
+                error={errors.startAt}
+              >
                 <Input
                   id="startAt"
-                  type="datetime-local"
-                  min={minimumTime}
-                  value={draft.startAt}
+                  type={shootingHours ? 'date' : 'datetime-local'}
+                  min={shootingHours ? minimumShootDay : minimumTime}
+                  value={shootingHours ? draft.startAt.slice(0, 10) : draft.startAt}
                   aria-invalid={!!errors.startAt}
-                  onChange={(event) => updateDraft({ startAt: event.target.value })}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    updateDraft({
+                      startAt: shootingHours && value ? `${value}T${DEFAULT_SHOOT_START}` : value,
+                    });
+                    setErrors((current) => ({ ...current, startAt: undefined, endAt: undefined }));
+                  }}
                 />
               </Field>
               <Field id="endAt" label="Ngày và giờ kết thúc mong muốn" error={errors.endAt}>
@@ -959,10 +1002,17 @@ export default function BookingWizardPage() {
                   type="datetime-local"
                   min={draft.startAt || minimumTime}
                   value={draft.endAt}
+                  readOnly={!!shootingHours}
                   aria-invalid={!!errors.endAt}
                   onChange={(event) => updateDraft({ endAt: event.target.value })}
                 />
               </Field>
+              {shootingHours && (
+                <p className="customer-caption customer-wizard__field-wide">
+                  Buổi chụp bắt đầu lúc {DEFAULT_SHOOT_START}, thời gian kết thúc tự tính theo thời
+                  lượng gói ({shootingHours} giờ). Bạn chỉ cần chọn ngày bắt đầu.
+                </p>
+              )}
               <div className="customer-wizard__field-wide">
                 <Field id="note" label="Điều Yume nên biết thêm" error={errors.note}>
                   <Textarea

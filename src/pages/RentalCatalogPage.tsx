@@ -17,7 +17,6 @@ import { costumeService } from '../services/costumeService';
 import PublicSiteLayout from '../components/Layout/PublicSiteLayout';
 import type { RentalCatalogFilters, RentalCatalogItem } from '../types';
 import { rentalDayCount, validateRentalPeriod, vietnamToday } from '../utils/rentalPeriod';
-import { clientPortalEnabled } from '../config/features';
 
 const SIZES = [
   'XS',
@@ -504,13 +503,6 @@ export default function RentalCatalogPage() {
                   </p>
                 </div>
                 <p className="customer-caption">Số lượng hiển thị theo kỳ thuê đã chọn.</p>
-                {clientPortalEnabled && !addingToRental && (
-                  <CustomerButton asChild variant="secondary">
-                    <Link to={`/rental/start?${new URLSearchParams({ receiveDate, returnDate })}`}>
-                      Tạo yêu cầu thuê riêng
-                    </Link>
-                  </CustomerButton>
-                )}
               </header>
             )}
             {!periodValid ? (

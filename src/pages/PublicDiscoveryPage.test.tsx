@@ -5,6 +5,7 @@ import PublicDiscoveryPage from './PublicDiscoveryPage';
 const mocks = vi.hoisted(() => ({ packages: vi.fn(), portal: true }));
 vi.mock('../services/packageService', () => ({ packageService: { listPublic: mocks.packages } }));
 vi.mock('../config/features', () => ({
+  conceptBookingEnabled: false,
   get clientPortalEnabled() {
     return mocks.portal;
   },

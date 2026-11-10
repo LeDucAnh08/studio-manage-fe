@@ -52,8 +52,8 @@ const vnDateTimeInput = (value: Date) => {
 };
 
 const futureWindow = (days = 30, hours = 2) => {
-  const start = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
-  start.setSeconds(0, 0);
+  const day = vnDateTimeInput(new Date(Date.now() + days * 24 * 60 * 60 * 1000)).slice(0, 10);
+  const start = new Date(`${day}T08:00:00+07:00`);
   return {
     start: vnDateTimeInput(start),
     end: vnDateTimeInput(new Date(start.getTime() + hours * 60 * 60 * 1000)),
@@ -92,13 +92,15 @@ function fillDetails(options: { endDays?: number } = {}) {
   fireEvent.change(screen.getByLabelText('Số điện thoại'), { target: { value: '0901234567' } });
   fireEvent.change(screen.getByLabelText('Số thành viên dự kiến'), { target: { value: '30' } });
   fireEvent.change(screen.getByLabelText('Địa điểm mong muốn'), { target: { value: 'Hà Nội' } });
-  fireEvent.change(screen.getByLabelText('Ngày và giờ bắt đầu mong muốn'), {
-    target: { value: start },
+  const startInput = screen.getByLabelText<HTMLInputElement>(/^Ngày.*bắt đầu mong muốn$/);
+  fireEvent.change(startInput, {
+    target: { value: startInput.type === 'date' ? start.slice(0, 10) : start },
   });
-  fireEvent.change(screen.getByLabelText('Ngày và giờ kết thúc mong muốn'), {
-    target: { value: endValue },
-  });
-  return { start, end: endValue };
+  const endInput = screen.getByLabelText<HTMLInputElement>('Ngày và giờ kết thúc mong muốn');
+  if (!endInput.readOnly) {
+    fireEvent.change(endInput, { target: { value: endValue } });
+  }
+  return { start, end: endInput.value };
 }
 
 async function reviewRequest() {
@@ -111,6 +113,143 @@ async function reviewRequest() {
 }
 
 describe('NewBookingPage', () => {
+  it.each([
+    ['full_day', '19:00'],
+    ['half_day', '13:00'],
+    ['two_thirds_day', '15:00'],
+  ] as const)('automatically fills and submits the end time for %s', async (duration, end) => {
+    vi.mocked(packageService.listPublic).mockResolvedValue([
+      { _id: 'package-1', name: 'Gói thử', pricePerMember: 500_000, duration },
+    ]);
+    render(
+      <MemoryRouter>
+        <NewBookingPage />
+      </MemoryRouter>,
+    );
+    await choosePackage();
+    const endInput = screen.getByLabelText('Ngày và giờ kết thúc mong muốn');
+    expect(endInput).toHaveAttribute('readonly');
+    expect(endInput).toHaveValue('');
+    fillDetails();
+    const startInput = screen.getByLabelText('Ngày bắt đầu mong muốn');
+    expect(startInput).toHaveAttribute('type', 'date');
+    fireEvent.change(startInput, { target: { value: '2099-11-01' } });
+    expect(endInput).toHaveValue(`2099-11-01T${end}`);
+    fireEvent.change(startInput, { target: { value: '2099-11-02' } });
+    expect(endInput).toHaveValue(`2099-11-02T${end}`);
+    expect(readBookingDraft()).toMatchObject({
+      startAt: '2099-11-02T07:00',
+      endAt: `2099-11-02T${end}`,
+    });
+    fireEvent.change(startInput, { target: { value: '' } });
+    expect(endInput).toHaveValue('');
+    fireEvent.change(startInput, { target: { value: '2099-11-02' } });
+    await reviewRequest();
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu tới Yume' }));
+    await waitFor(() => expect(bookingService.create).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(bookingService.create).mock.calls[0][0]).toMatchObject({
+      startAt: new Date('2099-11-02T07:00:00+07:00').toISOString(),
+      endAt: new Date(`2099-11-02T${end}:00+07:00`).toISOString(),
+    });
+  });
+
+  it('recalculates a restored draft and package changes, and allows manual ends without a duration', async () => {
+    sessionStorage.setItem(
+      BOOKING_DRAFT_KEY,
+      JSON.stringify({
+        ...createBookingDraft('client-1'),
+        packageId: 'package-1',
+        step: 2,
+        startAt: '2099-11-01T22:27',
+        endAt: '2099-11-02T04:27',
+      }),
+    );
+    vi.mocked(packageService.listPublic).mockResolvedValue([
+      { _id: 'package-1', name: 'Gói nửa ngày', pricePerMember: 500_000, duration: 'half_day' },
+      { _id: 'package-2', name: 'Gói trọn ngày', pricePerMember: 700_000, duration: 'full_day' },
+      { _id: 'package-3', name: 'Gói linh hoạt', pricePerMember: 900_000 },
+    ]);
+    render(
+      <MemoryRouter>
+        <NewBookingPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(screen.getByLabelText('Ngày và giờ kết thúc mong muốn')).toHaveValue(
+        '2099-11-01T13:00',
+      ),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Quay lại/ }));
+    fireEvent.click(
+      within(screen.getByRole('heading', { name: 'Gói trọn ngày' }).closest('article')!).getByRole(
+        'button',
+        { name: 'Chọn gói' },
+      ),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Tiếp tục/ }));
+    expect(screen.getByLabelText('Ngày bắt đầu mong muốn')).toHaveValue('2099-11-01');
+    expect(screen.getByLabelText('Ngày và giờ kết thúc mong muốn')).toHaveValue('2099-11-01T19:00');
+    fireEvent.click(screen.getByRole('button', { name: /Quay lại/ }));
+    fireEvent.click(
+      within(screen.getByRole('heading', { name: 'Gói linh hoạt' }).closest('article')!).getByRole(
+        'button',
+        { name: 'Chọn gói' },
+      ),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Tiếp tục/ }));
+    const manualEnd = screen.getByLabelText('Ngày và giờ kết thúc mong muốn');
+    expect(manualEnd).not.toHaveAttribute('readonly');
+    fireEvent.change(manualEnd, { target: { value: '2099-11-01T11:00' } });
+    expect(manualEnd).toHaveValue('2099-11-01T11:00');
+  });
+
+  it('accepts a date at a month boundary without carrying over the current time', async () => {
+    vi.mocked(packageService.listPublic).mockResolvedValue([
+      { _id: 'package-1', name: 'Gói thử', pricePerMember: 500_000, duration: 'full_day' },
+    ]);
+    render(
+      <MemoryRouter>
+        <NewBookingPage />
+      </MemoryRouter>,
+    );
+    await choosePackage();
+    fillDetails();
+    fireEvent.change(screen.getByLabelText('Ngày bắt đầu mong muốn'), {
+      target: { value: '2099-11-30' },
+    });
+    expect(screen.getByLabelText('Ngày và giờ kết thúc mong muốn')).toHaveValue('2099-11-30T19:00');
+    await reviewRequest();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(bookingService.create).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['06:00', '2099-11-30'],
+    ['22:27', '2099-12-01'],
+  ])('sets the earliest shooting date correctly at %s Vietnam time', async (time, minimumDay) => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(Date.parse(`2099-11-30T${time}:00+07:00`));
+    try {
+      vi.mocked(packageService.listPublic).mockResolvedValue([
+        { _id: 'package-1', name: 'Gói thử', pricePerMember: 500_000, duration: 'full_day' },
+      ]);
+      render(
+        <MemoryRouter>
+          <NewBookingPage />
+        </MemoryRouter>,
+      );
+      await choosePackage();
+      expect(screen.getByLabelText('Ngày bắt đầu mong muốn')).toHaveAttribute('min', minimumDay);
+      fillDetails();
+      fireEvent.change(screen.getByLabelText('Ngày bắt đầu mong muốn'), {
+        target: { value: minimumDay },
+      });
+      await reviewRequest();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    } finally {
+      now.mockRestore();
+    }
+  });
+
   it('numbers 25 student rows without a notes column and preserves details through reload and resizing', async () => {
     const page = render(
       <MemoryRouter>

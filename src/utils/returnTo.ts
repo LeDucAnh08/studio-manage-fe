@@ -10,7 +10,11 @@ export const safeBookingReturnTo = (candidate: unknown): string | undefined => {
     const url = new URL(candidate, window.location.origin);
     if (url.origin !== window.location.origin) return undefined;
     const isClientPath = url.pathname.startsWith('/account/');
-    const isBookingWizard = url.pathname === '/booking/start' || url.pathname === '/rental/start';
+    const isBookingWizard =
+      url.pathname === '/booking/start' ||
+      url.pathname === '/rental/start' ||
+      url.pathname === '/concept-booking' ||
+      url.pathname === '/concepts';
     return isClientPath || isBookingWizard ? `${url.pathname}${url.search}${url.hash}` : undefined;
   } catch {
     return undefined;
