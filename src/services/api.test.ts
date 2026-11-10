@@ -88,6 +88,11 @@ describe('API authentication failure redirects', () => {
     expect(localStorage.getItem('token')).toBeNull();
     expect(localStorage.getItem('user')).toBeNull();
   });
+  it('keeps a public album open when account bootstrap finds an expired session', async () => {
+    const navigate = observeLocation('/albums/public-album#access=guest-token');
+    await expect(api.post('/auth/refresh')).rejects.toBeInstanceOf(AxiosError);
+    expect(navigate).not.toHaveBeenCalled();
+  });
 
   it.each(['/register?returnTo=%2Fbooking%2Fstart', '/portfolio#contact'])(
     'keeps the customer login entry without a return parameter for public path %s',

@@ -1,14 +1,19 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DepositPaymentPanel } from './DepositPaymentPanel';
 import type { DepositPayment } from '../../services/bookingWorkflowService';
+const mocks = vi.hoisted(() => ({ simulate: vi.fn() }));
+vi.mock('../../services/paymentService', () => ({
+  paymentService: { simulateDeposit: mocks.simulate },
+}));
+beforeEach(() => mocks.simulate.mockReset());
 
 const fixture = (): DepositPayment => ({
   provider: 'sepay',
   mode: 'sandbox',
   reference: 'YUME0123456789ABCDEF',
   bankName: 'MBBank',
-  accountName: 'STUDIO SANDBOX',
+  accountName: 'YUME STUDIO',
   accountNumber: 'SBSTUDIO001',
   amount: 2250000,
   depositRequired: 2250000,
@@ -19,7 +24,36 @@ const fixture = (): DepositPayment => ({
 });
 afterEach(() => vi.useRealTimers());
 describe('deposit QR presentation', () => {
-  it('shows immutable payment details, sandbox label, copy and download without a payment confirmation button', async () => {
+  it('offers local simulation only with explicit sandbox capability and prevents double clicks', async () => {
+    mocks.simulate.mockResolvedValue({ status: 'applied' });
+    render(<DepositPaymentPanel payment={{ ...fixture(), demoSimulation: true }} />);
+    const button = screen.getByRole('button', { name: 'Thanh toán thử' });
+    expect(
+      screen.queryByText(/Chế độ thử nghiệm|Demo local|mô phỏng|Trang tự cập nhật sau khi bạn bấm/),
+    ).not.toBeInTheDocument();
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await screen.findByText('Đã ghi nhận thanh toán.');
+    expect(mocks.simulate).toHaveBeenCalledTimes(1);
+    expect(mocks.simulate).toHaveBeenCalledWith(fixture().reference, expect.any(String));
+    expect(button).toBeDisabled();
+  });
+  it('retains the same request key when retrying a failed local simulation', async () => {
+    mocks.simulate
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce({ status: 'applied' });
+    render(<DepositPaymentPanel payment={{ ...fixture(), demoSimulation: true }} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Thanh toán thử' }));
+    await screen.findByRole('alert');
+    fireEvent.click(screen.getByRole('button', { name: 'Thanh toán thử' }));
+    await screen.findByText('Đã ghi nhận thanh toán.');
+    expect(mocks.simulate.mock.calls[0][1]).toBe(mocks.simulate.mock.calls[1][1]);
+  });
+  it('never offers simulation for a live payment even if the capability is spoofed', () => {
+    render(<DepositPaymentPanel payment={{ ...fixture(), mode: 'live', demoSimulation: true }} />);
+    expect(screen.queryByRole('button', { name: 'Thanh toán thử' })).not.toBeInTheDocument();
+  });
+  it('shows payment details, copy and download without extra mode notices or a payment confirmation button', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
     render(<DepositPaymentPanel payment={fixture()} />);
@@ -27,7 +61,7 @@ describe('deposit QR presentation', () => {
       'src',
       fixture().qrUrl,
     );
-    expect(screen.getByText(/Chế độ thử nghiệm/)).toBeInTheDocument();
+    expect(screen.queryByText(/Chế độ thử nghiệm|mô phỏng/)).not.toBeInTheDocument();
     expect(screen.getByText('2.250.000 đ')).toBeInTheDocument();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Tải QR về điện thoại' })).toHaveAttribute(

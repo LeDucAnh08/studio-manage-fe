@@ -22,7 +22,9 @@ export function BookingOrderProgress({ record }: { record: BookingWorkflowDto })
   const terminal = stage === 'cancelled' || stage === 'rejected';
   const current = stages.findIndex((value) => value === stage);
   const eventAt = (...actions: string[]) =>
-    workflow.events.find((event) => actions.includes(event.action))?.at;
+    workflow.events
+      .filter((event) => actions.includes(event.action))
+      .sort((a, b) => Date.parse(a.at) - Date.parse(b.at))[0]?.at;
   const reached = terminal
     ? workflow.progress?.deliveredAt
       ? 4
@@ -35,8 +37,10 @@ export function BookingOrderProgress({ record }: { record: BookingWorkflowDto })
             : 0
     : current;
   const dates = [
-    workflow.createdAt || eventAt('intake.received'),
-    eventAt('quote.propose'),
+    booking.createdAt || eventAt('intake.received', 'workflow.created') || workflow.createdAt,
+    eventAt('package.approve', 'quote.propose') ||
+      workflow.quote?.proposedAt ||
+      (booking.status === 'approved' ? booking.reviewedAt : undefined),
     eventAt('resources.confirm', 'resources.confirmed'),
     eventAt('progress.update'),
     workflow.progress?.deliveredAt,
@@ -56,9 +60,9 @@ export function BookingOrderProgress({ record }: { record: BookingWorkflowDto })
         : bookingWorkflowLabels[workflow.lifecycle],
     delivered:
       workflow.lifecycle === 'accepted'
-        ? 'Ảnh đã được nghiệm thu. Hoàn tất các khoản thanh toán còn lại.'
-        : 'Xem ảnh bàn giao và gửi phản hồi hoặc nghiệm thu trong hồ sơ.',
-    completed: 'Ảnh đã được nghiệm thu và các khoản thanh toán đã hoàn tất.',
+        ? 'Bạn đã xác nhận ảnh đạt yêu cầu. Hoàn tất các khoản thanh toán còn lại.'
+        : 'Xem ảnh bàn giao, gửi phản hồi hoặc xác nhận ảnh đạt yêu cầu trong hồ sơ.',
+    completed: 'Ảnh đã được xác nhận đạt yêu cầu và các khoản thanh toán đã hoàn tất.',
   };
   return (
     <div>
@@ -68,7 +72,7 @@ export function BookingOrderProgress({ record }: { record: BookingWorkflowDto })
         stages={stages.map((value, index) => ({
           label: bookingOrderStageLabels[value],
           done: terminal ? index <= reached : index < current || stage === 'completed',
-          at: index <= reached ? dates[index] : undefined,
+          at: index <= reached ? dates[index] || null : undefined,
           description: value === stage ? descriptions[value] : undefined,
         }))}
       />

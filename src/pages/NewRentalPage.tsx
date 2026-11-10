@@ -18,6 +18,7 @@ import {
   rentalError,
   rentalMoney,
   type RentalRequest,
+  type RentalPolicy,
 } from '../services/rentalService';
 import { RENTAL_DRAFT_KEY, clearRentalDraft } from '../services/rentalDraft';
 import { createWorkflowRequestId } from '../services/bookingWorkflowService';
@@ -87,6 +88,25 @@ export default function NewRentalPage() {
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [retry, setRetry] = useState(0);
+  const [policy, setPolicy] = useState<RentalPolicy | null>(null);
+  const [policyError, setPolicyError] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [openedAt] = useState(() => Date.now());
+  useEffect(() => {
+    let active = true;
+    setPolicyError('');
+    rentalService
+      .policy()
+      .then((value) => {
+        if (active) setPolicy(value);
+      })
+      .catch(() => {
+        if (active) setPolicyError('Chưa tải được điều khoản thuê. Vui lòng thử lại.');
+      });
+    return () => {
+      active = false;
+    };
+  }, [retry]);
   const periodError = validateRentalPeriod(draft.receiveDate, draft.returnDate);
   const catalogParams = new URLSearchParams();
   if (draft.receiveDate) catalogParams.set('receiveDate', draft.receiveDate);
@@ -164,6 +184,8 @@ export default function NewRentalPage() {
   }, [catalog, params, draft.lines, setParams]);
   const patch = (value: Partial<Draft>) => {
     setError('');
+    if ('lines' in value || 'receiveDate' in value || 'returnDate' in value)
+      setTermsAccepted(false);
     setDraft((current) => ({ ...current, ...value }));
   };
   const rowPatch = (index: number, value: Partial<Draft['lines'][number]>) =>
@@ -230,11 +252,45 @@ export default function NewRentalPage() {
     catalogReady && days && draft.lines.every((row) => lineEstimate(row) !== null)
       ? draft.lines.reduce((sum, row) => sum + (lineEstimate(row) ?? 0), 0)
       : null;
+  const securityDeposit =
+    catalogReady &&
+    draft.lines.every(
+      (row) => catalog.find((item) => item._id === row.costumeId)?.rentalSecurityDeposit != null,
+    )
+      ? draft.lines.reduce(
+          (sum, row) =>
+            sum +
+            (catalog.find((item) => item._id === row.costumeId)?.rentalSecurityDeposit ?? 0) *
+              Number(row.quantity),
+          0,
+        )
+      : null;
+  const serviceDateError =
+    policy && !periodError
+      ? new Date(
+          `${draft.receiveDate}T${String(policy.openHour).padStart(2, '0')}:00:00+07:00`,
+        ).getTime() <
+        openedAt + policy.leadHours * 3600000
+        ? `Cần đặt trước tối thiểu ${policy.leadHours} giờ so với giờ nhận.`
+        : [draft.receiveDate, draft.returnDate].some((day) =>
+              policy.closedWeekdays.includes(new Date(`${day}T00:00:00Z`).getUTCDay()),
+            )
+          ? 'Ngày nhận/trả rơi vào ngày studio không phục vụ.'
+          : ''
+      : '';
+  const checkoutError =
+    selectionError ||
+    serviceDateError ||
+    policyError ||
+    (!policy ? 'Đang tải điều khoản thuê…' : '') ||
+    (estimate === null || securityDeposit === null
+      ? 'Mẫu chưa cấu hình đủ giá/ngày hoặc cọc. Vui lòng liên hệ studio.'
+      : '');
   const estimateContent = (
     <p className={customer ? 'customer-rental-form__estimate' : undefined}>
       {customer ? 'Tạm tính:' : 'Tiền thuê dự kiến:'}{' '}
       {estimate === null ? (
-        'Studio sẽ báo giá theo ngày cho các mẫu chưa có giá.'
+        'Mẫu chưa có giá — vui lòng liên hệ studio.'
       ) : customer ? (
         <CustomerPrice amount={estimate} emphasis="total" />
       ) : (
@@ -248,6 +304,8 @@ export default function NewRentalPage() {
     </p>
   );
   const payload = (): RentalRequest => ({
+    termsAccepted,
+    policyVersion: policy?.version,
     contactName: draft.contactName.trim(),
     phone: draft.phone.trim(),
     note: draft.note.trim(),
@@ -260,8 +318,8 @@ export default function NewRentalPage() {
     })),
   });
   const submit = async () => {
-    if (selectionError) {
-      setError(selectionError);
+    if (checkoutError || !termsAccepted) {
+      setError(checkoutError || 'Vui lòng đồng ý điều khoản thuê.');
       return;
     }
     if (!user) {
@@ -304,7 +362,10 @@ export default function NewRentalPage() {
       <div className={customer ? 'customer-rental-form__layout' : undefined}>
         <div className={customer ? 'customer-rental-form__main' : undefined}>
           <header className={customer ? 'customer-rental-form__header' : undefined}>
-            <Link className={customer ? 'customer-link' : 'text-sm text-primary'} to={catalogPath}>
+            <Link
+              className={customer ? 'customer-back-link' : 'text-sm text-primary'}
+              to={catalogPath}
+            >
               {customer ? (
                 <>
                   <ArrowLeft size={16} aria-hidden="true" /> Danh mục trang phục
@@ -486,15 +547,41 @@ export default function NewRentalPage() {
                 {draft.contactName} · {draft.phone}
               </p>
               <p className="whitespace-pre-wrap break-words">{draft.note}</p>
-              <p className="text-sm text-muted-foreground">
-                Giá cuối cùng, cọc và điều kiện hoàn cọc sẽ nằm trong báo giá cần bạn đồng ý.
+              <p>
+                Cọc bảo đảm:{' '}
+                {securityDeposit === null ? 'Chưa cấu hình' : rentalMoney(securityDeposit)}. Tiền
+                thuê được thanh toán đủ trước khi nhận đồ.
               </p>
+              {policy && (
+                <ul className="list-disc space-y-2 pl-5 text-sm">
+                  {policy.terms.map((term) => (
+                    <li key={term}>{term}</li>
+                  ))}
+                </ul>
+              )}
+              {checkoutError && <p role="alert">{checkoutError}</p>}
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(event) => setTermsAccepted(event.target.checked)}
+                />
+                Tôi đã đọc và đồng ý giá thuê, cọc bảo đảm và điều khoản; sau khi ghi nhận cọc không
+                được hủy hoặc đổi đơn.
+              </label>
               <div className="flex flex-wrap gap-3">
                 <Button variant="outline" disabled={busy} onClick={() => patch({ preview: false })}>
                   Chỉnh sửa yêu cầu
                 </Button>
-                <Button disabled={busy || !!selectionError} onClick={() => void submit()}>
-                  {busy ? 'Đang gửi…' : user ? 'Gửi yêu cầu thuê' : 'Đăng nhập để gửi yêu cầu thuê'}
+                <Button
+                  disabled={busy || !!checkoutError || !termsAccepted}
+                  onClick={() => void submit()}
+                >
+                  {busy
+                    ? 'Đang đặt…'
+                    : user
+                      ? 'Đặt thuê và thanh toán cọc'
+                      : 'Đăng nhập để đặt thuê'}
                 </Button>
               </div>
             </section>
@@ -694,7 +781,7 @@ export default function NewRentalPage() {
                                 `${rentalMoney(item.rentalDailyPrice)}/món/ngày`
                               )
                             ) : (
-                              'Chờ studio báo giá theo ngày'
+                              'Liên hệ studio để cấu hình giá'
                             )
                           ) : (
                             'Chọn mẫu trước'
@@ -710,7 +797,7 @@ export default function NewRentalPage() {
                         <p>
                           {lineTotal === null ? (
                             item ? (
-                              'Chờ báo giá'
+                              'Liên hệ studio'
                             ) : (
                               '—'
                             )
@@ -814,13 +901,16 @@ export default function NewRentalPage() {
                       {draft.lines.reduce((sum, row) => sum + (Number(row.quantity) || 0), 0)} món ·{' '}
                       {days} ngày
                     </p>
-                    <p>Chưa gồm cọc và phát sinh. Studio sẽ gửi báo giá để bạn xác nhận.</p>
+                    <p>
+                      Cọc bảo đảm hiển thị riêng. Hệ thống giữ hàng tạm sau khi đặt và xác nhận khi
+                      đủ cọc.
+                    </p>
                   </div>
                   <div className={customer ? 'customer-rental-form__footer-action' : undefined}>
                     <Button type="submit" disabled={!!selectionError}>
                       Xem lại yêu cầu thuê
                     </Button>
-                    <p>Gửi yêu cầu chưa giữ hàng.</p>
+                    <p>Sau khi đặt, vui lòng thanh toán cọc trong hạn để xác nhận giữ hàng.</p>
                   </div>
                 </div>
               )}
@@ -881,7 +971,7 @@ export default function NewRentalPage() {
                             </p>
                           </div>
                           <p className="customer-rental-form__summary-line-total">
-                            {total === null ? 'Chờ báo giá' : <CustomerPrice amount={total} />}
+                            {total === null ? 'Liên hệ studio' : <CustomerPrice amount={total} />}
                           </p>
                           {item?.rentalDailyPrice != null && item.rentalDailyPrice > 0 && days && (
                             <p className="customer-rental-form__summary-formula">
@@ -913,14 +1003,26 @@ export default function NewRentalPage() {
                 </span>
               </p>
               {estimateContent}
+              <p>
+                Cọc bảo đảm:{' '}
+                {securityDeposit === null ? 'Liên hệ studio' : rentalMoney(securityDeposit)}
+              </p>
             </div>
             {!draft.preview && (
               <Button form={formId} type="submit" disabled={!!selectionError}>
                 Xem lại yêu cầu thuê <ArrowRight size={18} aria-hidden="true" />
               </Button>
             )}
-            <p>Chưa gồm cọc và phát sinh. Studio sẽ gửi báo giá để bạn xác nhận.</p>
-            <p>Gửi yêu cầu chưa giữ hàng.</p>
+            <p>
+              Cọc bảo đảm hiển thị riêng. Hệ thống giữ hàng tạm sau khi đặt và xác nhận khi đủ cọc.
+            </p>
+            <p>Sau khi đặt, vui lòng thanh toán cọc trong hạn để xác nhận giữ hàng.</p>
+            {policy && (
+              <p>
+                Giữ hàng {policy.holdMinutes} phút. Nhận/trả {policy.openHour}:00–{policy.closeHour}
+                :00, đặt trước ít nhất {policy.leadHours} giờ.
+              </p>
+            )}
           </aside>
         )}
       </div>

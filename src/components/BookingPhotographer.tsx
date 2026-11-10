@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { BookingWorkflowDto } from '../services/bookingWorkflowService';
 import {
   photographerWindow,
@@ -12,11 +12,13 @@ export function BookingPhotographer({
   admin,
   busy,
   onAssign,
+  children,
 }: {
   record: BookingWorkflowDto;
   admin: boolean;
   busy: boolean;
   onAssign: (ids: string[]) => Promise<unknown>;
+  children?: ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
@@ -89,6 +91,7 @@ export function BookingPhotographer({
           </>
         )}
       </p>
+      {children}
       {editing && canEdit && (
         <>
           <p className="text-sm text-muted-foreground">

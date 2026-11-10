@@ -15,6 +15,8 @@ export interface User {
   _id: string;
   username: string;
   name?: string;
+  email?: string;
+  emailVerifiedAt?: string | null;
   roles: UserRole[];
   isActive: boolean;
   telegramId?: string;
@@ -54,6 +56,7 @@ export interface Costume {
   isRentalItem?: boolean;
   rentalPrice?: number;
   rentalDailyPrice?: number | null;
+  rentalSecurityDeposit?: number | null;
   inventory?: CostumeInventory[];
   createdAt?: string;
 }
@@ -75,6 +78,7 @@ export interface RentalCatalogItem {
   category?: string | null;
   rentalPrice: number;
   rentalDailyPrice?: number | null;
+  rentalSecurityDeposit?: number | null;
   availableBySize?: Record<string, number>;
   rentalDays?: number;
   sizes: string[];

@@ -1,3 +1,4 @@
+import { RentalOrderProgress } from '../components/customer/RentalOrderProgress';
 import {
   cloneElement,
   isValidElement,
@@ -18,6 +19,7 @@ import {
 import { useCustomerAppearance } from '../components/customer/CustomerAppearance';
 import { CustomerPrice } from '../components/customer/CustomerPrice';
 import { CustomerPriceBreakdown } from '../components/customer/CustomerPriceBreakdown';
+import { DepositPaymentPanel } from '../components/customer/DepositPaymentPanel';
 import '../styles/customer-orders.css';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -124,6 +126,29 @@ export default function RentalDetailPage() {
     void load();
   }, [load]);
   useEffect(() => {
+    if (
+      !client ||
+      !order?.autoCheckout ||
+      !['awaiting_deposit', 'expired', 'payment_review'].includes(order.status)
+    )
+      return;
+    let active = true;
+    const timer = window.setInterval(() => {
+      rentalService
+        .get(id)
+        .then((value) => {
+          if (active) setOrder(value);
+        })
+        .catch(() => {
+          if (active) setError('Chưa cập nhật được thanh toán. Vui lòng tải lại hồ sơ.');
+        });
+    }, 5000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [client, id, order?.autoCheckout, order?.status]);
+  useEffect(() => {
     if (!order) return;
     const rows = order.quote?.lines ?? order.requestedLines;
     setQuoteRows(
@@ -209,6 +234,8 @@ export default function RentalDetailPage() {
         : ['balance']
       : [];
   const selectedKind = kinds.includes(paymentKind) ? paymentKind : (kinds[0] ?? 'balance');
+  const bankCollection = order.autoCheckout && !!order.depositPayment && selectedKind !== 'refund';
+  const selectedMethod = bankCollection && method === 'bank_transfer' ? 'cash' : method;
   const dailyOrder = order.pricingMode === 'daily';
   const dailyQuote = quote?.pricingMode === 'daily';
   const dailyEditor = quote ? dailyQuote : dailyOrder;
@@ -277,7 +304,7 @@ export default function RentalDetailPage() {
     <ContentTag className={customer ? 'customer-orders customer-orders--detail' : 'space-y-6'}>
       <div className="flex flex-wrap justify-between gap-3">
         <Link
-          className={customer ? 'customer-link' : 'text-sm text-primary'}
+          className={customer ? 'customer-back-link' : 'text-sm text-primary'}
           to={client ? customerBackPath : staffBackPath}
         >
           ← Danh sách đơn thuê
@@ -317,11 +344,16 @@ export default function RentalDetailPage() {
           ))}
         </ul>
         <p className="text-sm text-muted-foreground">
-          {dailyOrder
-            ? 'Yêu cầu và báo giá chưa giữ hàng. Hàng được giữ sau khi bạn đồng ý báo giá và studio ghi nhận đủ cọc bảo đảm, nếu còn trống trong toàn bộ kỳ thuê.'
-            : 'Yêu cầu và báo giá chưa giữ hàng. Hàng chỉ được giữ sau khi studio xác nhận đủ điều kiện.'}
+          {order.autoCheckout
+            ? 'Đơn được duyệt tự động. Hàng được giữ tạm trong hạn cọc và xác nhận khi đủ cọc. Sau khi ghi nhận cọc, không được hủy/đổi đơn.'
+            : dailyOrder
+              ? 'Yêu cầu và báo giá chưa giữ hàng. Hàng được giữ sau khi bạn đồng ý báo giá và studio ghi nhận đủ cọc bảo đảm, nếu còn trống trong toàn bộ kỳ thuê.'
+              : 'Yêu cầu và báo giá chưa giữ hàng. Hàng chỉ được giữ sau khi studio xác nhận đủ điều kiện.'}
         </p>
       </header>
+      <section className={customer ? 'customer-order-surface' : sectionClass}>
+        <RentalOrderProgress order={order} />
+      </section>
       {order.reservationIssue && (
         <section
           role="alert"
@@ -331,7 +363,7 @@ export default function RentalDetailPage() {
               : 'rounded-xl border border-amber-400 bg-amber-50 p-4 text-amber-900'
           }
         >
-          <p className="font-semibold">Đã ghi nhận cọc, chưa giữ được hàng</p>
+          <p className="font-semibold">Đơn thuê cần studio xử lý</p>
           <p>{order.reservationIssue}</p>
           <p>
             Studio cần kiểm tra tồn kho và thống nhất cách xử lý với khách. Khoản tiền đã nhận vẫn
@@ -339,14 +371,70 @@ export default function RentalDetailPage() {
           </p>
         </section>
       )}
-      {client && ['requested', 'quoting'].includes(order.status) && (
-        <section className={customer ? 'customer-order-surface' : sectionClass}>
-          <p>Chưa đồng ý báo giá và chưa giữ hàng, bạn có thể rút yêu cầu thuê.</p>
-          <Button variant="outline" disabled={busy} onClick={() => void act('withdraw')}>
-            Rút yêu cầu thuê
-          </Button>
-        </section>
+      {client &&
+        ((!order.autoCheckout && ['requested', 'quoting'].includes(order.status)) ||
+          (order.autoCheckout && order.status === 'awaiting_deposit' && !order.changesLocked)) && (
+          <section className={customer ? 'customer-order-surface' : sectionClass}>
+            <p>
+              {order.autoCheckout
+                ? 'Bạn có thể rút đơn trước khi ghi nhận cọc.'
+                : 'Chưa đồng ý báo giá và chưa giữ hàng, bạn có thể rút yêu cầu thuê.'}
+            </p>
+            <Button variant="outline" disabled={busy} onClick={() => void act('withdraw')}>
+              Rút yêu cầu thuê
+            </Button>
+          </section>
+        )}
+      {order.autoCheckout && order.changesLocked && (
+        <p className="text-sm font-medium">
+          Đã ghi nhận thanh toán: không được hủy, đổi mẫu, size, số lượng, ngày thuê hoặc gia hạn.
+        </p>
       )}
+      {client && order.depositPayment && (
+        <DepositPaymentPanel payment={order.depositPayment} rental />
+      )}
+      {client &&
+        order.autoCheckout &&
+        order.status === 'awaiting_deposit' &&
+        !order.depositPayment && (
+          <p role="status">
+            Hiện chưa có thanh toán QR cho đơn này. Vui lòng liên hệ studio để đặt cọc trực tiếp
+            trong hạn giữ hàng
+            {order.reservation?.expiresAt
+              ? `: ${new Date(order.reservation.expiresAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`
+              : ''}
+            .
+          </p>
+        )}
+      {admin &&
+        order.autoCheckout &&
+        !order.checkedOutAt &&
+        ['confirmed', 'payment_review', 'expired', 'awaiting_deposit'].includes(order.status) && (
+          <form
+            className={customer ? 'customer-order-surface' : sectionClass}
+            onSubmit={(event) => {
+              event.preventDefault();
+              void act('fulfillment.refund', { note: rejectNote });
+            }}
+          >
+            <h2 className="font-semibold">Ngoại lệ studio không thể giao hàng</h2>
+            <p>
+              Giải phóng giữ hàng và chuyển toàn bộ tiền đã thu sang cần hoàn. Hoàn tiền được ghi
+              nhận riêng sau khi thực hiện thực tế.
+            </p>
+            <Field label="Lý do studio không thể giao">
+              <Textarea
+                required
+                maxLength={1000}
+                value={rejectNote}
+                onChange={(event) => setRejectNote(event.target.value)}
+              />
+            </Field>
+            <Button type="submit" variant="outline" disabled={busy || !rejectNote.trim()}>
+              Chuyển sang xử lý hoàn tiền
+            </Button>
+          </form>
+        )}
       {error && (
         <p
           role="alert"
@@ -362,7 +450,9 @@ export default function RentalDetailPage() {
       {quote && (
         <section className={customer ? 'customer-order-surface' : sectionClass}>
           <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
-            Báo giá thuê phiên bản {quote.version}
+            {order.autoCheckout
+              ? 'Chi tiết giá và điều khoản đã xác nhận'
+              : `Báo giá thuê phiên bản ${quote.version}`}
           </h2>
           <p>
             {date(quote.receiveDate)} – {date(quote.returnDate)}
@@ -442,7 +532,8 @@ export default function RentalDetailPage() {
           </p>
           {quote.acceptedAt ? (
             <p className={customer ? 'customer-order-meta' : 'font-medium text-primary'}>
-              Đã đồng ý báo giá vào {date(quote.acceptedAt)}
+              {order.autoCheckout ? 'Đã xác nhận giá và điều khoản vào ' : 'Đã đồng ý báo giá vào '}
+              {date(quote.acceptedAt)}
             </p>
           ) : (
             client &&
@@ -653,7 +744,7 @@ export default function RentalDetailPage() {
                 void act('payment.record', {
                   kind: selectedKind,
                   amount: Number(amount),
-                  method,
+                  method: selectedMethod,
                   reference: reference.trim(),
                 }).then((ok) => {
                   if (ok) {
@@ -693,10 +784,10 @@ export default function RentalDetailPage() {
               <Field label="Phương thức thuê">
                 <OrderSelect
                   className={selectClass}
-                  value={method}
+                  value={selectedMethod}
                   onChange={(event) => setMethod(event.target.value)}
                 >
-                  <option value="bank_transfer">Chuyển khoản</option>
+                  {!bankCollection && <option value="bank_transfer">Chuyển khoản</option>}
                   <option value="cash">Tiền mặt</option>
                   <option value="other">Khác</option>
                 </OrderSelect>
@@ -713,9 +804,19 @@ export default function RentalDetailPage() {
               </Button>
             </form>
           )}
+          {finance && bankCollection && (
+            <p className="text-sm">
+              Khoản thu chuyển khoản được ghi nhận từ SePay. Với phí thuê trả thêm hoặc sai/thừa
+              tiền, mở{' '}
+              <Link className="underline" to="/manage/payment-receipts">
+                Đối soát SePay
+              </Link>{' '}
+              để đối chiếu giao dịch thực.
+            </p>
+          )}
         </section>
       )}
-      {admin && order.status === 'ready_to_confirm' && (
+      {admin && !order.autoCheckout && order.status === 'ready_to_confirm' && (
         <section className={customer ? 'customer-order-surface' : sectionClass}>
           <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
             Xác nhận giữ hàng
@@ -1080,7 +1181,8 @@ export default function RentalDetailPage() {
         ['awaiting_deposit', 'ready_to_confirm', 'confirmed', 'checked_out'].includes(
           order.status,
         ) &&
-        !changeOpen && (
+        !changeOpen &&
+        !order.autoCheckout && (
           <form
             className={customer ? 'customer-order-surface' : sectionClass}
             onSubmit={(event) => {
@@ -1304,21 +1406,23 @@ export default function RentalDetailPage() {
           ))}
         </details>
       )}
-      <section className={customer ? 'customer-order-surface' : sectionClass}>
-        <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
-          Lịch sử xử lý đơn thuê
-        </h2>
-        <ol className="space-y-3">
-          {order.events.map((item, index) => (
-            <li key={index} className="border-l-2 pl-3">
-              <p className="break-words">{item.message}</p>
-              <p className={customer ? 'customer-caption' : 'text-xs text-muted-foreground'}>
-                {new Date(item.at).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
-              </p>
-            </li>
-          ))}
-        </ol>
-      </section>
+      {!client && (
+        <section className={customer ? 'customer-order-surface' : sectionClass}>
+          <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
+            Lịch sử xử lý đơn thuê
+          </h2>
+          <ol className="space-y-3">
+            {order.events.map((item, index) => (
+              <li key={index} className="border-l-2 pl-3">
+                <p className="break-words">{item.message}</p>
+                <p className={customer ? 'customer-caption' : 'text-xs text-muted-foreground'}>
+                  {new Date(item.at).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
     </ContentTag>
   );
 }

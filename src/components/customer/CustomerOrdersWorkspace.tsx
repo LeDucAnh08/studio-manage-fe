@@ -162,6 +162,7 @@ export function CustomerOrderProgress({
               <div>
                 <p className="customer-orders-progress__label">{stage.label}</p>
                 {stage.at && <time dateTime={stage.at}>{vietnamDisplayDate(stage.at)}</time>}
+                {stage.at === null && <p>Chưa có ngày ghi nhận</p>}
                 {stage.description &&
                   !terminal &&
                   (index === currentStep || index === stages.length - 1) && (

@@ -1,11 +1,13 @@
 import * as Tabs from '@radix-ui/react-tabs';
 import { useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { CustomerBookingOrders } from '../components/customer/CustomerBookingOrders';
 import { CustomerRentalOrders } from '../components/customer/CustomerRentalOrders';
 import '../styles/customer-orders-workspace.css';
 
 export default function CustomerOrdersPage() {
+  const { user } = useAuth();
   const [params, setParams] = useSearchParams();
   const requested = params.get('tab');
   const tab = requested === 'rentals' ? 'rentals' : 'bookings';
@@ -28,6 +30,14 @@ export default function CustomerOrdersPage() {
           <p className="customer-copy">Theo dõi yêu cầu chụp ảnh và thuê trang phục của bạn.</p>
         </div>
       </header>
+      {!user?.emailVerifiedAt && (
+        <p className="customer-order-notice">
+          Bổ sung và xác minh email để nhận thông báo khi studio duyệt đơn.{' '}
+          <Link className="customer-link" to="/account/profile">
+            Cập nhật email
+          </Link>
+        </p>
+      )}
       <Tabs.Root
         value={tab}
         activationMode="manual"

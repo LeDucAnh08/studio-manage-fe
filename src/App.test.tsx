@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { useLocation } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { User } from './types';
 import App from './App';
@@ -14,6 +14,7 @@ vi.mock('./context/AuthContext', () => ({
 }));
 vi.mock('./context/ThemeContext', () => ({
   ThemeProvider: ({ children }: { children: ReactNode }) => children,
+  useTheme: () => ({ themeMode: 'light', resolvedTheme: 'light', setThemeMode: vi.fn() }),
 }));
 vi.mock('./config/features', () => ({
   get clientPortalEnabled() {
@@ -21,6 +22,7 @@ vi.mock('./config/features', () => ({
   },
 }));
 vi.mock('./config/navItems', () => ({ navItems: [], adminItems: [] }));
+vi.mock('./components/Layout/Layout', () => ({ default: () => <Outlet /> }));
 vi.mock('./pages/PortfolioPage', async () => {
   const { default: Layout } = await import('./components/Layout/PublicSiteLayout');
   return {
@@ -43,6 +45,7 @@ vi.mock('./pages/PublicDiscoveryPage', async () => {
 });
 vi.mock('./pages/CustomerOrdersPage', () => ({ default: () => <h1>Đơn của tôi</h1> }));
 vi.mock('./pages/BookingWorkflowDetailPage', () => ({ default: () => <h1>Chi tiết chụp ảnh</h1> }));
+vi.mock('./pages/BookingDeliveryPage', () => ({ default: () => <h1>Bàn giao ảnh hợp nhất</h1> }));
 vi.mock('./pages/RentalDetailPage', () => ({ default: () => <h1>Chi tiết thuê</h1> }));
 vi.mock('./pages/LoginPage', () => ({
   default: function LoginProbe() {
@@ -66,6 +69,16 @@ function client() {
   mocks.auth.user = { roles: [6], username: 'client.test' } as User;
 }
 describe('Public discovery and customer workspace', () => {
+  it('redirects the old studio album URL to the shared delivery screen without losing history parameters', async () => {
+    mocks.auth.user = { _id: 'admin', roles: [0], username: 'admin.test' } as User;
+    open('/workflow-bookings/booking-1/album?version=2');
+    expect(
+      await screen.findByRole('heading', { name: 'Bàn giao ảnh hợp nhất' }),
+    ).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/workflow-bookings/booking-1/delivery');
+    expect(new URLSearchParams(window.location.search).get('tab')).toBe('selection');
+    expect(new URLSearchParams(window.location.search).get('version')).toBe('2');
+  });
   beforeEach(() => {
     mocks.auth.user = null;
     mocks.auth.isBootstrapping = false;

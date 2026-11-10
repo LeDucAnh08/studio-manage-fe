@@ -12,6 +12,7 @@ import RentalCatalogPage from './RentalCatalogPage';
 
 const mocks = vi.hoisted(() => ({
   catalog: vi.fn(),
+  policy: vi.fn(),
   get: vi.fn(),
   create: vi.fn(),
   action: vi.fn(),
@@ -39,7 +40,7 @@ vi.mock('../services/bookingWorkflowService', () => ({
 }));
 vi.mock('../services/rentalService', async () => ({
   ...(await vi.importActual('../services/rentalService')),
-  rentalService: { get: mocks.get, create: mocks.create, act: mocks.action },
+  rentalService: { get: mocks.get, create: mocks.create, act: mocks.action, policy: mocks.policy },
 }));
 
 const receive = '2099-10-10';
@@ -51,6 +52,7 @@ const item = {
   itemKind: 'clothing',
   rentalPrice: 9999999,
   rentalDailyPrice: 50000,
+  rentalSecurityDeposit: 100000,
   sizes: ['M'],
   availableBySize: { M: 3 },
 };
@@ -146,10 +148,31 @@ beforeEach(() => {
   sessionStorage.clear();
   mocks.auth.user = { _id: 'customer-1', roles: [6] };
   mocks.catalog.mockResolvedValue([item]);
+  mocks.policy.mockResolvedValue({
+    version: 'rental-auto-v1',
+    holdMinutes: 15,
+    maxPending: 2,
+    leadHours: 24,
+    turnaroundDays: 1,
+    openHour: 9,
+    closeHour: 17,
+    closedWeekdays: [],
+    terms: ['Sau khi ghi nhận cọc không được hủy/đổi đơn.'],
+  });
 });
 afterEach(() => vi.unstubAllEnvs());
 
 describe('date-first daily rental form', () => {
+  it('blocks checkout when security deposit has not been configured', async () => {
+    mocks.catalog.mockResolvedValue([{ ...item, rentalSecurityDeposit: null }]);
+    renderNew(path);
+    await choose();
+    fireEvent.click(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' }));
+    await screen.findByText('Mẫu chưa cấu hình đủ giá/ngày hoặc cọc. Vui lòng liên hệ studio.');
+    fireEvent.click(await screen.findByRole('checkbox', { name: /Tôi đã đọc/ }));
+    expect(screen.getByRole('button', { name: 'Đặt thuê và thanh toán cọc' })).toBeDisabled();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
   it('consumes an add-item selection once, including another size of an existing model', async () => {
     storePreviewDraft();
     const page = renderNew(`${path}&item=${item._id}&add=1`);
@@ -212,8 +235,10 @@ describe('date-first daily rental form', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' }));
       await screen.findByRole('heading', { name: 'Kiểm tra yêu cầu thuê' });
       const send = screen.getByRole('button', {
-        name: authenticated ? 'Gửi yêu cầu thuê' : 'Đăng nhập để gửi yêu cầu thuê',
+        name: authenticated ? 'Đặt thuê và thanh toán cọc' : 'Đăng nhập để đặt thuê',
       });
+      expect(send).toBeDisabled();
+      fireEvent.click(await screen.findByRole('checkbox', { name: /Tôi đã đọc/ }));
       expect(send).toBeEnabled();
       fireEvent.click(send);
       if (authenticated) {
@@ -312,7 +337,9 @@ describe('date-first daily rental form', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' }));
     expect(screen.getByRole('heading', { name: 'Kiểm tra yêu cầu thuê' })).toBeInTheDocument();
     expect(document.querySelectorAll('input[type="date"]')).toHaveLength(2);
-    fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu thuê' }));
+    if (!screen.getByRole<HTMLInputElement>('checkbox', { name: /Tôi đã đọc/ }).checked)
+      fireEvent.click(await screen.findByRole('checkbox', { name: /Tôi đã đọc/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Đặt thuê và thanh toán cọc' }));
     await waitFor(() =>
       expect(mocks.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -420,10 +447,14 @@ describe('date-first daily rental form', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' }));
     expect(screen.getByRole('heading', { name: 'Kiểm tra yêu cầu thuê' })).toBeInTheDocument();
     expect(screen.getByText(/Tạm tính:/)).toHaveTextContent('840.000');
-    fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu thuê' }));
+    if (!screen.getByRole<HTMLInputElement>('checkbox', { name: /Tôi đã đọc/ }).checked)
+      fireEvent.click(await screen.findByRole('checkbox', { name: /Tôi đã đọc/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Đặt thuê và thanh toán cọc' }));
     await waitFor(() =>
       expect(mocks.create).toHaveBeenCalledWith(
         {
+          termsAccepted: true,
+          policyVersion: 'rental-auto-v1',
           contactName: 'Khách thuê',
           phone: '0901234567',
           note: 'Nhận tại studio',
@@ -443,7 +474,7 @@ describe('date-first daily rental form', () => {
     mocks.catalog.mockResolvedValue([{ ...item, rentalDailyPrice: null }]);
     renderNew(path);
     await choose();
-    expect(screen.getByText(/Tạm tính:/)).toHaveTextContent('Studio sẽ báo giá theo ngày');
+    expect(screen.getByText(/Tạm tính:/)).toHaveTextContent('Mẫu chưa có giá');
     expect(screen.queryByText('9.999.999')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' })).toBeEnabled();
   });
@@ -515,7 +546,8 @@ describe('date-first daily rental form', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('returnDate=2099-10-13');
     await screen.findByRole('button', { name: 'Xem lại yêu cầu thuê' });
     fireEvent.click(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập để gửi yêu cầu thuê' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: /Tôi đã đọc/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập để đặt thuê' }));
     const loginUrl = new URL(screen.getByTestId('location').textContent!, 'http://localhost');
     expect(loginUrl.pathname).toBe('/login');
     const returnTo = new URL(loginUrl.searchParams.get('returnTo')!, 'http://localhost');
@@ -528,6 +560,66 @@ describe('date-first daily rental form', () => {
       returnDate: '2099-10-13',
       preview: true,
     });
+  });
+});
+
+describe('automatic paid rental terms', () => {
+  it('records cash consistently and directs bank collections to receipt reconciliation', async () => {
+    mocks.auth.user = { _id: 'finance-1', roles: [5] };
+    const record = orderFixture();
+    record.autoCheckout = true;
+    record.status = 'confirmed';
+    record.quote!.acceptedAt = '2026-11-10T00:00:00.000Z';
+    record.payment = { netReceived: 100000, payable: 400000, due: 300000, refundDue: 0 };
+    record.depositPayment = {
+      provider: 'sepay',
+      mode: 'sandbox',
+      reference: 'RENT0000000000000001',
+      bankName: 'QA Bank',
+      accountNumber: 'SBSTUDIO001',
+      accountName: 'QA Studio',
+      amount: 0,
+      depositRequired: 100000,
+      expiresAt: '2099-10-10T00:00:00Z',
+      status: 'paid',
+      qrUrl: null,
+      downloadUrl: null,
+    };
+    mocks.action.mockResolvedValue({ ...record, readyForHandover: true });
+    renderDetail(record);
+    await screen.findByLabelText('Phương thức thuê');
+    expect(screen.getByLabelText('Phương thức thuê')).toHaveValue('cash');
+    expect(screen.getByRole('link', { name: 'Đối soát SePay' })).toHaveAttribute(
+      'href',
+      '/manage/payment-receipts',
+    );
+    fireEvent.change(screen.getByLabelText('Số tiền thuê (đ)'), { target: { value: '300000' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ghi nhận tiền thuê' }));
+    await waitFor(() =>
+      expect(mocks.action).toHaveBeenCalledWith(
+        'rental-1',
+        2,
+        'payment.record',
+        { kind: 'balance', amount: 300000, method: 'cash', reference: '' },
+        'request-1',
+      ),
+    );
+  });
+  it('shows accepted terms and removes customer cancellation/change actions after any payment', async () => {
+    const record = orderFixture();
+    record.autoCheckout = true;
+    record.changesLocked = true;
+    record.status = 'awaiting_deposit';
+    record.quote!.acceptedAt = '2026-11-10T00:00:00.000Z';
+    renderDetail(record);
+    await screen.findByRole('heading', { name: 'Chi tiết giá và điều khoản đã xác nhận' });
+    expect(
+      screen.getByText(
+        'Đã ghi nhận thanh toán: không được hủy, đổi mẫu, size, số lượng, ngày thuê hoặc gia hạn.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Rút yêu cầu thuê' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Gửi yêu cầu thay đổi')).not.toBeInTheDocument();
   });
 });
 

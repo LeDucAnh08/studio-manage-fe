@@ -177,13 +177,22 @@ test('role-specific screens complete photography with a revision and settlement'
     await command('photographer', 'Bắt đầu buổi chụp');
     await command('photographer', 'Chuyển sang hậu kỳ');
     await pages.photographer
-      .getByLabel('Đường dẫn thư mục Drive')
-      .fill('https://drive.google.com/workflow-e2e-v1');
+      .getByLabel('Ảnh đã hậu kỳ', { exact: true })
+      .setInputFiles({
+        name: 'edited-v1.png',
+        mimeType: 'image/png',
+        buffer: Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0y4AAAAASUVORK5CYII=',
+          'base64',
+        ),
+      });
+    await expect(pages.photographer.getByText('1 ảnh đã tải', { exact: true })).toBeVisible();
     await command('photographer', 'Gửi bản bàn giao mới');
 
     await open('client');
-    await pages.client.getByLabel('Nội dung cần chỉnh sửa').fill('Chỉnh màu ảnh nhóm.');
-    await command('client', 'Yêu cầu chỉnh sửa');
+    await pages.client.getByRole('link', { name: 'Xem ảnh và gửi phản hồi' }).click();
+    await pages.client.getByLabel('Nội dung phản hồi').fill('Chỉnh màu ảnh nhóm.');
+    await command('client', 'Gửi phản hồi');
     await lifecycle('revision_requested');
     await open('photographer');
     await expect(
@@ -191,11 +200,20 @@ test('role-specific screens complete photography with a revision and settlement'
     ).toBeVisible();
     await command('photographer', 'Chuyển sang hậu kỳ');
     await pages.photographer
-      .getByLabel('Đường dẫn thư mục Drive')
-      .fill('https://drive.google.com/workflow-e2e-v2');
+      .getByLabel('Ảnh đã hậu kỳ', { exact: true })
+      .setInputFiles({
+        name: 'edited-v2.png',
+        mimeType: 'image/png',
+        buffer: Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0y4AAAAASUVORK5CYII=',
+          'base64',
+        ),
+      });
+    await expect(pages.photographer.getByText('2 ảnh đã tải', { exact: true })).toBeVisible();
     await command('photographer', 'Gửi bản bàn giao mới');
     await open('client');
-    await command('client', 'Nghiệm thu bản này');
+    await pages.client.getByRole('link', { name: 'Xem ảnh và gửi phản hồi' }).click();
+    await command('client', 'Xác nhận ảnh đã đạt yêu cầu');
     await lifecycle('accepted');
     await pages.client.setViewportSize({ width: 360, height: 800 });
     expect(
@@ -211,6 +229,7 @@ test('role-specific screens complete photography with a revision and settlement'
     await command('accountant', 'Ghi nhận giao dịch');
     await lifecycle('completed');
     await open('client');
+    await pages.client.getByRole('link', { name: 'Xem ảnh và gửi phản hồi' }).click();
     await pages.client.getByLabel('Nhận xét', { exact: true }).fill('Đã nhận đủ ảnh.');
     await command('client', 'Gửi đánh giá');
     await expect(pages.client.getByRole('heading', { name: 'Đánh giá đã gửi' })).toBeVisible();

@@ -22,6 +22,7 @@ const mocks = vi.hoisted(() => ({
   rentalGet: vi.fn(),
   rentalAct: vi.fn(),
   rentalCreate: vi.fn(),
+  rentalPolicy: vi.fn(),
   catalog: vi.fn(),
   requestId: vi.fn(),
   auth: { user: null as { _id: string; name: string; roles: number[] } | null },
@@ -54,7 +55,12 @@ vi.mock('../services/costumeService', () => ({
 }));
 vi.mock('../services/rentalService', async () => ({
   ...(await vi.importActual('../services/rentalService')),
-  rentalService: { get: mocks.rentalGet, act: mocks.rentalAct, create: mocks.rentalCreate },
+  rentalService: {
+    get: mocks.rentalGet,
+    act: mocks.rentalAct,
+    create: mocks.rentalCreate,
+    policy: mocks.rentalPolicy,
+  },
 }));
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
@@ -350,7 +356,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
     expect(
       await screen.findByRole('heading', { name: 'Thông tin thành viên lớp' }),
     ).toBeInTheDocument();
-    const table = screen.getByRole('table', { name: /Danh sách thành viên lớp/ });
+    const table = await screen.findByRole('table', { name: /Danh sách thành viên lớp/ });
     expect(screen.getAllByRole('table', { name: /Danh sách thành viên lớp/ })).toHaveLength(1);
     expect(within(table).getAllByRole('row')).toHaveLength(26);
     expect(screen.getByRole('button', { name: 'Thêm thành viên' })).toBeDisabled();
@@ -429,6 +435,30 @@ describe('Customer order presentation preserves workflow contracts', () => {
     expect(screen.queryByRole('button', { name: 'Kiểm tra và giữ lịch' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Bắt đầu buổi chụp' })).toBeDisabled();
   });
+  it.each(['delivered', 'accepted'] as const)(
+    'keeps the album link and hides service changes for %s orders',
+    async (lifecycle) => {
+      const record = bookingFixture();
+      record.workflow.lifecycle = lifecycle;
+      record.workflow.progress = {
+        status: 'delivered',
+        deliveryVersion: 2,
+        photos: [{ id: 'photo-1', name: 'edited.jpg', width: 1200, height: 800 }],
+        revisionRequests: [],
+      };
+      mocks.workflowGet.mockResolvedValue(record);
+      renderBooking();
+      const link = await screen.findByRole('link', { name: 'Xem ảnh bàn giao' });
+      expect(link).toHaveAttribute('href', '/account/bookings/booking-1/delivery');
+      expect(screen.queryByLabelText('Nội dung cần chỉnh sửa')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Xác nhận ảnh đã đạt yêu cầu' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', { name: 'Yêu cầu thay đổi hoặc hủy dịch vụ' }),
+      ).not.toBeInTheDocument();
+    },
+  );
   it('removes polling and visibility refresh after expiry even if the last status request fails', async () => {
     const record = bookingFixture();
     record.booking.packageAgreement = packageAgreement();
@@ -488,6 +518,17 @@ describe('Customer order presentation preserves workflow contracts', () => {
     mocks.bookingNotifications.mockResolvedValue([]);
     mocks.photographers.mockResolvedValue([]);
     mocks.rentalGet.mockResolvedValue(rentalFixture());
+    mocks.rentalPolicy.mockResolvedValue({
+      version: 'rental-auto-v1',
+      holdMinutes: 15,
+      maxPending: 2,
+      leadHours: 24,
+      turnaroundDays: 1,
+      openHour: 9,
+      closeHour: 17,
+      closedWeekdays: [],
+      terms: ['Sau khi ghi nhận cọc không được hủy/đổi đơn.'],
+    });
     mocks.catalog.mockResolvedValue([
       {
         _id: 'costume-1',
@@ -495,6 +536,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
         sizes: ['M', 'L'],
         rentalPrice: 100000,
         rentalDailyPrice: 100000,
+        rentalSecurityDeposit: 100000,
         availableBySize: { M: 4, L: 2 },
         rentalDays: 1,
       },
@@ -569,7 +611,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
     expect(mocks.workflowAct).not.toHaveBeenCalled();
   });
 
-  it('handles missing intake fields and timestamps, then shows only real merged events in Vietnam time', async () => {
+  it('handles missing intake fields and timestamps without displaying processing history', async () => {
     const empty = intakeFixture();
     delete empty.booking.className;
     delete empty.booking.school;
@@ -596,14 +638,14 @@ describe('Customer order presentation preserves workflow contracts', () => {
     renderBooking();
     await screen.findByText('Yêu cầu đang chờ studio xem xét. Thời gian đề xuất chưa giữ lịch.');
     expect(screen.getAllByText('Chưa cập nhật').length).toBeGreaterThan(0);
-    expect(screen.getByText('Chưa có cập nhật trong quy trình.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Lịch sử xử lý' })).not.toBeInTheDocument();
     expect(screen.queryByText(/Invalid Date|undefined|NaN/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Tải lại hồ sơ' }));
-    const latest = await screen.findByText('Studio đã nhận thông tin bổ sung của lớp.');
-    const earlier = screen.getByText('Lớp đã gửi yêu cầu chụp.');
-    expect(latest.compareDocumentPosition(earlier) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-    expect(latest.closest('li')).toHaveTextContent(/12\/10\/2026\s*·\s*16:30/);
-    expect(earlier.closest('li')).toHaveTextContent(/12\/10\/2026\s*·\s*15:00/);
+    await within(await screen.findByRole('region', { name: 'Thông tin yêu cầu' })).findByText(
+      /12\/10\/2026\s*·\s*08:30/,
+    );
+    expect(screen.queryByText('Studio đã nhận thông tin bổ sung của lớp.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Lớp đã gửi yêu cầu chụp.')).not.toBeInTheDocument();
     expect(
       within(screen.getByRole('region', { name: 'Thông tin yêu cầu' })).getByText(
         /12\/10\/2026\s*·\s*08:30/,
@@ -684,51 +726,34 @@ describe('Customer order presentation preserves workflow contracts', () => {
     expect(mocks.workflowAct).not.toHaveBeenCalled();
   });
 
-  it('sends a changed VN schedule with the existing version and trimmed values', async () => {
-    const updated = bookingFixture();
-    updated.workflow.changeRequest = {
-      _id: 'change-1',
-      kind: 'change',
-      status: 'requested',
-      priceDelta: 0,
-      terms: [],
-      at: '2026-10-01T08:00:00.000Z',
-    };
-    mocks.workflowAct.mockResolvedValue(updated);
-    renderBooking();
-    await screen.findByRole('heading', { name: 'Lớp 12A' });
-    const day = futureDate();
-    fireEvent.change(screen.getByLabelText('Ngày mong muốn'), { target: { value: day } });
-    fireEvent.change(screen.getByLabelText('Bắt đầu'), { target: { value: '11:00' } });
-    fireEvent.change(screen.getByLabelText('Kết thúc'), { target: { value: '12:30' } });
-    fireEvent.change(screen.getByLabelText('Địa điểm mới'), {
-      target: { value: '  Ngoại cảnh  ' },
-    });
-    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: '  Lịch thi đổi  ' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu cho studio' }));
-    await waitFor(() =>
-      expect(mocks.workflowAct).toHaveBeenCalledWith(
-        'booking-1',
-        7,
-        'change.request',
-        {
-          kind: 'change',
-          note: 'Lịch thi đổi',
-          proposed: {
-            schedule: {
-              shootDate: new Date(day + 'T00:00:00+07:00').toISOString(),
-              startTime: '11:00',
-              endTime: '12:30',
-              location: 'Ngoại cảnh',
-            },
-          },
-        },
-        'action-1',
-      ),
-    );
-    expect(mocks.workflowAct).toHaveBeenCalledTimes(1);
-    expect(screen.queryByLabelText('Lý do')).not.toBeInTheDocument();
-  });
+  it.each(['requested', 'proposed'] as const)(
+    'hides service change controls even when a request is %s',
+    async (status) => {
+      const record = bookingFixture();
+      record.workflow.lifecycle = 'change_pending';
+      record.workflow.changeRequest = {
+        _id: 'change-1',
+        kind: 'change',
+        status,
+        priceDelta: 0,
+        terms: [],
+        note: 'Lớp muốn đổi địa điểm chụp sang công viên.',
+        at: '2026-10-01T08:00:00.000Z',
+      };
+      mocks.workflowGet.mockResolvedValue(record);
+      renderBooking();
+      await screen.findByRole('heading', { name: 'Lớp 12A' });
+      expect(
+        screen.queryByRole('heading', { name: 'Yêu cầu thay đổi hoặc hủy dịch vụ' }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(record.workflow.changeRequest.note!)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Rút yêu cầu' })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Gửi yêu cầu cho studio' }),
+      ).not.toBeInTheDocument();
+      expect(mocks.workflowAct).not.toHaveBeenCalled();
+    },
+  );
 
   it('displays the supplied quote total independently of line sums and keeps the existing nonfinite fallback', async () => {
     const record = bookingFixture();
@@ -744,47 +769,6 @@ describe('Customer order presentation preserves workflow contracts', () => {
     expect(within(table).getByRole('cell', { name: '9.876.543.210 ₫' })).toBeInTheDocument();
     expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
     expect(mocks.workflowAct).not.toHaveBeenCalled();
-  });
-
-  it('blocks duplicate cancellation clicks while pending and keeps the key for unchanged retries', async () => {
-    const pending = deferred<BookingWorkflowDto>();
-    mocks.workflowAct
-      .mockReturnValueOnce(pending.promise)
-      .mockRejectedValue(apiFailure('Tạm thời chưa xử lý'));
-    renderBooking();
-    await screen.findByRole('heading', { name: 'Lớp 12A' });
-    fireEvent.change(screen.getByLabelText('Loại yêu cầu'), { target: { value: 'cancel' } });
-    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: '  Hủy vì lịch thi  ' } });
-    expect(screen.queryByLabelText('Ngày mong muốn')).not.toBeInTheDocument();
-    const send = screen.getByRole('button', { name: 'Gửi yêu cầu cho studio' });
-    fireEvent.click(send);
-    expect(send).toBeDisabled();
-    fireEvent.click(send);
-    expect(mocks.workflowAct).toHaveBeenCalledTimes(1);
-    expect(mocks.workflowAct).toHaveBeenLastCalledWith(
-      'booking-1',
-      7,
-      'change.request',
-      { kind: 'cancel', note: 'Hủy vì lịch thi', proposed: {} },
-      'action-1',
-    );
-    await act(async () => {
-      pending.reject(apiFailure('Tạm thời chưa xử lý'));
-    });
-    await screen.findByRole('alert');
-    fireEvent.click(send);
-    await waitFor(() => expect(send).toBeEnabled());
-    expect(mocks.workflowAct).toHaveBeenLastCalledWith(
-      'booking-1',
-      7,
-      'change.request',
-      { kind: 'cancel', note: 'Hủy vì lịch thi', proposed: {} },
-      'action-1',
-    );
-    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Lý do khác' } });
-    fireEvent.click(send);
-    await waitFor(() => expect(mocks.workflowAct).toHaveBeenCalledTimes(3));
-    expect(mocks.workflowAct.mock.calls[2][4]).toBe('action-2');
   });
 
   it('shows a stale quote failure without optimistic consent, then reloads the current workflow version', async () => {
@@ -820,7 +804,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
     );
   });
 
-  it('accepts only the active change request once while preserving its consent gate', async () => {
+  it('does not display old cancellation proposals or their actions', async () => {
     const record = bookingFixture();
     record.workflow.changeRequest = {
       _id: 'change-current',
@@ -833,24 +817,11 @@ describe('Customer order presentation preserves workflow contracts', () => {
       at: '2026-10-01T08:00:00.000Z',
     };
     mocks.workflowGet.mockResolvedValue(record);
-    const pending = deferred<BookingWorkflowDto>();
-    mocks.workflowAct.mockReturnValue(pending.promise);
     renderBooking();
-    const accept = await screen.findByRole('button', { name: 'Đồng ý đề xuất' });
-    fireEvent.click(accept);
-    fireEvent.click(accept);
-    expect(accept).toBeDisabled();
-    expect(mocks.workflowAct).toHaveBeenCalledTimes(1);
-    expect(mocks.workflowAct).toHaveBeenLastCalledWith(
-      'booking-1',
-      7,
-      'change.accept',
-      { requestId: 'change-current' },
-      'action-1',
-    );
-    record.workflow.changeRequest.status = 'applied';
-    await act(async () => pending.resolve({ ...record, workflow: { ...record.workflow } }));
+    await screen.findByRole('heading', { name: 'Lớp 12A' });
     expect(screen.queryByRole('button', { name: 'Đồng ý đề xuất' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Điều kiện hủy')).not.toBeInTheDocument();
+    expect(mocks.workflowAct).not.toHaveBeenCalled();
   });
 
   it('retains legacy admin fields and native controls outside customer appearance', async () => {
@@ -1030,7 +1001,8 @@ describe('Customer order presentation preserves workflow contracts', () => {
     });
     fireEvent.change(screen.getByLabelText('Số điện thoại'), { target: { value: '0901234567' } });
     fireEvent.click(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập để gửi yêu cầu thuê' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: /Tôi đã đọc/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập để đặt thuê' }));
     expect(await screen.findByTestId('destination')).toHaveTextContent(
       '/login?returnTo=' +
         encodeURIComponent(
@@ -1048,17 +1020,22 @@ describe('Customer order presentation preserves workflow contracts', () => {
       .mockReturnValueOnce(pending.promise)
       .mockResolvedValue({ _id: 'created-rental' });
     renderPage(<NewRentalPage />, rentalPath, '/rental/start');
-    const send = await screen.findByRole('button', { name: 'Gửi yêu cầu thuê' });
+    fireEvent.click(await screen.findByRole('checkbox', { name: /Tôi đã đọc/ }));
+    const send = await screen.findByRole('button', { name: 'Đặt thuê và thanh toán cọc' });
     fireEvent.click(send);
     fireEvent.click(send);
     expect(mocks.rentalCreate).toHaveBeenCalledTimes(1);
     await act(async () => pending.reject(apiFailure('Gửi thất bại')));
     await screen.findByRole('alert');
-    fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu thuê' }));
+    if (!screen.getByRole<HTMLInputElement>('checkbox', { name: /Tôi đã đọc/ }).checked)
+      fireEvent.click(await screen.findByRole('checkbox', { name: /Tôi đã đọc/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Đặt thuê và thanh toán cọc' }));
     await screen.findByTestId('destination');
     expect(mocks.rentalCreate).toHaveBeenCalledTimes(2);
     expect(mocks.rentalCreate).toHaveBeenLastCalledWith(
       {
+        termsAccepted: true,
+        policyVersion: 'rental-auto-v1',
         contactName: 'Khách thuê',
         phone: '0901234567',
         note: '',

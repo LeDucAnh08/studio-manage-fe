@@ -2,6 +2,7 @@ import api from './api';
 import type { ApiResponse, PaginatedApiResponse } from '../types';
 import type { Booking, BookingStatus } from './bookingService';
 import type { AssignedPhotographer } from './photographerService';
+import type { DeliveryPhoto } from './bookingDeliveryService';
 
 export type BookingWorkflowLifecycle =
   | 'intake'
@@ -28,6 +29,7 @@ export type BookingWorkflowAction =
   | 'progress.update'
   | 'revision.request'
   | 'delivery.accept'
+  | 'delivery.revision.start'
   | 'feedback.submit'
   | 'change.request'
   | 'change.propose'
@@ -97,6 +99,7 @@ export interface PaymentInstructions {
 }
 
 export interface DepositPayment {
+  demoSimulation?: boolean;
   provider: 'sepay';
   mode: 'sandbox' | 'live';
   reference: string;
@@ -135,6 +138,8 @@ export interface BookingWorkflowDto {
   booking: Pick<Booking, 'costumeSelections' | 'costumeHold' | 'packageAgreement'> & {
     _id: string;
     status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+    createdAt?: string;
+    reviewedAt?: string;
     cancelledAt?: string;
     cancellationReason?: string;
     packageName: string;
@@ -179,6 +184,7 @@ export interface BookingWorkflowDto {
       editingTerms: string[];
       terms: string[];
       paymentInstructions: PaymentInstructions;
+      proposedAt?: string;
       acceptedAt?: string;
     };
     payments: null | {
@@ -221,6 +227,7 @@ export interface BookingWorkflowDto {
       status: 'not_started' | 'shooting' | 'editing' | 'delivered';
       deliveryVersion: number;
       deliveryUrl?: string;
+      photos?: DeliveryPhoto[];
       deliveredAt?: string;
       acceptedAt?: string;
       acceptedDeliveryVersion?: number;
@@ -252,7 +259,12 @@ export interface BookingWorkflowDto {
       depositRequired: number;
       acceptedAt?: string;
     }>;
-    deliveryHistory: Array<{ version: number; deliveryUrl: string; deliveredAt: string }>;
+    deliveryHistory: Array<{
+      version: number;
+      deliveryUrl?: string;
+      photos?: DeliveryPhoto[];
+      deliveredAt: string;
+    }>;
     paymentInstructions: PaymentInstructions | null;
     paymentReady: boolean;
     depositPayment?: DepositPayment | null;

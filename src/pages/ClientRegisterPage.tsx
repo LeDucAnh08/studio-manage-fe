@@ -22,18 +22,25 @@ export default function ClientRegisterPage() {
     handleSubmit,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<{ name: string; username: string; password: string; confirm: string }>();
+  } = useForm<{
+    name: string;
+    username: string;
+    password: string;
+    confirm: string;
+    email: string;
+  }>();
   return (
     <CustomerAuthLayout titleId="register-title" title="Tạo tài khoản khách hàng">
       <form
         className="customer-register__form"
-        onSubmit={handleSubmit(async ({ name, username, password }) => {
+        onSubmit={handleSubmit(async ({ name, username, password, email }) => {
           setError('');
           try {
             await api.post('/auth/register', {
               name,
               username: username.trim().toLowerCase(),
               password,
+              ...(email?.trim() ? { email: email.trim().toLowerCase() } : {}),
             });
             toast.success('Tạo tài khoản thành công. Hãy đăng nhập.');
             navigate('/login', { state: returnState, replace: true });
@@ -64,6 +71,19 @@ export default function ClientRegisterPage() {
               required: 'Nhập tên đăng nhập',
               pattern: { value: /^[a-zA-Z0-9._-]{3,40}$/, message: 'Dùng 3–40 chữ, số hoặc ._-' },
             })}
+          />
+        </CustomerFormField>
+        <CustomerFormField
+          label="Email nhận thông báo (không bắt buộc)"
+          htmlFor="email"
+          hint="Sau khi đăng nhập, xác minh email trong hồ sơ để nhận thông báo duyệt đơn."
+        >
+          <CustomerInput
+            id="email"
+            type="email"
+            autoComplete="email"
+            maxLength={254}
+            {...register('email')}
           />
         </CustomerFormField>
         <CustomerFormField label="Mật khẩu" htmlFor="password" error={errors.password?.message}>

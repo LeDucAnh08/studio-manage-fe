@@ -3,11 +3,14 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { CustomerButton } from './CustomerButton';
 import { CustomerPrice } from './CustomerPrice';
-import { CustomerOrdersWorkspace, CustomerOrderProgress } from './CustomerOrdersWorkspace';
+import { CustomerOrdersWorkspace } from './CustomerOrdersWorkspace';
+import { RentalOrderProgress } from './RentalOrderProgress';
 import { vietnamDisplayDate as day } from '../../utils/vietnamCalendarDate';
 import {
   rentalService,
   rentalLabels,
+  rentalStageLabels,
+  normalizeRentalView,
   rentalError,
   type RentalOrder,
 } from '../../services/rentalService';
@@ -21,23 +24,9 @@ const titleFor = (order: RentalOrder) => {
 function RentalPreview({ order }: { order: RentalOrder }) {
   const location = useLocation();
   const lines = linesFor(order);
-  const terminal = ['cancelled', 'rejected'].includes(order.status);
+  const terminal = ['cancelled', 'rejected', 'expired'].includes(order.status);
   const completed = order.status === 'completed';
-  const held =
-    ['confirmed', 'checked_out', 'returned', 'completed'].includes(order.status) ||
-    order.events.some((event) => event.action === 'resources.confirm');
   const accepted = !!order.quote?.acceptedAt;
-  const eventAt = (...actions: string[]) =>
-    order.events
-      .filter((event) => actions.includes(event.action))
-      .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))[0]?.at;
-  const active = ['checked_out', 'returned', 'completed'].includes(order.status)
-    ? 3
-    : held || order.status === 'ready_to_confirm'
-      ? 2
-      : order.quote || order.status === 'quoting'
-        ? 1
-        : 0;
   const message =
     order.reservationIssue ||
     (terminal
@@ -46,40 +35,11 @@ function RentalPreview({ order }: { order: RentalOrder }) {
         ? 'Đơn thuê đã hoàn tất. Bạn có thể mở hồ sơ để xem lại thông tin giao nhận và thanh toán.'
         : order.change && ['requested', 'proposed'].includes(order.change.status)
           ? 'Đơn có yêu cầu thay đổi. Mở hồ sơ để xem phản hồi và xác nhận với studio.'
-          : order.quote && !accepted
-            ? 'Báo giá đã sẵn sàng. Mở hồ sơ để xem và xác nhận với studio.'
-            : 'Mở hồ sơ để xem thông tin giữ hàng, giao nhận và các bước tiếp theo với studio.');
-  const stages = [
-    {
-      label: 'Đã gửi yêu cầu',
-      at: order.createdAt,
-      done: true,
-      description: 'Studio sẽ kiểm tra và phản hồi yêu cầu thuê.',
-    },
-    {
-      label: accepted ? 'Đã thống nhất báo giá' : 'Báo giá & đặt cọc',
-      at: order.quote?.acceptedAt,
-      done: accepted,
-      description: 'Mở hồ sơ để xem báo giá và điều kiện thuê.',
-    },
-    {
-      label: held ? 'Đã giữ trang phục' : 'Xác nhận giữ trang phục',
-      at: eventAt('resources.confirm'),
-      done: held,
-      description: 'Studio giữ hàng sau khi thống nhất báo giá và ghi nhận đủ cọc bảo đảm.',
-    },
-    {
-      label: completed ? 'Đã hoàn tất dịch vụ' : 'Nhận, trả & hoàn tất',
-      at: completed
-        ? eventAt('completed', 'settlement.accept', 'payment.record')
-        : order.returnedAt || order.checkedOutAt,
-      done: completed,
-      description:
-        active === 3
-          ? rentalLabels[order.status]
-          : 'Nhận và trả theo kỳ thuê đã thống nhất với studio.',
-    },
-  ];
+          : order.autoCheckout && order.status === 'awaiting_deposit'
+            ? 'Đơn đã được duyệt tự động. Mở hồ sơ để đặt cọc trong thời hạn giữ hàng.'
+            : order.quote && !accepted
+              ? 'Báo giá đã sẵn sàng. Mở hồ sơ để xem và xác nhận với studio.'
+              : 'Mở hồ sơ để xem thông tin giữ hàng, giao nhận và các bước tiếp theo với studio.');
   return (
     <section className="customer-orders-preview" aria-labelledby="selected-order-title">
       <header>
@@ -117,7 +77,7 @@ function RentalPreview({ order }: { order: RentalOrder }) {
           />
         </p>
       )}
-      <CustomerOrderProgress stages={stages} currentStep={active} terminal={terminal} />
+      <RentalOrderProgress order={order} />
       <footer className="customer-orders-preview__footer">
         <p>{message}</p>
         <CustomerButton asChild>
@@ -136,9 +96,7 @@ function RentalPreview({ order }: { order: RentalOrder }) {
 export function CustomerRentalOrders() {
   const [params, setParams] = useSearchParams();
   const requestedView = params.get('view') || '';
-  const view = ['active', 'completed', 'cancelled', 'rejected'].includes(requestedView)
-    ? requestedView
-    : '';
+  const view = normalizeRentalView(requestedView);
   const requestedPage = Number(params.get('page') || 1);
   const page =
     Number.isSafeInteger(requestedPage) && requestedPage >= 1 && requestedPage <= 100000
@@ -186,6 +144,7 @@ export function CustomerRentalOrders() {
   }, [page, view, reload]);
   return (
     <CustomerOrdersWorkspace
+      statusOptions={rentalStageLabels}
       kind="thuê trang phục"
       loading={loading}
       error={error}
@@ -217,7 +176,7 @@ export function CustomerRentalOrders() {
             <span className="customer-orders-list__item-heading">
               <span>{titleFor(item)}</span>
               <span
-                className={`customer-orders-state ${['completed', 'cancelled', 'rejected'].includes(item.status) ? 'is-neutral' : ''}`}
+                className={`customer-orders-state ${['completed', 'cancelled', 'rejected', 'expired'].includes(item.status) ? 'is-neutral' : ''}`}
               >
                 {rentalLabels[item.status] || item.status}
               </span>

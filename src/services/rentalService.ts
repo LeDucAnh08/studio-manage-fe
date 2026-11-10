@@ -1,5 +1,18 @@
 import api from './api';
 import type { ApiResponse } from '../types';
+import type { DepositPayment } from './bookingWorkflowService';
+
+export interface RentalPolicy {
+  version: string;
+  holdMinutes: number;
+  maxPending: number;
+  leadHours: number;
+  turnaroundDays: number;
+  openHour: number;
+  closeHour: number;
+  closedWeekdays: number[];
+  terms: string[];
+}
 
 export interface RentalLine {
   costumeId: string;
@@ -41,7 +54,12 @@ export interface RentalOrder {
   _id: string;
   version: number;
   status: string;
+  orderStage?: RentalStage;
   pricingMode?: 'daily' | 'period';
+  autoCheckout?: boolean;
+  changesLocked?: boolean;
+  reservation?: { status: string; expiresAt: string };
+  depositPayment?: DepositPayment | null;
   reservationIssue?: string | null;
   contactName: string;
   phone?: string;
@@ -73,6 +91,8 @@ export interface RentalOrder {
   updatedAt: string;
 }
 export interface RentalRequest {
+  termsAccepted?: boolean;
+  policyVersion?: string;
   contactName: string;
   phone: string;
   note: string;
@@ -81,6 +101,8 @@ export interface RentalRequest {
   lines: Array<{ costumeId: string; size: string; quantity: number }>;
 }
 export const rentalService = {
+  policy: () =>
+    api.get<ApiResponse<RentalPolicy>>('/public/rental-policy').then((res) => res.data.data),
   list: (page = 1, view = '') =>
     api
       .get<{
@@ -107,17 +129,39 @@ export const rentalService = {
       >(`/rentals/${id}/actions`, { expectedVersion, action, ...data }, { headers: { 'Idempotency-Key': key } })
       .then((res) => res.data.data),
 };
-export const rentalLabels: Record<string, string> = {
-  requested: 'Chờ studio tư vấn',
-  quoting: 'Chờ đồng ý báo giá',
-  awaiting_deposit: 'Chờ cọc bảo đảm',
-  ready_to_confirm: 'Đủ cọc, chờ giữ hàng',
-  confirmed: 'Đã giữ hàng',
-  checked_out: 'Đã giao, chờ nhận trả',
-  returned: 'Đã nhận trả, chờ đối soát',
+export const rentalStageLabels = {
+  awaiting_confirmation: 'Chờ xác nhận',
+  ready_for_pickup: 'Chờ nhận đồ',
+  renting: 'Đang thuê',
+  settling: 'Chờ đối soát',
   completed: 'Hoàn tất',
   cancelled: 'Đã hủy',
-  rejected: 'Đã từ chối',
+};
+export type RentalStage = keyof typeof rentalStageLabels;
+const statusStages: Record<string, RentalStage> = {
+  requested: 'awaiting_confirmation',
+  quoting: 'awaiting_confirmation',
+  awaiting_deposit: 'awaiting_confirmation',
+  ready_to_confirm: 'awaiting_confirmation',
+  payment_review: 'awaiting_confirmation',
+  confirmed: 'ready_for_pickup',
+  checked_out: 'renting',
+  returned: 'settling',
+  completed: 'completed',
+  cancelled: 'cancelled',
+  rejected: 'cancelled',
+  expired: 'cancelled',
+};
+export const getRentalStage = (order: Pick<RentalOrder, 'status' | 'orderStage'>): RentalStage =>
+  order.orderStage ?? statusStages[order.status] ?? 'awaiting_confirmation';
+export const rentalLabels: Record<string, string> = Object.fromEntries(
+  Object.entries(statusStages).map(([status, stage]) => [status, rentalStageLabels[stage]]),
+);
+export const normalizeRentalView = (view: string): string => {
+  if (Object.prototype.hasOwnProperty.call(rentalStageLabels, view)) return view;
+  if (view === 'expired' || view === 'rejected') return 'cancelled';
+  if (view === 'payment_review') return 'awaiting_confirmation';
+  return '';
 };
 export const rentalMoney = (value = 0) => value.toLocaleString('vi-VN') + ' đ';
 export const rentalDate = (value: string) =>

@@ -222,7 +222,7 @@ export default function RentalCatalogPage() {
           </p>
           {addingToRental && (
             <Link
-              className="customer-link"
+              className="customer-back-link"
               to={`/rental/start?${new URLSearchParams({ receiveDate, returnDate })}`}
             >
               Quay lại yêu cầu thuê

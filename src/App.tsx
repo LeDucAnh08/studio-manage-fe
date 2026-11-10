@@ -9,6 +9,9 @@ import {
 } from 'react-router-dom';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+import BookingDeliveryPage from './pages/BookingDeliveryPage';
+import BookingAlbumPage from './pages/BookingAlbumPage';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout/Layout';
@@ -58,6 +61,18 @@ function PageTitleManager() {
     else window.scrollTo({ top: 0, behavior: 'instant' });
   }, [pathname, hash]);
   return null;
+}
+
+function AlbumEntry() {
+  const location = useLocation();
+  return <BookingAlbumPage key={`${location.pathname}:${location.hash}`} />;
+}
+function AlbumRedirect() {
+  const { id } = useParams();
+  const location = useLocation();
+  const query = new URLSearchParams(location.search);
+  query.set('tab', 'selection');
+  return <Navigate to={`/workflow-bookings/${id}/delivery?${query}`} replace />;
 }
 
 function PortfolioEntry() {
@@ -173,6 +188,15 @@ function App() {
           <BrowserRouter>
             <PageTitleManager />
             <Routes>
+              <Route path="/albums/:publicId" element={<AlbumEntry />} />
+              <Route
+                path="/workflow-bookings/:id/album"
+                element={
+                  <ProtectedRoute allowedRoles={[0, 1, 3]}>
+                    <AlbumRedirect />
+                  </ProtectedRoute>
+                }
+              />
               <Route element={<CustomerScope />}>
                 <Route path="/login" element={<LoginPage />} />
                 <Route
@@ -219,7 +243,9 @@ function App() {
                     />
                     <Route path="bookings/new" element={<NewBookingPage />} />
                     <Route path="bookings/:id" element={<BookingWorkflowDetailPage />} />
+                    <Route path="bookings/:id/delivery" element={<BookingDeliveryPage />} />
                     <Route path="profile" element={<ProfilePage />} />
+                    <Route path="verify-email" element={<VerifyEmailPage />} />
                     <Route
                       path="rentals"
                       element={<Navigate to="/account/orders?tab=rentals" replace />}
@@ -297,6 +323,16 @@ function App() {
                       element={
                         <ProtectedRoute allowedRoles={[0, 1, 3, 5]}>
                           <BookingWorkflowDetailPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                  )}
+                  {clientPortalEnabled && (
+                    <Route
+                      path="workflow-bookings/:id/delivery"
+                      element={
+                        <ProtectedRoute allowedRoles={[0, 1, 3]}>
+                          <BookingDeliveryPage />
                         </ProtectedRoute>
                       }
                     />

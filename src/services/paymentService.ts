@@ -11,6 +11,7 @@ export interface SePayReceipt {
   amount: number;
   transactionDate: string;
   booking?: string;
+  rentalOrder?: string;
   status: 'pending' | 'review' | 'applied' | 'ignored';
   hasConflict?: boolean;
   conflicts?: Array<{
@@ -26,6 +27,14 @@ export interface SePayReceipt {
   reason?: string;
 }
 export const paymentService = {
+  simulateDeposit: (reference: string, key: string) =>
+    api
+      .post<{
+        data: { status: string };
+      }>('/payments/sepay/sandbox/simulate', { reference }, { headers: { 'Idempotency-Key': key } })
+      .then((res) => res.data.data),
+  resolveRental: (id: string, rentalId: string, note: string) =>
+    api.post(`/payments/sepay/receipts/${id}/resolve-rental`, { rentalId, note }),
   receipts: (page = 1) =>
     api
       .get<

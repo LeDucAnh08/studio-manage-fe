@@ -148,7 +148,8 @@
 }
 
 .customer-button:focus-visible,
-.customer-link:focus-visible {
+.customer-link:focus-visible,
+.customer-back-link:focus-visible {
   outline: 2px solid var(--customer-ink);
   outline-offset: 3px;
 }
@@ -309,6 +310,13 @@
   color: var(--customer-ink);
   text-decoration: underline;
   text-underline-offset: 3px;
+  border-radius: var(--customer-radius-control);
+}
+
+.customer-back-link,
+.customer-back-link:hover {
+  color: var(--customer-ink);
+  text-decoration: none;
   border-radius: var(--customer-radius-control);
 }
 

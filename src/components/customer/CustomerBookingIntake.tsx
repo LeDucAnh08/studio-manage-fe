@@ -21,7 +21,6 @@ interface CustomerBookingIntakeProps {
   requestedTime: string;
   note?: string;
   reviewNote?: string;
-  timeline: BookingWorkflowDto['workflow']['events'];
   formatDateTime: (value?: string | Date) => string;
   backPath: string;
   error: string;
@@ -38,7 +37,6 @@ export function CustomerBookingIntake({
   requestedTime,
   note,
   reviewNote,
-  timeline,
   formatDateTime,
   backPath,
   error,
@@ -49,7 +47,7 @@ export function CustomerBookingIntake({
   return (
     <section className="customer-booking-intake" aria-labelledby="customer-intake-title">
       <div className="customer-booking-intake__toolbar">
-        <Link className="customer-link customer-booking-intake__back" to={backPath}>
+        <Link className="customer-back-link customer-booking-intake__back" to={backPath}>
           <ArrowLeft size={16} aria-hidden="true" />
           Quay lại danh sách
         </Link>
@@ -182,7 +180,7 @@ export function CustomerBookingIntake({
         </div>
         {note && (
           <div className="customer-booking-intake__note">
-            <h3>Thông tin khách đã gửi</h3>
+            <h3>Yêu cầu thêm của khách</h3>
             <p>{note}</p>
           </div>
         )}
@@ -195,45 +193,6 @@ export function CustomerBookingIntake({
       </section>
 
       <BookingCostumeDetails booking={booking} />
-      <section
-        className="customer-booking-intake__history"
-        aria-labelledby="customer-intake-history-title"
-      >
-        <h2 id="customer-intake-history-title" className="customer-booking-intake__section-title">
-          Lịch sử xử lý
-        </h2>
-        {timeline.length ? (
-          <ol className="customer-booking-intake__timeline">
-            {timeline.map((event, index) => (
-              <li
-                key={`${event.action}-${event.at}-${index}`}
-                className="customer-booking-intake__event"
-              >
-                <Circle size={8} fill="currentColor" aria-hidden="true" />
-                <div>
-                  <div className="customer-booking-intake__event-heading">
-                    <span className="customer-booking-intake__event-title">
-                      {event.message.startsWith('Đã nhận yêu cầu đặt dịch vụ.')
-                        ? 'Đã nhận yêu cầu'
-                        : 'Cập nhật hồ sơ'}
-                    </span>
-                    <time dateTime={event.at} className="customer-booking-intake__event-time">
-                      {formatDateTime(event.at)}
-                    </time>
-                  </div>
-                  <p className="customer-booking-intake__event-message">
-                    {event.message.startsWith('Đã nhận yêu cầu đặt dịch vụ.')
-                      ? event.message.slice('Đã nhận yêu cầu đặt dịch vụ.'.length).trim()
-                      : event.message}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <p className="customer-booking-intake__empty">Chưa có cập nhật trong quy trình.</p>
-        )}
-      </section>
     </section>
   );
 }

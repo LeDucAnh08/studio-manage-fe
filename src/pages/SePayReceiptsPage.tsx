@@ -2,6 +2,64 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, DataTable, PageHeader, type Column } from '@/components/ui';
 import { paymentService, type SePayReceipt } from '../services/paymentService';
+import { rentalError } from '../services/rentalService';
+
+function ResolveRental({ receipt }: { receipt: SePayReceipt }) {
+  const [rentalId, setRentalId] = useState(receipt.rentalOrder || '');
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  if (receipt.booking || receipt.hasConflict) return null;
+  return (
+    <details className="mt-2">
+      <summary>Đối soát vào đơn thuê</summary>
+      <form
+        className="mt-2 space-y-2"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          setBusy(true);
+          setMessage('');
+          try {
+            await paymentService.resolveRental(receipt._id, rentalId.trim(), note.trim());
+            setMessage('Đã ghi nhận vào đơn thuê. Tải lại danh sách để cập nhật.');
+          } catch (error) {
+            setMessage(rentalError(error));
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        <label className="block">
+          Mã hồ sơ đơn thuê
+          <input
+            className="block w-full rounded border p-2"
+            required
+            value={rentalId}
+            onChange={(event) => setRentalId(event.target.value)}
+          />
+        </label>
+        <label className="block">
+          Căn cứ đối soát
+          <input
+            className="block w-full rounded border p-2"
+            required
+            maxLength={1000}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+          />
+        </label>
+        <p className="text-xs">
+          Chỉ xác nhận sau khi kiểm tra tiền thực về và đúng khách/đơn. Giao dịch chỉ được ghi nhận
+          một lần.
+        </p>
+        <Button type="submit" disabled={busy}>
+          {busy ? 'Đang xử lý…' : 'Xác nhận đối soát tiền thuê'}
+        </Button>
+        {message && <p role="status">{message}</p>}
+      </form>
+    </details>
+  );
+}
 
 const columns: Column<SePayReceipt>[] = [
   {
@@ -35,6 +93,7 @@ const columns: Column<SePayReceipt>[] = [
     render: (row) => (
       <>
         <p>{row.reason || 'Đã tiếp nhận, đang chờ xử lý lại'}</p>
+        {row.status === 'review' && <ResolveRental receipt={row} />}
         {!!row.conflicts?.length && (
           <details>
             <summary>Dữ liệu giao dịch khác ({row.conflicts.length})</summary>
@@ -63,6 +122,10 @@ const columns: Column<SePayReceipt>[] = [
       row.booking ? (
         <Link className="underline" to={`/workflow-bookings/${row.booking}`}>
           Mở đơn
+        </Link>
+      ) : row.rentalOrder ? (
+        <Link className="underline" to={`/rental-orders/${row.rentalOrder}`}>
+          Mở đơn thuê
         </Link>
       ) : (
         'Chưa khớp đơn'

@@ -4,6 +4,8 @@ import { Badge, Button, DataTable, PageHeader, type Column } from '@/components/
 import {
   rentalService,
   rentalLabels,
+  rentalStageLabels,
+  normalizeRentalView,
   rentalMoney,
   rentalDate,
   rentalError,
@@ -12,8 +14,7 @@ import {
 
 export default function RentalListPage() {
   const [params, setParams] = useSearchParams();
-  const views = ['', 'active', 'completed', 'cancelled', 'rejected'];
-  const view = views.includes(params.get('view') || '') ? params.get('view') || '' : '';
+  const view = normalizeRentalView(params.get('view') || '');
   const requestedPage = Number(params.get('page') || 1);
   const page =
     Number.isSafeInteger(requestedPage) && requestedPage > 0 && requestedPage <= 100000
@@ -90,7 +91,7 @@ export default function RentalListPage() {
       render: (order) => (
         <Badge
           variant={
-            ['cancelled', 'rejected'].includes(order.status)
+            ['cancelled', 'rejected', 'expired'].includes(order.status)
               ? 'destructive'
               : order.status === 'completed'
                 ? 'success'
@@ -163,9 +164,10 @@ export default function RentalListPage() {
         }
       />
       <div className="staff-toolbar rounded-lg border bg-card p-4">
-        <label className="flex flex-wrap items-center gap-3 text-sm font-medium">
-          Trạng thái đơn
+        <div className="flex flex-wrap items-center gap-3 text-sm font-medium">
+          <label htmlFor="rental-stage-filter">Trạng thái đơn</label>
           <select
+            id="rental-stage-filter"
             className="h-9 rounded-md border bg-background px-3"
             value={view}
             onChange={(event) =>
@@ -179,12 +181,13 @@ export default function RentalListPage() {
             }
           >
             <option value="">Tất cả</option>
-            <option value="active">Đang xử lý</option>
-            <option value="completed">Hoàn tất</option>
-            <option value="cancelled">Đã hủy</option>
-            <option value="rejected">Đã từ chối</option>
+            {Object.entries(rentalStageLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
           </select>
-        </label>
+        </div>
       </div>
       {error ? (
         <div role="alert" className="rounded-lg border border-destructive/30 p-4">

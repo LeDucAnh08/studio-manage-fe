@@ -18,10 +18,17 @@ const mocks = vi.hoisted(() => ({
   feedbackPost: vi.fn(),
   updateProfile: vi.fn(),
   changePassword: vi.fn(),
+  requestEmail: vi.fn(),
   telegramStatus: vi.fn(),
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
   auth: {
-    user: { username: 'customer.test', name: 'Khách thử', roles: [6] },
+    user: { username: 'customer.test', name: 'Khách thử', roles: [6] } as {
+      username: string;
+      name: string;
+      roles: number[];
+      email?: string;
+      emailVerifiedAt?: string | null;
+    },
     updateUser: vi.fn(),
   },
 }));
@@ -41,6 +48,10 @@ vi.mock('../services/studentService', () => ({
 }));
 vi.mock('../services/authService', () => ({
   authService: { updateProfile: mocks.updateProfile, changePassword: mocks.changePassword },
+}));
+vi.mock('../services/emailService', () => ({
+  emailService: { request: mocks.requestEmail },
+  emailError: () => 'Chưa thể gửi email. Vui lòng thử lại.',
 }));
 vi.mock('../services/telegramService', () => ({
   telegramService: { getStatus: mocks.telegramStatus },
@@ -228,6 +239,7 @@ describe('Customer form presentation keeps submission contracts', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }));
     await waitFor(() => expect(mocks.updateProfile).toHaveBeenCalledWith({ name: 'Tên mới' }));
     expect(mocks.auth.updateUser).toHaveBeenCalledWith({ name: 'Tên mới' });
+    expect(mocks.requestEmail).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText('Mật khẩu hiện tại'), {
       target: { value: 'old-password' },
     });
@@ -247,6 +259,57 @@ describe('Customer form presentation keeps submission contracts', () => {
       expect(mocks.changePassword).toHaveBeenCalledWith('old-password', 'new-password'),
     );
     expect(mocks.toast.success).toHaveBeenCalledWith('Đổi mật khẩu thành công');
+  });
+  it('saves name and email through the shared profile submit button', async () => {
+    mocks.requestEmail.mockResolvedValue({ email: 'customer@example.test', emailVerifiedAt: null });
+    renderPage(<ProfilePage />, '/account/profile', '/account/profile');
+    fireEvent.change(screen.getByLabelText('Họ tên hiển thị'), { target: { value: 'Tên mới' } });
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'customer@example.test' },
+    });
+    expect(screen.getByLabelText('Email').className).toBe(
+      screen.getByLabelText('Họ tên hiển thị').className,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }));
+    await waitFor(() => expect(mocks.requestEmail).toHaveBeenCalledWith('customer@example.test'));
+    expect(mocks.updateProfile).toHaveBeenCalledWith({ name: 'Tên mới' });
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Đã ghi nhận yêu cầu xác minh email.',
+    );
+    expect(mocks.auth.updateUser).toHaveBeenCalledWith({
+      email: 'customer@example.test',
+      emailVerifiedAt: null,
+    });
+  });
+
+  it('keeps the entered email and allows retry when verification fails after saving name', async () => {
+    mocks.requestEmail.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({
+      email: 'customer@example.test',
+      emailVerifiedAt: null,
+    });
+    renderPage(<ProfilePage />, '/account/profile', '/account/profile');
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'customer@example.test' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }));
+    await screen.findByText('Chưa thể gửi email. Vui lòng thử lại.');
+    expect(screen.getByLabelText('Email')).toHaveValue('customer@example.test');
+    expect(mocks.toast.success).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }));
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Đã ghi nhận yêu cầu xác minh email.',
+    );
+    expect(mocks.requestEmail).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not resend verification when saving an unchanged verified email', async () => {
+    mocks.auth.user.email = 'customer@example.test';
+    mocks.auth.user.emailVerifiedAt = '2026-11-10T00:00:00.000Z';
+    renderPage(<ProfilePage />, '/account/profile', '/account/profile');
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }));
+    await waitFor(() => expect(mocks.toast.success).toHaveBeenCalled());
+    expect(mocks.requestEmail).not.toHaveBeenCalled();
+    expect(screen.getByText('Email đã được xác minh.')).toBeInTheDocument();
   });
 
   it('keeps staff Telegram visibility based on role rather than appearance', async () => {

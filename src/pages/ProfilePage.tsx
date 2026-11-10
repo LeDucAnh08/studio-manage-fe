@@ -13,6 +13,7 @@ import { CustomerFormField, CustomerInput } from '@/components/customer/Customer
 import { CustomerStatusBadge } from '@/components/customer/CustomerStatusBadge';
 import { CustomerSurface } from '@/components/customer/CustomerSurface';
 import '../styles/customer-forms.css';
+import { emailService, emailError } from '@/services/emailService';
 
 function ProfileField({
   label,
@@ -45,6 +46,7 @@ function ProfileField({
 
 interface ProfileFormValues {
   name: string;
+  email: string;
 }
 
 function ProfileSection() {
@@ -52,18 +54,38 @@ function ProfileSection() {
   const ProfileInput = isCustomer ? CustomerInput : Input;
   const ProfileButton = isCustomer ? CustomerButton : Button;
   const { user, updateUser } = useAuth();
+  const canEditEmail = !!user?.roles.includes(6);
+  const [notice, setNotice] = useState('');
   const {
     register,
     handleSubmit,
-    formState: { isSubmitting },
+    setError,
+    watch,
+    formState: { isSubmitting, errors },
   } = useForm<ProfileFormValues>({
-    defaultValues: { name: user?.name ?? '' },
+    defaultValues: { name: user?.name ?? '', email: user?.email ?? '' },
   });
+  const email = watch('email').trim().toLowerCase();
+  const verified = !!user?.emailVerifiedAt && email === user.email;
 
   const onSubmit = async (data: ProfileFormValues) => {
+    setNotice('');
     try {
       const updated = await authService.updateProfile({ name: data.name });
       updateUser({ name: updated.name });
+      if (canEditEmail && email && !verified) {
+        try {
+          const result = await emailService.request(email);
+          updateUser({ email: result.email, emailVerifiedAt: result.emailVerifiedAt });
+          setNotice(
+            'Đã ghi nhận yêu cầu xác minh email. Đường dẫn xác minh có hiệu lực trong 1 giờ.',
+          );
+        } catch (error) {
+          setError('email', { message: emailError(error) });
+          toast.error('Đã lưu họ tên, nhưng chưa thể cập nhật email. Vui lòng thử lại.');
+          return;
+        }
+      }
       toast.success('Cập nhật thông tin thành công');
     } catch {
       toast.error('Có lỗi xảy ra, vui lòng thử lại');
@@ -81,6 +103,32 @@ function ProfileSection() {
       <ProfileField label="Họ tên hiển thị" htmlFor="name">
         <ProfileInput id="name" placeholder="Nhập tên hiển thị" {...register('name')} />
       </ProfileField>
+      {canEditEmail && (
+        <ProfileField label="Email" htmlFor="email" error={errors.email?.message}>
+          <ProfileInput
+            id="email"
+            type="email"
+            autoComplete="email"
+            maxLength={254}
+            placeholder="Nhập email"
+            {...register('email', {
+              required: user?.email ? 'Vui lòng nhập email.' : false,
+              setValueAs: (value: string) => value.trim().toLowerCase(),
+              onChange: () => setNotice(''),
+            })}
+          />
+          {user?.email && (
+            <p className="text-sm text-muted-foreground">
+              {verified ? 'Email đã được xác minh.' : 'Email chưa được xác minh.'}
+            </p>
+          )}
+          {notice && (
+            <p role="status" className="text-sm">
+              {notice}
+            </p>
+          )}
+        </ProfileField>
+      )}
       <div>
         <p
           className={isCustomer ? 'customer-field__label' : 'text-sm font-medium mb-1.5'}
@@ -399,7 +447,6 @@ const ProfilePage = () => {
         <SectionCard icon={KeyRound} title="Đổi mật khẩu">
           <PasswordSection />
         </SectionCard>
-
         {!user?.roles.includes(6) && (
           <SectionCard icon={Link2} title="Liên kết Telegram">
             <TelegramSection />

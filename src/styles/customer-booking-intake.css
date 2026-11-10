@@ -26,7 +26,7 @@
   padding-block: var(--customer-space-8);
   color: var(--customer-body);
   font-size: var(--customer-body-small-size);
-  text-decoration: underline;
+  text-decoration: none;
   overflow-wrap: anywhere;
 }
 
@@ -38,7 +38,7 @@
 
 .customer-ui .customer-booking-intake__back:hover {
   color: var(--customer-ink);
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .customer-ui .customer-booking-intake__back:focus-visible {

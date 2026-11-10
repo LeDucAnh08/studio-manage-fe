@@ -34,6 +34,7 @@ interface CostumeFormValues {
   isRentalItem: boolean;
   rentalPrice: number;
   rentalDailyPrice: number | null;
+  rentalSecurityDeposit: number | null;
   inventory: CostumeInventory[];
 }
 
@@ -129,6 +130,7 @@ const CostumesPage = () => {
       isRentalItem: false,
       rentalPrice: 0,
       rentalDailyPrice: null,
+      rentalSecurityDeposit: null,
       inventory: [],
     });
     setModalOpen(true);
@@ -146,6 +148,7 @@ const CostumesPage = () => {
       isRentalItem: costume.isRentalItem ?? false,
       rentalPrice: costume.rentalPrice ?? 0,
       rentalDailyPrice: costume.rentalDailyPrice ?? null,
+      rentalSecurityDeposit: costume.rentalSecurityDeposit ?? null,
       inventory: costume.inventory ?? [],
     });
     setModalOpen(true);
@@ -497,7 +500,7 @@ const CostumesPage = () => {
             <FormField
               label="Giá thuê/ngày (đồng)"
               htmlFor="rentalDailyPrice"
-              hint="Áp dụng cho đơn mới. Để trống nếu studio cần báo giá theo ngày."
+              hint="Áp dụng cho đơn mới. Để trống sẽ không cho đặt thuê tự động."
               error={errors.rentalDailyPrice?.message}
             >
               <Input
@@ -513,6 +516,28 @@ const CostumesPage = () => {
                     value === null ||
                     (Number.isSafeInteger(value) && value > 0) ||
                     'Nhập giá/ngày là số nguyên dương hoặc để trống.',
+                })}
+              />
+            </FormField>
+            <FormField
+              label="Cọc bảo đảm/món (đồng)"
+              htmlFor="rentalSecurityDeposit"
+              hint="Để trống: chưa cho đặt tự động. Nhập 0 nếu không yêu cầu cọc."
+              error={errors.rentalSecurityDeposit?.message}
+            >
+              <Input
+                id="rentalSecurityDeposit"
+                type="number"
+                min="0"
+                step="1"
+                disabled={!isRentalEnabled}
+                {...register('rentalSecurityDeposit', {
+                  setValueAs: (value) => (value === '' || value === null ? null : Number(value)),
+                  validate: (value) =>
+                    !isRentalEnabled ||
+                    value === null ||
+                    (Number.isSafeInteger(value) && value >= 0) ||
+                    'Nhập số nguyên không âm hoặc để trống.',
                 })}
               />
             </FormField>

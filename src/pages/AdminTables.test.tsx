@@ -75,16 +75,16 @@ describe('shared admin tables', () => {
     mocks.markRead.mockResolvedValue({ ...feedback, isRead: true });
   });
   it('keeps rental server pagination, status and money in one table and retains the return URL', async () => {
-    openRentals('/rental-orders?view=active&page=2');
+    openRentals('/rental-orders?view=ready_for_pickup&page=2');
     const table = await screen.findByRole('table', { name: 'Đơn thuê trang phục' });
-    expect(mocks.rentals).toHaveBeenLastCalledWith(2, 'active');
+    expect(mocks.rentals).toHaveBeenLastCalledWith(2, 'ready_for_pickup');
     expect(within(table).getByRole('cell', { name: 'Áo dài · M · 2 món' })).toBeInTheDocument();
     expect(within(table).getByText('50.000 đ')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }));
-    await waitFor(() => expect(mocks.rentals).toHaveBeenLastCalledWith(3, 'active'));
+    await waitFor(() => expect(mocks.rentals).toHaveBeenLastCalledWith(3, 'ready_for_pickup'));
     fireEvent.click(await screen.findByRole('link', { name: 'Khách thuê' }));
     expect(screen.getByTestId('location')).toHaveTextContent(
-      'rentalOrdersReturnTo":"/rental-orders?view=active&page=3',
+      'rentalOrdersReturnTo":"/rental-orders?view=ready_for_pickup&page=3',
     );
   });
   it('resets rental paging on filter changes and displays refundable money', async () => {

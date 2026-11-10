@@ -37,8 +37,6 @@ import {
   type WorkflowMember,
   createWorkflowRequestId,
 } from '../services/bookingWorkflowService';
-import { userService } from '../services/userService';
-import type { User } from '../types';
 import { BookingPhotographer } from '../components/BookingPhotographer';
 import { PhotographerAvailabilityPicker } from '../components/PhotographerAvailabilityPicker';
 import {
@@ -70,13 +68,6 @@ type MemberInput = {
 };
 
 const VN_TIME_ZONE = 'Asia/Ho_Chi_Minh';
-const changeStatusLabels: Record<string, string> = {
-  requested: 'Khách đang chờ phản hồi',
-  proposed: 'Chờ khách xác nhận đề xuất',
-  accepted: 'Đã đồng ý',
-  applied: 'Đã áp dụng',
-  declined: 'Đã đóng yêu cầu',
-};
 const methodLabels: Record<string, string> = {
   cash: 'Tiền mặt',
   bank_transfer: 'Chuyển khoản',
@@ -269,8 +260,6 @@ export default function BookingWorkflowDetailPage() {
   const canSeeFinancials = isAdmin || isClient || isAccountant;
   const [record, setRecord] = useState<BookingWorkflowDto | null>(null);
   const [legacyBooking, setLegacyBooking] = useState<Booking | null>(null);
-  const [photographers, setPhotographers] = useState<User[]>([]);
-  const [photographerError, setPhotographerError] = useState('');
   const [allocationAvailability, setAllocationAvailability] = useState<AvailabilityResult | null>(
     null,
   );
@@ -292,26 +281,10 @@ export default function BookingWorkflowDetailPage() {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
   const [paymentReference, setPaymentReference] = useState('');
-  const [progressUrl, setProgressUrl] = useState('');
-  const [revisionNote, setRevisionNote] = useState('');
   const [memberDraft, setMemberDraft] = useState<MemberInput[]>([]);
   const [memberError, setMemberError] = useState('');
   const [allocationRows, setAllocationRows] = useState<AllocationInput[]>([]);
   const [selectedPhotographerIds, setSelectedPhotographerIds] = useState<string[]>([]);
-  const [changeKind, setChangeKind] = useState<'change' | 'cancel'>('change');
-  const [changeNote, setChangeNote] = useState('');
-  const [requestedDate, setRequestedDate] = useState('');
-  const [requestedStartTime, setRequestedStartTime] = useState('');
-  const [requestedEndTime, setRequestedEndTime] = useState('');
-  const [requestedLocation, setRequestedLocation] = useState('');
-  const [proposalDate, setProposalDate] = useState('');
-  const [proposalStartTime, setProposalStartTime] = useState('');
-  const [proposalEndTime, setProposalEndTime] = useState('');
-  const [proposalLocation, setProposalLocation] = useState('');
-  const [proposedPayable, setProposedPayable] = useState('0');
-  const [proposalTerms, setProposalTerms] = useState('');
-  const [feedbackRating, setFeedbackRating] = useState(5);
-  const [feedbackComment, setFeedbackComment] = useState('');
   const mutationKeys = useRef(new Map<string, string>());
 
   const load = useCallback(async () => {
@@ -341,23 +314,6 @@ export default function BookingWorkflowDetailPage() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  useEffect(() => {
-    if (!isAdmin) return;
-    let active = true;
-    userService
-      .getPhotographers()
-      .then((items) => {
-        if (active) setPhotographers(items);
-      })
-      .catch(() => {
-        if (active)
-          setPhotographerError('Không tải được danh sách thợ chụp. Hãy thử tải lại hồ sơ.');
-      });
-    return () => {
-      active = false;
-    };
-  }, [isAdmin]);
 
   const booking = record?.booking;
   const workflow = record?.workflow;
@@ -418,8 +374,6 @@ export default function BookingWorkflowDetailPage() {
     };
   }, [id, isClient, depositPayment, busy]);
   const totalQuote = workflow?.quote?.total ?? 0;
-  const activeChange =
-    !!workflow?.changeRequest && ['requested', 'proposed'].includes(workflow.changeRequest.status);
   const estimatedQuoteTotal = quoteLines.reduce((sum, line) => {
     const quantity = Number(line.quantity);
     const price = Number(line.unitPrice);
@@ -479,10 +433,6 @@ export default function BookingWorkflowDetailPage() {
     !workflow?.quote?.acceptedAt &&
     !workflow?.payments?.entries.length
   );
-  const acceptedDelivery = !!(
-    workflow?.progress?.acceptedAt &&
-    workflow.progress.acceptedDeliveryVersion === workflow.progress.deliveryVersion
-  );
 
   useEffect(() => {
     if (!booking || !workflow) return;
@@ -538,16 +488,6 @@ export default function BookingWorkflowDetailPage() {
         returnDate: vnDateInput(item.returnDate),
       })) ?? defaultAllocationRows(workflow.members, defaultDate),
     );
-    setRequestedDate(defaultDate);
-    setRequestedStartTime(defaultStart);
-    setRequestedEndTime(defaultEnd);
-    setRequestedLocation(defaultLocation);
-    setProposalDate(defaultDate);
-    setProposalStartTime(defaultStart);
-    setProposalEndTime(defaultEnd);
-    setProposalLocation(defaultLocation);
-    setProposedPayable(String(workflow.changeRequest?.finalPayable ?? workflow.quote?.total ?? 0));
-    setProposalTerms(workflow.changeRequest?.terms.join('\n') ?? '');
   }, [booking, workflow, legacyBooking]);
 
   const getMutationKey = (signature: string) => {
@@ -720,16 +660,8 @@ export default function BookingWorkflowDetailPage() {
     }
   };
 
-  const submitProgress = async (status: 'shooting' | 'editing' | 'delivered') => {
-    if (status === 'delivered' && !progressUrl.trim()) {
-      setError('Nhập đường dẫn Drive bàn giao cho khách.');
-      return;
-    }
-    const updated = await runAction('progress.update', {
-      status,
-      ...(status === 'delivered' ? { deliveryUrl: progressUrl.trim() } : {}),
-    });
-    if (updated && status === 'delivered') setProgressUrl('');
+  const submitProgress = async (status: 'shooting' | 'editing') => {
+    await runAction('progress.update', { status });
   };
 
   const submitAllocation = async () => {
@@ -773,72 +705,6 @@ export default function BookingWorkflowDetailPage() {
         photographerIds: selectedPhotographerIds,
       },
       costumes,
-    });
-  };
-
-  const submitChangeRequest = async () => {
-    if (!changeNote.trim()) {
-      setError('Mô tả lý do thay đổi hoặc hủy dịch vụ.');
-      return;
-    }
-    if (
-      changeKind === 'change' &&
-      !validFutureSchedule(requestedDate, requestedStartTime, requestedEndTime, requestedLocation)
-    ) {
-      setError('Chọn ngày và khung giờ mới trong tương lai, đồng thời nhập địa điểm.');
-      return;
-    }
-    const proposed =
-      changeKind === 'change'
-        ? {
-            schedule: {
-              shootDate: dateAtVietnamMidnight(requestedDate),
-              startTime: requestedStartTime,
-              endTime: requestedEndTime,
-              location: requestedLocation.trim(),
-            },
-          }
-        : {};
-    const updated = await runAction('change.request', {
-      kind: changeKind,
-      note: changeNote.trim(),
-      proposed,
-    });
-    if (updated) setChangeNote('');
-  };
-
-  const proposeChange = async () => {
-    if (!workflow?.changeRequest) return;
-    const request = workflow.changeRequest;
-    const payable = Number(proposedPayable);
-    if (!Number.isSafeInteger(payable) || payable < 0) {
-      setError('Nhập số tiền phải trả sau khi áp dụng đề xuất.');
-      return;
-    }
-    if (
-      request.kind === 'change' &&
-      !validFutureSchedule(proposalDate, proposalStartTime, proposalEndTime, proposalLocation)
-    ) {
-      setError('Chọn ngày và khung giờ đề xuất trong tương lai, đồng thời nhập địa điểm.');
-      return;
-    }
-    const proposed =
-      request.kind === 'cancel'
-        ? { finalPayable: payable }
-        : {
-            schedule: {
-              shootDate: dateAtVietnamMidnight(proposalDate),
-              startTime: proposalStartTime,
-              endTime: proposalEndTime,
-              location: proposalLocation.trim(),
-            },
-            finalPayable: payable,
-          };
-    await runAction('change.propose', {
-      requestId: request._id,
-      proposed,
-      finalPayable: payable,
-      terms: splitLines(proposalTerms),
     });
   };
 
@@ -898,7 +764,7 @@ export default function BookingWorkflowDetailPage() {
           customer ? 'customer-orders customer-orders--detail' : 'mx-auto max-w-5xl space-y-4 p-6'
         }
       >
-        <Link className={customer ? 'customer-link' : 'text-primary'} to={backPath}>
+        <Link className={customer ? 'customer-back-link' : 'text-primary'} to={backPath}>
           ← Quay lại danh sách
         </Link>
         <p
@@ -963,7 +829,6 @@ export default function BookingWorkflowDetailPage() {
             : null;
   const quoteLinesExist = quoteLines.length > 0;
   const scheduleReleased = workflow.lifecycle === 'cancelled';
-  const proposedChangeSchedule = workflow.changeRequest?.proposed?.schedule;
 
   if (
     customer &&
@@ -989,7 +854,6 @@ export default function BookingWorkflowDetailPage() {
         requestedTime={requestedTime}
         note={booking.note || legacyBooking?.note}
         reviewNote={booking.reviewNote || legacyBooking?.reviewNote}
-        timeline={timeline}
         formatDateTime={formatIntakeDateTime}
         backPath={backPath}
         error={error}
@@ -1011,7 +875,7 @@ export default function BookingWorkflowDetailPage() {
         <Link
           className={
             customer
-              ? 'customer-link'
+              ? 'customer-back-link'
               : 'inline-flex min-h-10 items-center text-sm font-medium text-primary'
           }
           to={backPath}
@@ -1098,18 +962,44 @@ export default function BookingWorkflowDetailPage() {
             {booking.members}
           </p>
           <p>
-            <span className="text-muted-foreground">Thời gian lớp đề xuất: </span>
-            {formatDateTime(booking.startAt)} – {formatDateTime(booking.endAt)}
+            <span className="text-muted-foreground">
+              {workflow.resources?.scheduleDetails
+                ? scheduleReleased
+                  ? 'Lịch chụp đã hủy: '
+                  : 'Lịch chụp đã chốt: '
+                : 'Thời gian lớp đề xuất: '}
+            </span>
+            {workflow.resources?.scheduleDetails ? (
+              <>
+                {formatDateOnly(workflow.resources.scheduleDetails.shootDate)} ·{' '}
+                {workflow.resources.scheduleDetails.startTime} –{' '}
+                {workflow.resources.scheduleDetails.endTime}
+              </>
+            ) : (
+              <>
+                {formatDateTime(booking.startAt)} – {formatDateTime(booking.endAt)}
+              </>
+            )}
           </p>
           <p>
-            <span className="text-muted-foreground">Địa điểm mong muốn: </span>
-            {booking.location}
+            <span className="text-muted-foreground">
+              {workflow.resources?.scheduleDetails ? 'Địa điểm đã chốt: ' : 'Địa điểm mong muốn: '}
+            </span>
+            {workflow.resources?.scheduleDetails?.location || booking.location}
           </p>
           <p>
             <span className="text-muted-foreground">Yêu cầu gửi lúc: </span>
             {formatDateTime(legacyBooking?.createdAt || workflow.createdAt)}
           </p>
         </div>
+        {(isAdmin || isClient || isPhotographer) && (booking.note || legacyBooking?.note) && (
+          <div className="mt-4 border-t pt-4 text-sm">
+            <h2 className="font-semibold">Yêu cầu thêm của khách</h2>
+            <p className="mt-2 whitespace-pre-wrap break-words">
+              {booking.note || legacyBooking?.note}
+            </p>
+          </div>
+        )}
         {booking.status === 'pending' && (
           <p
             className={
@@ -1157,7 +1047,28 @@ export default function BookingWorkflowDetailPage() {
         admin={isAdmin}
         busy={busy !== ''}
         onAssign={(photographerIds) => runAction('photographer.assign', { photographerIds })}
-      />
+      >
+        {workflow.resources?.scheduleId &&
+          (isAdmin || isClient || isPhotographer) &&
+          workflow.resources.costumes.length > 0 && (
+            <div className="border-t pt-3">
+              <h3 className="text-sm font-semibold">
+                {scheduleReleased ? 'Trang phục đã giải phóng' : 'Trang phục đã giữ'}
+              </h3>
+              <ul className="mt-2 space-y-2 text-sm">
+                {workflow.resources.costumes.map((item, index) => (
+                  <li key={`${item.costumeId}-${item.size}-${index}`}>
+                    {workflow.allowedCostumes.find(
+                      (costume) => costume.costumeId === item.costumeId,
+                    )?.name ?? `Trang phục ${item.costumeId.slice(-6)}`}{' '}
+                    · cỡ {item.size} · {item.quantity} bộ · nhận {formatDateOnly(item.receiveDate)}{' '}
+                    · trả {formatDateOnly(item.returnDate)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+      </BookingPhotographer>
       {canSeeFinancials && booking.status === 'approved' && workflow.depositPayment && (
         <DepositPaymentPanel payment={workflow.depositPayment} />
       )}
@@ -1187,15 +1098,6 @@ export default function BookingWorkflowDetailPage() {
           admin={isAdmin && !workflow.resources?.scheduleId}
           onReleased={load}
         />
-      )}
-
-      {(isAdmin || isClient || isPhotographer) && (booking.note || legacyBooking?.note) && (
-        <section className={customer ? 'customer-order-surface' : 'rounded-2xl border p-5'}>
-          <h2 className={customer ? 'customer-section-title' : 'font-semibold'}>
-            Thông tin khách đã gửi
-          </h2>
-          <p className="mt-2 whitespace-pre-wrap text-sm">{booking.note || legacyBooking?.note}</p>
-        </section>
       )}
 
       {isAdmin && booking.status === 'pending' && (
@@ -1707,8 +1609,8 @@ export default function BookingWorkflowDetailPage() {
                   customer ? 'customer-order-notice' : 'rounded-xl bg-amber-500/10 p-3 text-sm'
                 }
               >
-                Bạn đã nghiệm thu bản bàn giao. Hồ sơ sẽ hoàn tất sau khi kế toán đối chiếu đủ số
-                tiền còn lại (
+                Bạn đã xác nhận ảnh trong bản bàn giao đạt yêu cầu. Hồ sơ sẽ hoàn tất sau khi kế
+                toán đối chiếu đủ số tiền còn lại (
                 {customer ? (
                   <CustomerPrice amount={amountForDisplay(effectivePayment.totalDue)} />
                 ) : (
@@ -2398,14 +2300,6 @@ export default function BookingWorkflowDetailPage() {
               Cần đủ hồ sơ của {booking.members} thành viên trước khi xác nhận.
             </p>
           )}
-          {photographerError && (
-            <p
-              role="alert"
-              className={customer ? 'customer-order-error' : 'text-sm text-destructive'}
-            >
-              {photographerError}
-            </p>
-          )}
           {!workflow.assignedPhotographer && (
             <p className="text-sm text-destructive">
               Gắn thợ phụ trách ở đầu hồ sơ trước khi xác nhận lịch.
@@ -2580,88 +2474,6 @@ export default function BookingWorkflowDetailPage() {
         </section>
       )}
 
-      {workflow.resources?.scheduleId && (isAdmin || isClient || isPhotographer) && (
-        <section
-          className={
-            customer ? 'customer-order-surface' : 'space-y-4 rounded-2xl border p-5 sm:p-6'
-          }
-        >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
-                {scheduleReleased ? 'Lịch đã hủy' : 'Lịch và nguồn lực đã xác nhận'}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Mã lịch {workflow.resources.scheduleId}
-                {scheduleReleased ? ' · nguồn lực đã được giải phóng' : ''}
-              </p>
-            </div>
-            <span
-              className={
-                customer
-                  ? 'customer-status'
-                  : `rounded-full px-3 py-1 text-sm ${scheduleReleased ? 'bg-muted' : 'bg-emerald-600/10'}`
-              }
-            >
-              {scheduleReleased ? 'Đã giải phóng' : 'Đã giữ lịch'}
-            </span>
-          </div>
-          {workflow.resources.scheduleDetails && (
-            <div
-              className={customer ? 'customer-order-summary' : 'grid gap-2 text-sm sm:grid-cols-2'}
-            >
-              <p>
-                <span className="text-muted-foreground">Ngày: </span>
-                {formatDateOnly(workflow.resources.scheduleDetails.shootDate)}
-              </p>
-              <p>
-                <span className="text-muted-foreground">Thời gian: </span>
-                {workflow.resources.scheduleDetails.startTime} –{' '}
-                {workflow.resources.scheduleDetails.endTime}
-              </p>
-              <p>
-                <span className="text-muted-foreground">Địa điểm: </span>
-                {workflow.resources.scheduleDetails.location}
-              </p>
-            </div>
-          )}
-          <div>
-            <h3 className={customer ? 'customer-order-title' : 'text-sm font-semibold'}>
-              Thợ chụp
-            </h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {workflow.resources.photographers
-                .map(
-                  (photographerId) =>
-                    photographers.find((item) => item._id === photographerId)?.name ??
-                    (photographerId === user?._id
-                      ? user.name || user.username
-                      : `Nhân sự ${photographerId.slice(-6)}`),
-                )
-                .join(', ')}
-            </p>
-          </div>
-          {workflow.resources.costumes.length > 0 && (
-            <div>
-              <h3 className={customer ? 'customer-order-title' : 'text-sm font-semibold'}>
-                Trang phục đã giữ
-              </h3>
-              <ul className="mt-1 space-y-1 text-sm">
-                {workflow.resources.costumes.map((item, index) => (
-                  <li key={`${item.costumeId}-${item.size}-${index}`}>
-                    {workflow.allowedCostumes.find(
-                      (costume) => costume.costumeId === item.costumeId,
-                    )?.name ?? `Trang phục ${item.costumeId.slice(-6)}`}{' '}
-                    · cỡ {item.size} · {item.quantity} bộ · nhận {formatDateOnly(item.receiveDate)}{' '}
-                    · trả {formatDateOnly(item.returnDate)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </section>
-      )}
-
       {(isClient || isAdmin || isPhotographer) && workflow.progress && (
         <section
           className={
@@ -2682,12 +2494,22 @@ export default function BookingWorkflowDetailPage() {
               </span>
             )}
           </div>
+          <div className="space-y-2">
+            <Button asChild>
+              <Link to={`${customer ? '/account/bookings' : '/workflow-bookings'}/${id}/delivery`}>
+                Xem ảnh bàn giao
+              </Link>
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              Chọn ảnh, xem ảnh đã chỉnh và theo dõi phản hồi trong cùng một màn.
+            </p>
+          </div>
           {workflow.progress.deliveredAt && (
             <p className="text-sm">
               Cập nhật bàn giao lúc {formatDateTime(workflow.progress.deliveredAt)}
             </p>
           )}
-          {canUpdateProgress && nextProgress && (
+          {canUpdateProgress && nextProgress && nextProgress !== 'delivered' && (
             <div
               className={
                 customer
@@ -2698,17 +2520,6 @@ export default function BookingWorkflowDetailPage() {
               <h3 className={customer ? 'customer-order-title' : 'font-medium'}>
                 Cập nhật tiến độ
               </h3>
-              {nextProgress === 'delivered' && (
-                <Field label="Đường dẫn thư mục Drive">
-                  <Input
-                    type="url"
-                    maxLength={2000}
-                    placeholder="https://drive.google.com/…"
-                    value={progressUrl}
-                    onChange={(event) => setProgressUrl(event.target.value)}
-                  />
-                </Field>
-              )}
               {nextProgress === 'shooting' &&
                 workflow.packageReservation &&
                 workflow.members.length !== booking.members && (
@@ -2725,84 +2536,8 @@ export default function BookingWorkflowDetailPage() {
                 }
                 onClick={() => void submitProgress(nextProgress)}
               >
-                {nextProgress === 'shooting'
-                  ? 'Bắt đầu buổi chụp'
-                  : nextProgress === 'editing'
-                    ? 'Chuyển sang hậu kỳ'
-                    : 'Gửi bản bàn giao mới'}
+                {nextProgress === 'shooting' ? 'Bắt đầu buổi chụp' : 'Chuyển sang hậu kỳ'}
               </Button>
-            </div>
-          )}
-          {(isClient || isAdmin || isPhotographer) && workflow.progress.deliveryUrl && (
-            <div
-              className={
-                customer
-                  ? 'customer-order-inset'
-                  : 'rounded-xl border border-primary/20 bg-primary/5 p-4'
-              }
-            >
-              <h3 className={customer ? 'customer-order-title' : 'font-semibold'}>
-                Bản bàn giao hiện tại · phiên bản {workflow.progress.deliveryVersion}
-              </h3>
-              <a
-                className={
-                  customer
-                    ? 'customer-link mt-2 inline-block break-all'
-                    : 'mt-2 inline-block break-all text-sm text-primary underline'
-                }
-                href={workflow.progress.deliveryUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Mở thư mục Drive
-              </a>
-              {workflow.progress.acceptedAt && acceptedDelivery ? (
-                <p className="mt-2 text-sm">
-                  Đã nghiệm thu phiên bản này lúc {formatDateTime(workflow.progress.acceptedAt)}.
-                </p>
-              ) : null}
-              {isClient && workflow.lifecycle === 'delivered' && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    disabled={busy !== ''}
-                    onClick={() => {
-                      if (!revisionNote.trim()) {
-                        setError('Mô tả nội dung cần chỉnh sửa.');
-                        return;
-                      }
-                      void runAction('revision.request', {
-                        note: revisionNote.trim(),
-                        deliveryVersion: workflow.progress?.deliveryVersion,
-                      }).then((updated) => {
-                        if (updated) setRevisionNote('');
-                      });
-                    }}
-                  >
-                    Yêu cầu chỉnh sửa
-                  </Button>
-                  <Button
-                    disabled={busy !== ''}
-                    onClick={() =>
-                      void runAction('delivery.accept', {
-                        deliveryVersion: workflow.progress?.deliveryVersion,
-                      })
-                    }
-                  >
-                    Nghiệm thu bản này
-                  </Button>
-                </div>
-              )}
-              {isClient && workflow.lifecycle === 'delivered' && (
-                <Field className="mt-3" label="Nội dung cần chỉnh sửa">
-                  <Textarea
-                    rows={3}
-                    maxLength={2000}
-                    value={revisionNote}
-                    onChange={(event) => setRevisionNote(event.target.value)}
-                  />
-                </Field>
-              )}
             </div>
           )}
           {isClient && workflow.lifecycle === 'accepted' && effectivePayment.totalDue > 0 && (
@@ -2811,7 +2546,8 @@ export default function BookingWorkflowDetailPage() {
                 customer ? 'customer-order-notice' : 'rounded-lg bg-amber-500/10 p-3 text-sm'
               }
             >
-              Đã lưu nghiệm thu. Studio sẽ hoàn tất hồ sơ khi đối chiếu xong khoản còn thu{' '}
+              Đã lưu xác nhận ảnh đạt yêu cầu. Studio sẽ hoàn tất hồ sơ khi đối chiếu xong khoản còn
+              thu{' '}
               {customer ? (
                 <CustomerPrice amount={amountForDisplay(effectivePayment.totalDue)} />
               ) : (
@@ -2826,10 +2562,11 @@ export default function BookingWorkflowDetailPage() {
                 customer ? 'customer-order-notice' : 'rounded-lg bg-emerald-600/10 p-3 text-sm'
               }
             >
-              Bàn giao đã được nghiệm thu và các khoản tiền đã đối soát. Dịch vụ đã hoàn tất.
+              Ảnh bàn giao đã được xác nhận đạt yêu cầu và các khoản tiền đã đối soát. Dịch vụ đã
+              hoàn tất.
             </p>
           )}
-          {(isClient || isAdmin) && workflow.deliveryHistory.length > 0 && (
+          {isAdmin && workflow.deliveryHistory.length > 0 && (
             <details className={customer ? 'customer-order-surface' : 'rounded-xl border p-4'}>
               <summary className="cursor-pointer text-sm font-semibold">
                 Lịch sử bàn giao theo phiên bản
@@ -2843,490 +2580,52 @@ export default function BookingWorkflowDetailPage() {
                     <span>
                       Phiên bản {entry.version} · {formatDateTime(entry.deliveredAt)}
                     </span>
-                    <a
+                    <Link
                       className={customer ? 'customer-link' : 'text-primary underline'}
-                      href={entry.deliveryUrl}
-                      target="_blank"
-                      rel="noreferrer"
+                      to={`/workflow-bookings/${id}/delivery?version=${entry.version}`}
                     >
-                      Mở Drive
-                    </a>
+                      Xem ảnh
+                    </Link>
                   </li>
                 ))}
               </ul>
             </details>
           )}
-          {(isClient || isAdmin || isPhotographer) &&
-            workflow.progress.revisionRequests.length > 0 && (
-              <div>
-                <h3 className={customer ? 'customer-order-title' : 'text-sm font-semibold'}>
-                  Yêu cầu chỉnh sửa
-                </h3>
-                <ul className="mt-2 space-y-2">
-                  {workflow.progress.revisionRequests.map((revision) => (
-                    <li
-                      key={revision._id}
-                      className={
-                        customer ? 'customer-order-inset' : 'rounded-lg bg-muted/30 p-3 text-sm'
-                      }
-                    >
-                      <p>{revision.note}</p>
-                      <p
-                        className={
-                          customer ? 'customer-caption mt-1' : 'mt-1 text-xs text-muted-foreground'
-                        }
-                      >
-                        Gửi {formatDateTime(revision.at)}
-                        {revision.deliveryVersion
-                          ? ` · Bản bàn giao ${revision.deliveryVersion}`
-                          : ''}
-                        {revision.resolvedAt
-                          ? ` · Đã xử lý ${formatDateTime(revision.resolvedAt)}`
-                          : ' · Đang xử lý'}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-        </section>
-      )}
-
-      {(isClient || isAdmin) &&
-        workflow.lifecycle !== 'completed' &&
-        workflow.lifecycle !== 'cancelled' && (
-          <section
-            className={
-              customer ? 'customer-order-surface' : 'space-y-4 rounded-2xl border p-5 sm:p-6'
-            }
-          >
+          {(isAdmin || isPhotographer) && workflow.progress.revisionRequests.length > 0 && (
             <div>
-              <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
-                Yêu cầu thay đổi hoặc hủy dịch vụ
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {workflow.resources?.scheduleId
-                  ? 'Lịch đã xác nhận tiếp tục được giữ trong khi hai bên xem xét đề xuất.'
-                  : 'Studio và khách có thể trao đổi đề xuất trước khi chốt lịch.'}{' '}
-                Mọi khoản phí hoặc hoàn tiền cần có khách đồng ý.
-              </p>
-            </div>
-            {workflow.changeRequest && (
-              <div
-                className={
-                  customer
-                    ? 'customer-order-inset customer-order-stack'
-                    : 'space-y-3 rounded-xl border bg-muted/10 p-4'
-                }
-              >
-                <div className="flex flex-wrap justify-between gap-2">
-                  <h3 className={customer ? 'customer-order-title' : 'font-semibold'}>
-                    {workflow.changeRequest.kind === 'cancel'
-                      ? 'Yêu cầu hủy dịch vụ'
-                      : 'Yêu cầu thay đổi lịch'}
-                  </h3>
-                  <span className="text-sm text-muted-foreground">
-                    {changeStatusLabels[workflow.changeRequest.status] ??
-                      workflow.changeRequest.status}
-                  </span>
-                </div>
-                {workflow.changeRequest.note && (
-                  <p className="whitespace-pre-wrap text-sm">{workflow.changeRequest.note}</p>
-                )}
-                {workflow.changeRequest.kind === 'change' &&
-                  Boolean(workflow.changeRequest.requested?.schedule || proposedChangeSchedule) && (
-                    <div
-                      className={customer ? 'customer-order-summary' : 'grid gap-3 sm:grid-cols-2'}
-                    >
-                      <div>
-                        <h4
-                          className={
-                            customer
-                              ? 'customer-caption'
-                              : 'text-xs font-semibold uppercase text-muted-foreground'
-                          }
-                        >
-                          Khách đề nghị
-                        </h4>
-                        <ScheduleSummary schedule={workflow.changeRequest.requested?.schedule} />
-                      </div>
-                      {Boolean(proposedChangeSchedule) && (
-                        <div>
-                          <h4
-                            className={
-                              customer
-                                ? 'customer-caption'
-                                : 'text-xs font-semibold uppercase text-muted-foreground'
-                            }
-                          >
-                            Đề xuất của studio
-                          </h4>
-                          <ScheduleSummary schedule={proposedChangeSchedule} />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                {workflow.changeRequest.status === 'proposed' && canSeeFinancials && (
-                  <div
-                    className={customer ? 'customer-order-inset' : 'rounded-lg bg-card p-3 text-sm'}
-                  >
-                    <p>
-                      {workflow.changeRequest.kind === 'cancel'
-                        ? 'Phí hủy theo đề xuất'
-                        : 'Tổng giá dịch vụ sau thay đổi'}
-                      :{' '}
-                      <strong>
-                        {customer ? (
-                          <CustomerPrice
-                            amount={amountForDisplay(workflow.changeRequest.finalPayable ?? 0)}
-                          />
-                        ) : (
-                          money(workflow.changeRequest.finalPayable ?? 0)
-                        )}
-                      </strong>
-                    </p>
-                    {workflow.changeRequest.kind === 'cancel' ? (
-                      <p className="mt-1">
-                        Số tiền dự kiến hoàn:{' '}
-                        <strong>
-                          {customer ? (
-                            <CustomerPrice
-                              amount={amountForDisplay(workflow.changeRequest.refundDue ?? 0)}
-                            />
-                          ) : (
-                            money(workflow.changeRequest.refundDue ?? 0)
-                          )}
-                        </strong>
-                      </p>
-                    ) : (
-                      <>
-                        <p className="mt-1">
-                          Chênh lệch so với giá hiện tại:{' '}
-                          <strong>
-                            {workflow.changeRequest.priceDelta < 0
-                              ? 'giảm '
-                              : workflow.changeRequest.priceDelta > 0
-                                ? 'tăng '
-                                : ''}
-                            {customer ? (
-                              <CustomerPrice
-                                amount={amountForDisplay(
-                                  Math.abs(workflow.changeRequest.priceDelta),
-                                )}
-                              />
-                            ) : (
-                              money(Math.abs(workflow.changeRequest.priceDelta))
-                            )}
-                          </strong>
-                        </p>
-                        <p className="mt-1">
-                          Còn thu sau khi áp dụng:{' '}
-                          <strong>
-                            {customer ? (
-                              <CustomerPrice
-                                amount={amountForDisplay(
-                                  Math.max(
-                                    0,
-                                    (workflow.changeRequest.finalPayable ?? 0) -
-                                      effectivePayment.netReceived,
-                                  ),
-                                )}
-                              />
-                            ) : (
-                              money(
-                                Math.max(
-                                  0,
-                                  (workflow.changeRequest.finalPayable ?? 0) -
-                                    effectivePayment.netReceived,
-                                ),
-                              )
-                            )}
-                          </strong>
-                        </p>
-                        {workflow.changeRequest.refundDue ? (
-                          <p className="mt-1">
-                            Dự kiến hoàn:{' '}
-                            <strong>
-                              {customer ? (
-                                <CustomerPrice
-                                  amount={amountForDisplay(workflow.changeRequest.refundDue)}
-                                />
-                              ) : (
-                                money(workflow.changeRequest.refundDue)
-                              )}
-                            </strong>
-                          </p>
-                        ) : null}
-                      </>
-                    )}
-                  </div>
-                )}
-                {workflow.changeRequest.terms.length > 0 && (
-                  <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                    {workflow.changeRequest.terms.map((term, index) => (
-                      <li key={index}>{term}</li>
-                    ))}
-                  </ul>
-                )}
-                {isClient && workflow.changeRequest.status === 'proposed' && (
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      disabled={busy !== ''}
-                      onClick={() =>
-                        void runAction('change.accept', { requestId: workflow.changeRequest?._id })
-                      }
-                    >
-                      Đồng ý đề xuất
-                    </Button>
-                    <Button
-                      variant="outline"
-                      disabled={busy !== ''}
-                      onClick={() =>
-                        void runAction('change.decline', { requestId: workflow.changeRequest?._id })
-                      }
-                    >
-                      Từ chối đề xuất
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      disabled={busy !== ''}
-                      onClick={() =>
-                        void runAction('change.withdraw', {
-                          requestId: workflow.changeRequest?._id,
-                        })
-                      }
-                    >
-                      Rút yêu cầu
-                    </Button>
-                  </div>
-                )}
-                {isClient && workflow.changeRequest.status === 'requested' && (
-                  <Button
-                    variant="outline"
-                    disabled={busy !== ''}
-                    onClick={() =>
-                      void runAction('change.withdraw', { requestId: workflow.changeRequest?._id })
-                    }
-                  >
-                    Rút yêu cầu
-                  </Button>
-                )}
-                {isAdmin && workflow.changeRequest.status === 'requested' && (
-                  <div className="space-y-3 border-t pt-3">
-                    <h4 className={customer ? 'customer-caption' : 'font-semibold'}>
-                      Phản hồi yêu cầu của khách
-                    </h4>
-                    {workflow.changeRequest.kind === 'change' ? (
-                      <div
-                        className={
-                          customer
-                            ? 'customer-order-summary customer-order-summary--four'
-                            : 'grid gap-3 sm:grid-cols-2 lg:grid-cols-4'
-                        }
-                      >
-                        <Field label="Ngày đề xuất">
-                          <Input
-                            type="date"
-                            value={proposalDate}
-                            onChange={(event) => setProposalDate(event.target.value)}
-                          />
-                        </Field>
-                        <Field label="Bắt đầu">
-                          <Input
-                            type="time"
-                            value={proposalStartTime}
-                            onChange={(event) => setProposalStartTime(event.target.value)}
-                          />
-                        </Field>
-                        <Field label="Kết thúc">
-                          <Input
-                            type="time"
-                            value={proposalEndTime}
-                            onChange={(event) => setProposalEndTime(event.target.value)}
-                          />
-                        </Field>
-                        <Field label="Tổng giá sau thay đổi (đ)">
-                          <Input
-                            type="number"
-                            min={0}
-                            step={1}
-                            value={proposedPayable}
-                            onChange={(event) => setProposedPayable(event.target.value)}
-                          />
-                        </Field>
-                        <Field
-                          label="Địa điểm mới"
-                          className={
-                            customer ? 'customer-order-span-full' : 'sm:col-span-2 lg:col-span-4'
-                          }
-                        >
-                          <Input
-                            maxLength={300}
-                            value={proposalLocation}
-                            onChange={(event) => setProposalLocation(event.target.value)}
-                          />
-                        </Field>
-                      </div>
-                    ) : (
-                      <Field label="Phí hủy sau khi chốt (đ)">
-                        <Input
-                          type="number"
-                          min={0}
-                          step={1}
-                          value={proposedPayable}
-                          onChange={(event) => setProposedPayable(event.target.value)}
-                        />
-                      </Field>
-                    )}
-                    <Field label="Điều khoản của đề xuất, mỗi dòng một điều khoản">
-                      <Textarea
-                        rows={3}
-                        maxLength={5000}
-                        value={proposalTerms}
-                        onChange={(event) => setProposalTerms(event.target.value)}
-                      />
-                    </Field>
-                    <div className="flex flex-wrap gap-2">
-                      <Button disabled={busy !== ''} onClick={() => void proposeChange()}>
-                        Gửi đề xuất để khách xác nhận
-                      </Button>
-                      <Button
-                        variant="outline"
-                        disabled={busy !== ''}
-                        onClick={() =>
-                          void runAction('change.decline', {
-                            requestId: workflow.changeRequest?._id,
-                          })
-                        }
-                      >
-                        Từ chối yêu cầu
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            {!activeChange && isClient && quoteAccepted && (
-              <div
-                className={
-                  customer
-                    ? 'customer-order-inset customer-order-stack'
-                    : 'space-y-3 rounded-xl border p-4'
-                }
-              >
-                <div className={customer ? 'customer-order-summary' : 'grid gap-3 sm:grid-cols-2'}>
-                  <Field label="Loại yêu cầu">
-                    <OrderSelect
-                      className="min-h-11 w-full rounded-lg border bg-background px-3"
-                      value={changeKind}
-                      onChange={(event) => setChangeKind(event.target.value as typeof changeKind)}
-                    >
-                      <option value="change">Đổi ngày, giờ hoặc địa điểm</option>
-                      <option value="cancel">Hủy dịch vụ</option>
-                    </OrderSelect>
-                  </Field>
-                  <Field label="Lý do">
-                    <Input
-                      maxLength={300}
-                      placeholder="Ví dụ: lịch thi của lớp thay đổi"
-                      value={changeNote}
-                      onChange={(event) => setChangeNote(event.target.value)}
-                    />
-                  </Field>
-                </div>
-                {changeKind === 'change' && (
-                  <div
+              <h3 className={customer ? 'customer-order-title' : 'text-sm font-semibold'}>
+                Yêu cầu chỉnh sửa
+              </h3>
+              <ul className="mt-2 space-y-2">
+                {workflow.progress.revisionRequests.map((revision) => (
+                  <li
+                    key={revision._id}
                     className={
-                      customer
-                        ? 'customer-order-summary customer-order-summary--four'
-                        : 'grid gap-3 sm:grid-cols-2 lg:grid-cols-4'
+                      customer ? 'customer-order-inset' : 'rounded-lg bg-muted/30 p-3 text-sm'
                     }
                   >
-                    <Field label="Ngày mong muốn">
-                      <Input
-                        type="date"
-                        value={requestedDate}
-                        onChange={(event) => setRequestedDate(event.target.value)}
-                      />
-                    </Field>
-                    <Field label="Bắt đầu">
-                      <Input
-                        type="time"
-                        value={requestedStartTime}
-                        onChange={(event) => setRequestedStartTime(event.target.value)}
-                      />
-                    </Field>
-                    <Field label="Kết thúc">
-                      <Input
-                        type="time"
-                        value={requestedEndTime}
-                        onChange={(event) => setRequestedEndTime(event.target.value)}
-                      />
-                    </Field>
-                    <Field label="Địa điểm mới">
-                      <Input
-                        maxLength={300}
-                        value={requestedLocation}
-                        onChange={(event) => setRequestedLocation(event.target.value)}
-                      />
-                    </Field>
-                  </div>
-                )}
-                <Button disabled={busy !== ''} onClick={() => void submitChangeRequest()}>
-                  Gửi yêu cầu cho studio
-                </Button>
-              </div>
-            )}
-          </section>
-        )}
-
-      {isClient && workflow.lifecycle === 'completed' && !workflow.feedback && (
-        <section
-          className={customer ? 'customer-order-surface' : 'space-y-3 rounded-2xl border p-5'}
-        >
-          <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
-            Đánh giá dịch vụ
-          </h2>
-          <div
-            className={
-              customer ? 'customer-order-summary' : 'grid gap-3 sm:grid-cols-[12rem_minmax(0,1fr)]'
-            }
-          >
-            <Field label="Mức đánh giá">
-              <OrderSelect
-                className="min-h-11 w-full rounded-lg border bg-background px-3"
-                value={feedbackRating}
-                onChange={(event) => setFeedbackRating(Number(event.target.value))}
-              >
-                {[5, 4, 3, 2, 1].map((rating) => (
-                  <option key={rating} value={rating}>
-                    {rating} / 5 sao
-                  </option>
+                    <p>{revision.note}</p>
+                    <p
+                      className={
+                        customer ? 'customer-caption mt-1' : 'mt-1 text-xs text-muted-foreground'
+                      }
+                    >
+                      Gửi {formatDateTime(revision.at)}
+                      {revision.deliveryVersion
+                        ? ` · Bản bàn giao ${revision.deliveryVersion}`
+                        : ''}
+                      {revision.resolvedAt
+                        ? ` · Đã xử lý ${formatDateTime(revision.resolvedAt)}`
+                        : ' · Đang xử lý'}
+                    </p>
+                  </li>
                 ))}
-              </OrderSelect>
-            </Field>
-            <Field label="Nhận xét">
-              <Textarea
-                rows={3}
-                maxLength={2000}
-                value={feedbackComment}
-                onChange={(event) => setFeedbackComment(event.target.value)}
-              />
-            </Field>
-          </div>
-          <Button
-            disabled={busy !== ''}
-            onClick={() =>
-              void runAction('feedback.submit', {
-                rating: feedbackRating,
-                comment: feedbackComment.trim(),
-              })
-            }
-          >
-            Gửi đánh giá
-          </Button>
+              </ul>
+            </div>
+          )}
         </section>
       )}
+
       {workflow.feedback && (isClient || isAdmin) && (
         <section className={customer ? 'customer-order-surface' : 'rounded-2xl border p-5'}>
           <h2 className={customer ? 'customer-section-title' : 'font-semibold'}>Đánh giá đã gửi</h2>
@@ -3337,63 +2636,49 @@ export default function BookingWorkflowDetailPage() {
         </section>
       )}
 
-      <section
-        className={customer ? 'customer-order-surface' : 'space-y-3 rounded-2xl border p-5 sm:p-6'}
-      >
-        <div>
-          <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
-            Lịch sử xử lý
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Các cập nhật hiển thị theo thời gian Việt Nam.
-          </p>
-        </div>
-        {timeline.length ? (
-          <ol className="space-y-3">
-            {timeline.map((event, index) => (
-              <li
-                key={`${event.action}-${event.at}-${index}`}
-                className={
-                  customer ? 'customer-order-timeline-item' : 'border-l-2 border-primary/30 pl-4'
-                }
-              >
-                <time className={customer ? 'customer-caption' : 'text-xs text-muted-foreground'}>
-                  {formatDateTime(event.at)}
-                </time>
-                <p className="mt-1 text-sm">{event.message}</p>
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <p
-            className={
-              customer
-                ? 'customer-order-inset'
-                : 'rounded-lg border p-4 text-sm text-muted-foreground'
-            }
-          >
-            Chưa có cập nhật trong quy trình.
-          </p>
-        )}
-      </section>
+      {!isClient && (
+        <section
+          className={
+            customer ? 'customer-order-surface' : 'space-y-3 rounded-2xl border p-5 sm:p-6'
+          }
+        >
+          <div>
+            <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
+              Lịch sử xử lý
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Các cập nhật hiển thị theo thời gian Việt Nam.
+            </p>
+          </div>
+          {timeline.length ? (
+            <ol className="space-y-3">
+              {timeline.map((event, index) => (
+                <li
+                  key={`${event.action}-${event.at}-${index}`}
+                  className={
+                    customer ? 'customer-order-timeline-item' : 'border-l-2 border-primary/30 pl-4'
+                  }
+                >
+                  <time className={customer ? 'customer-caption' : 'text-xs text-muted-foreground'}>
+                    {formatDateTime(event.at)}
+                  </time>
+                  <p className="mt-1 text-sm">{event.message}</p>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p
+              className={
+                customer
+                  ? 'customer-order-inset'
+                  : 'rounded-lg border p-4 text-sm text-muted-foreground'
+              }
+            >
+              Chưa có cập nhật trong quy trình.
+            </p>
+          )}
+        </section>
+      )}
     </DetailContainer>
-  );
-}
-
-function ScheduleSummary({ schedule }: { schedule: unknown }) {
-  if (!schedule || typeof schedule !== 'object') return null;
-  const value = schedule as {
-    shootDate?: string;
-    startTime?: string;
-    endTime?: string;
-    location?: string;
-  };
-  return (
-    <div className="mt-1 space-y-1 text-sm">
-      <p>
-        {formatDateOnly(value.shootDate)} · {value.startTime} – {value.endTime}
-      </p>
-      <p>{value.location}</p>
-    </div>
   );
 }

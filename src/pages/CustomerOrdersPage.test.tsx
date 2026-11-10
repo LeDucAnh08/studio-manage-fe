@@ -3,6 +3,7 @@ import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CustomerAppearanceContext } from '../components/customer/CustomerAppearance';
 import CustomerOrdersPage from './CustomerOrdersPage';
+import { RentalOrderProgress } from '../components/customer/RentalOrderProgress';
 import { BookingOrderProgress } from '../components/customer/BookingOrderProgress';
 import CustomerHeader from '../components/Layout/CustomerHeader';
 import type { BookingWorkflowDto } from '../services/bookingWorkflowService';
@@ -145,12 +146,12 @@ describe('Unified orders tabs', () => {
     const list = await screen.findByRole('list', { name: 'Danh sách đơn thuê trang phục' });
     const first = screen.getByRole('region', { name: 'Áo dài trắng' });
     expect(within(first).getByText('Tiến độ đơn')).toBeInTheDocument();
-    expect(within(first).getByText('Đã giữ trang phục')).toBeInTheDocument();
+    expect(within(first).getAllByText('Chờ nhận đồ')[0]).toBeInTheDocument();
     expect(within(first).getByText('13/11/2026')).toBeInTheDocument();
     expect(within(first).queryByText('12/11/2026')).not.toBeInTheDocument();
     fireEvent.click(within(list).getByRole('button', { name: /Vest xanh/ }));
     const second = screen.getByRole('region', { name: 'Vest xanh' });
-    expect(within(second).getByText('Đã hoàn tất dịch vụ')).toBeInTheDocument();
+    expect(within(second).getAllByText('Hoàn tất')[0]).toBeInTheDocument();
     expect(within(second).getByText('16/11/2026')).toBeInTheDocument();
     expect(within(second).getByRole('link', { name: 'Xem hồ sơ đầy đủ' })).toHaveAttribute(
       'href',
@@ -160,6 +161,82 @@ describe('Unified orders tabs', () => {
     expect(mocks.bookings).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['requested', 'Chờ xác nhận'],
+    ['quoting', 'Chờ xác nhận'],
+    ['awaiting_deposit', 'Chờ xác nhận'],
+    ['ready_to_confirm', 'Chờ xác nhận'],
+    ['payment_review', 'Chờ xác nhận'],
+    ['confirmed', 'Chờ nhận đồ'],
+    ['checked_out', 'Đang thuê'],
+    ['returned', 'Chờ đối soát'],
+    ['completed', 'Hoàn tất'],
+  ])('keeps fixed rental milestones for %s', (status, label) => {
+    render(<RentalOrderProgress order={rental('rental-1', status)} />);
+    const progress = screen.getByRole('region', { name: 'Tiến độ đơn' });
+    expect(
+      within(progress)
+        .getAllByRole('listitem')
+        .map((item) => item.querySelector('p')?.textContent),
+    ).toEqual(['Chờ xác nhận', 'Chờ nhận đồ', 'Đang thuê', 'Chờ đối soát', 'Hoàn tất']);
+    expect(progress.querySelector('[aria-current="step"]')).toHaveTextContent(label);
+  });
+
+  it.each([
+    'awaiting_confirmation',
+    'ready_for_pickup',
+    'renting',
+    'settling',
+    'completed',
+    'cancelled',
+  ])('uses the displayed stage %s as the server filter', async (view) => {
+    open('?tab=rentals');
+    await screen.findByText('Chưa có đơn thuê');
+    const select = screen.getByLabelText('Trạng thái');
+    expect(
+      within(select)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual([
+      'Tất cả',
+      'Chờ xác nhận',
+      'Chờ nhận đồ',
+      'Đang thuê',
+      'Chờ đối soát',
+      'Hoàn tất',
+      'Đã hủy',
+    ]);
+    fireEvent.change(select, { target: { value: view } });
+    await waitFor(() => expect(mocks.rentals).toHaveBeenLastCalledWith(1, view));
+  });
+
+  it.each([
+    ['expired', 'cancelled'],
+    ['rejected', 'cancelled'],
+    ['payment_review', 'awaiting_confirmation'],
+    ['active', ''],
+  ])('normalizes legacy rental filter %s', async (legacy, canonical) => {
+    open('?tab=rentals&view=' + legacy);
+    await waitFor(() => expect(mocks.rentals).toHaveBeenCalledWith(1, canonical));
+    expect(screen.getByLabelText('Trạng thái')).toHaveValue(canonical);
+  });
+
+  it('keeps payment exceptions in the first stage without asking for another deposit', () => {
+    render(
+      <RentalOrderProgress
+        order={{ ...rental('rental-1', 'payment_review'), autoCheckout: true }}
+      />,
+    );
+    const progress = screen.getByRole('region', { name: 'Tiến độ đơn' });
+    expect(progress.querySelector('[aria-current="step"]')).toHaveTextContent('Chờ xác nhận');
+    expect(
+      within(progress).getByText(
+        'Studio đang kiểm tra khoản thanh toán và khả năng giữ trang phục.',
+      ),
+    ).toBeInTheDocument();
+    expect(progress).not.toHaveTextContent('Hoàn tất tiền cọc');
+  });
+
   it('filters and paginates rentals on the server, clears selection and retries errors', async () => {
     mocks.rentals.mockRejectedValueOnce(new Error('offline'));
     open('?tab=rentals&page=2&order=rental-1');
@@ -167,26 +244,32 @@ describe('Unified orders tabs', () => {
     await screen.findByText('Chưa có đơn thuê');
     expect(mocks.rentals).toHaveBeenLastCalledWith(2, '');
     mocks.rentals.mockResolvedValue({ data: [rental()], pagination: { total: 21 } });
-    fireEvent.change(screen.getByLabelText('Trạng thái'), { target: { value: 'active' } });
+    fireEvent.change(screen.getByLabelText('Trạng thái'), {
+      target: { value: 'ready_for_pickup' },
+    });
     await screen.findByRole('region', { name: 'Áo dài trắng' });
-    expect(mocks.rentals).toHaveBeenLastCalledWith(1, 'active');
+    expect(mocks.rentals).toHaveBeenLastCalledWith(1, 'ready_for_pickup');
     expect(screen.getByTestId('url')).not.toHaveTextContent('order=');
     fireEvent.click(screen.getByRole('button', { name: 'Sau' }));
-    await waitFor(() => expect(mocks.rentals).toHaveBeenLastCalledWith(2, 'active'));
+    await waitFor(() => expect(mocks.rentals).toHaveBeenLastCalledWith(2, 'ready_for_pickup'));
     fireEvent.click(screen.getByRole('button', { name: 'Tải lại đơn' }));
     await waitFor(() => expect(mocks.rentals).toHaveBeenCalledTimes(5));
   });
 
-  it.each(['cancelled', 'rejected'])('hides future rental stages after %s', async (status) => {
-    const order = rental('rental-1', status);
-    order.quote = null;
-    order.events = [];
-    mocks.rentals.mockResolvedValue({ data: [order], pagination: { total: 1 } });
-    open('?tab=rentals');
-    await screen.findByText('Tiến độ đơn');
-    expect(screen.queryByText('Xác nhận giữ trang phục')).not.toBeInTheDocument();
-    expect(screen.queryByText('Nhận, trả & hoàn tất')).not.toBeInTheDocument();
-  });
+  it.each(['cancelled', 'rejected', 'expired'])(
+    'hides future rental stages after %s',
+    async (status) => {
+      const order = rental('rental-1', status);
+      order.quote = null;
+      order.events = [];
+      mocks.rentals.mockResolvedValue({ data: [order], pagination: { total: 1 } });
+      open('?tab=rentals');
+      await screen.findByText('Tiến độ đơn');
+      const progress = screen.getByRole('region', { name: 'Tiến độ đơn' });
+      expect(within(progress).queryByText('Chờ nhận đồ')).not.toBeInTheDocument();
+      expect(within(progress).queryByText('Chờ đối soát')).not.toBeInTheDocument();
+    },
+  );
   it('normalizes an unknown tab while keeping rentals available', async () => {
     open('?tab=unknown');
     await screen.findByText(/Bạn chưa có đơn chụp ảnh/);
@@ -320,6 +403,42 @@ describe('Unified orders tabs', () => {
     ]);
     expect(progress.querySelectorAll('[aria-current="step"]')).toHaveLength(1);
     expect(progress.querySelector('[aria-current="step"]')).toHaveTextContent(current);
+  });
+
+  it('shows recorded milestone dates, leaves future stages undated and marks missing history', () => {
+    const data = record('order-1', 'completed');
+    data.workflow.createdAt = '2026-10-20T09:00:00+07:00';
+    data.booking.createdAt = '2026-10-14T09:00:00+07:00';
+    data.workflow.events.push(
+      { action: 'package.approve', message: '', at: '2026-10-22T09:00:00+07:00' },
+      { action: 'progress.update', message: '', at: '2026-10-27T09:00:00+07:00' },
+      { action: 'progress.update', message: '', at: '2026-10-26T09:00:00+07:00' },
+      { action: 'workflow.completed', message: '', at: '2026-11-03T18:00:00Z' },
+    );
+    data.workflow.progress = {
+      status: 'delivered',
+      deliveryVersion: 1,
+      revisionRequests: [],
+      deliveredAt: '2026-11-01T09:00:00+07:00',
+    };
+    const page = render(<BookingOrderProgress record={data} />);
+    const dates = () =>
+      Array.from(page.container.querySelectorAll('time')).map((item) => item.textContent);
+    expect(dates()).toEqual([
+      '14/10/2026',
+      '22/10/2026',
+      '24/10/2026',
+      '26/10/2026',
+      '01/11/2026',
+      '04/11/2026',
+    ]);
+    data.workflow.lifecycle = 'awaiting_deposit';
+    page.rerender(<BookingOrderProgress record={data} />);
+    expect(dates()).toEqual(['14/10/2026', '22/10/2026']);
+    data.workflow.events = [];
+    page.rerender(<BookingOrderProgress record={data} />);
+    expect(screen.getByText('Chưa có ngày ghi nhận')).toBeInTheDocument();
+    expect(dates()).toEqual(['14/10/2026']);
   });
 
   it('selects orders, uses confirmed schedule details, links to the full record and discards a late response', async () => {

@@ -16,6 +16,8 @@ api.interceptors.response.use(
   (res) => res,
   (error) => {
     if (error.response?.status === 401 && error.config?.url !== '/auth/login') {
+      // Account bootstrap may fail while a guest is opening an independent album link.
+      if (window.location.pathname.startsWith('/albums/')) return Promise.reject(error);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       const path = `${window.location.pathname}${window.location.search}${window.location.hash}`;
