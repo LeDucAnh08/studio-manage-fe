@@ -531,7 +531,7 @@ describe('Unified orders tabs', () => {
     expect(
       within(screen.getByRole('heading', { name: 'Đơn của tôi' }).closest('header')!).queryByRole(
         'link',
-        { name: 'Đặt dịch vụ' },
+        { name: 'Chụp kỉ yếu' },
       ),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Studio đã phản hồi')).not.toBeInTheDocument();

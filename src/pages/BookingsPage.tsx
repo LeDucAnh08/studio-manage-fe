@@ -149,7 +149,7 @@ export default function BookingsPage({
       >
         <div>
           <Heading className={customer ? 'customer-page-title' : 'text-2xl font-bold'}>
-            {admin ? 'Yêu cầu đặt dịch vụ' : 'Đơn chụp ảnh'}
+            {admin ? 'Yêu cầu chụp kỉ yếu' : 'Đơn chụp ảnh'}
           </Heading>
           <p className="text-muted-foreground mt-1">
             {admin
@@ -160,14 +160,14 @@ export default function BookingsPage({
         {!admin &&
           (customer ? (
             <Button asChild>
-              <Link to="/account/bookings/new">Đặt dịch vụ</Link>
+              <Link to="/account/bookings/new">Chụp kỉ yếu</Link>
             </Button>
           ) : (
             <Link
               to="/account/bookings/new"
               className="rounded-lg bg-primary text-primary-foreground px-4 py-3 self-start"
             >
-              Đặt dịch vụ
+              Chụp kỉ yếu
             </Link>
           ))}
       </div>
@@ -214,7 +214,7 @@ export default function BookingsPage({
           Chưa có yêu cầu phù hợp.{' '}
           {!admin && (
             <Link to="/account/bookings/new" className="customer-link">
-              Đặt dịch vụ mới
+              Chụp kỉ yếu mới
             </Link>
           )}
         </p>

@@ -5,6 +5,9 @@ describe('safe client return paths', () => {
     for (const target of [
       '/booking/start?package=123#review',
       '/rental/start?item=123',
+      '/concept-booking/packages/abc123',
+      '/concept-booking/packages/abc123/book/review',
+      '/concept-booking/packages/abc123/photographers/photo123',
       '/account/bookings/123',
     ])
       expect(safeBookingReturnTo(target)).toBe(target);
@@ -15,6 +18,7 @@ describe('safe client return paths', () => {
       '//other.example/account/bookings',
       '/\\other.example/account/bookings',
       '/manage/finance',
+      '/concept-booking/packages/abc/book/external',
       '/account-other',
       null,
     ])

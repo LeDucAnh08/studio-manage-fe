@@ -14,6 +14,9 @@ export const safeBookingReturnTo = (candidate: unknown): string | undefined => {
       url.pathname === '/booking/start' ||
       url.pathname === '/rental/start' ||
       url.pathname === '/concept-booking' ||
+      /^\/concept-booking\/packages\/[A-Za-z0-9-]+(?:\/book\/(?:date|photographer|costumes|brief|review)|\/photographers\/[A-Za-z0-9-]+)?$/.test(
+        url.pathname,
+      ) ||
       url.pathname === '/concepts';
     return isClientPath || isBookingWizard ? `${url.pathname}${url.search}${url.hash}` : undefined;
   } catch {

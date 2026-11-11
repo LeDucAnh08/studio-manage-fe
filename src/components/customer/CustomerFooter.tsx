@@ -6,7 +6,7 @@ const groups = [
   {
     title: 'Hỗ trợ',
     links: [
-      { to: '/services#process', label: 'Quy trình đặt dịch vụ' },
+      { to: '/services#process', label: 'Quy trình chụp kỉ yếu' },
       { to: '/feedback', label: 'Gửi phản hồi' },
     ],
   },
@@ -38,8 +38,8 @@ export function CustomerFooter({
     <footer className={`customer-footer${minimal ? ' customer-footer--minimal' : ''}`}>
       <div className="customer-container customer-container--editorial">
         {account && (
-          <nav className="customer-footer__account" aria-label="Khám phá và đặt dịch vụ">
-            {clientPortalEnabled && <Link to="/account/bookings/new">Đặt dịch vụ</Link>}
+          <nav className="customer-footer__account" aria-label="Khám phá và chụp kỉ yếu">
+            {clientPortalEnabled && <Link to="/account/bookings/new">Chụp kỉ yếu</Link>}
             <Link to="/services">Dịch vụ</Link>
             <Link to="/pricing">Bảng giá</Link>
             <Link to="/account/orders">Đơn của tôi</Link>

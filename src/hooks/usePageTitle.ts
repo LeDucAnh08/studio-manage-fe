@@ -47,7 +47,7 @@ const EXTRA_ROUTES: FlatRoute[] = [
   { path: '/register', label: 'Đăng ký khách hàng' },
   { path: '/staff-register', label: 'Yêu cầu tài khoản nhân sự' },
   { path: '/account/bookings', label: 'Dịch vụ của tôi' },
-  { path: '/account/bookings/new', label: 'Đặt dịch vụ' },
+  { path: '/account/bookings/new', label: 'Chụp kỉ yếu' },
   { path: '/account/bookings/:id', label: 'Chi tiết dịch vụ' },
   { path: '/account/rentals', label: 'Dịch vụ của tôi' },
   { path: '/account/rentals/:id', label: 'Chi tiết đơn thuê' },

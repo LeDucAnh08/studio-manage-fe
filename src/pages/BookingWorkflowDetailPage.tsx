@@ -779,7 +779,10 @@ export default function BookingWorkflowDetailPage() {
           customer ? 'customer-orders customer-orders--detail' : 'mx-auto max-w-5xl space-y-4 p-6'
         }
       >
-        <Link className={customer ? 'customer-back-link' : 'text-primary'} to={backPath}>
+        <Link
+          className={customer ? 'customer-back-link' : 'app-back-link text-primary'}
+          to={backPath}
+        >
           ← Quay lại danh sách
         </Link>
         <p
@@ -891,7 +894,7 @@ export default function BookingWorkflowDetailPage() {
           className={
             customer
               ? 'customer-back-link'
-              : 'inline-flex min-h-10 items-center text-sm font-medium text-primary'
+              : 'app-back-link inline-flex min-h-10 items-center text-sm font-medium text-primary'
           }
           to={backPath}
         >
@@ -928,7 +931,7 @@ export default function BookingWorkflowDetailPage() {
                   : 'text-xs font-semibold uppercase tracking-[0.14em] text-primary'
               }
             >
-              Hồ sơ đặt dịch vụ
+              Hồ sơ chụp kỉ yếu
             </p>
             <h1 className={customer ? 'customer-page-title mt-1' : 'mt-1 text-2xl font-bold'}>
               {title}

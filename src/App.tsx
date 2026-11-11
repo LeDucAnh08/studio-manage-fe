@@ -44,6 +44,9 @@ import { usePageTitle } from './hooks/usePageTitle';
 import { TooltipProvider } from '@/components/ui';
 import { clientPortalEnabled, conceptBookingEnabled } from './config/features';
 import ConceptBookingPage from './pages/ConceptBookingPage';
+import ConceptCatalogPage from './pages/ConceptCatalogPage';
+import ConceptPackageDetailPage from './pages/ConceptPackageDetailPage';
+import ConceptPhotographerPage from './pages/ConceptPhotographerPage';
 import ConceptOrderPage from './pages/ConceptOrderPage';
 import { GuestConceptAlbumPage } from './pages/ConceptAlbumPanel';
 
@@ -218,10 +221,24 @@ function App() {
                 <Route path="/services" element={<PublicDiscoveryPage page="services" />} />
                 <Route
                   path="/concepts"
-                  element={conceptBookingEnabled ? <ConceptBookingPage /> : <ConceptEntry />}
+                  element={conceptBookingEnabled ? <ConceptCatalogPage /> : <ConceptEntry />}
                 />
                 {conceptBookingEnabled && (
-                  <Route path="/concept-booking" element={<ConceptBookingPage />} />
+                  <>
+                    <Route path="/concept-booking" element={<ConceptCatalogPage />} />
+                    <Route
+                      path="/concept-booking/packages/:packageId/photographers/:photographerId"
+                      element={<ConceptPhotographerPage />}
+                    />
+                    <Route
+                      path="/concept-booking/packages/:packageId"
+                      element={<ConceptPackageDetailPage />}
+                    />
+                    <Route
+                      path="/concept-booking/packages/:packageId/book/:screen"
+                      element={<ConceptBookingPage />}
+                    />
+                  </>
                 )}
                 <Route path="/pricing" element={<PublicDiscoveryPage page="pricing" />} />
                 <Route path="/pricing/:id" element={<PublicPackageDetailPage />} />

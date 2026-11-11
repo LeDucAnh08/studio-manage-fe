@@ -215,7 +215,7 @@ describe('Public discovery and customer workspace', () => {
         'aria-current',
         'page',
       );
-      expect(nav.getByRole('link', { name: 'Đặt dịch vụ' })).not.toHaveAttribute('aria-current');
+      expect(nav.getByRole('link', { name: 'Chụp kỉ yếu' })).not.toHaveAttribute('aria-current');
     },
   );
   it('hides disabled customer account entry for an existing client session', () => {

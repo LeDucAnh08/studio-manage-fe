@@ -64,7 +64,7 @@ describe('Customer controls', () => {
                     tabIndex={0}
                     aria-disabled={false}
                   >
-                    Đặt dịch vụ
+                    Chụp kỉ yếu
                   </Link>
                 </CustomerButton>
               }
@@ -75,7 +75,7 @@ describe('Customer controls', () => {
       );
     }
     const view = render(page(true));
-    const link = screen.getByRole('link', { name: 'Đặt dịch vụ' });
+    const link = screen.getByRole('link', { name: 'Chụp kỉ yếu' });
     expect(link).toHaveAttribute('aria-disabled', 'true');
     expect(link).toHaveAttribute('tabindex', '-1');
     fireEvent.click(link);
@@ -85,7 +85,7 @@ describe('Customer controls', () => {
     expect(childKeyCapture).not.toHaveBeenCalled();
     expect(screen.queryByRole('heading', { name: 'Chọn gói' })).not.toBeInTheDocument();
     view.rerender(page(false));
-    fireEvent.click(screen.getByRole('link', { name: 'Đặt dịch vụ' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Chụp kỉ yếu' }));
     expect(childClick).toHaveBeenCalledTimes(1);
     expect(childCapture).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('heading', { name: 'Chọn gói' })).toBeInTheDocument();

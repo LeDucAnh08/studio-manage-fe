@@ -61,7 +61,7 @@ export function CustomerAuthLayout({ titleId, title, children }: CustomerAuthLay
             {title}
           </h1>
           <p className="customer-register__intro">
-            Đặt dịch vụ và theo dõi phản hồi từ studio trong tài khoản của bạn.
+            Chụp kỉ yếu và theo dõi phản hồi từ studio trong tài khoản của bạn.
           </p>
           {children}
         </section>

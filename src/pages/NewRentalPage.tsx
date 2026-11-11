@@ -363,7 +363,7 @@ export default function NewRentalPage() {
         <div className={customer ? 'customer-rental-form__main' : undefined}>
           <header className={customer ? 'customer-rental-form__header' : undefined}>
             <Link
-              className={customer ? 'customer-back-link' : 'text-sm text-primary'}
+              className={customer ? 'customer-back-link' : 'app-back-link text-sm text-primary'}
               to={catalogPath}
             >
               {customer ? (

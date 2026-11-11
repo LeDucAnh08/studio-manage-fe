@@ -131,7 +131,10 @@ export default function ConceptOrderPage() {
           : order.snapshot.deposit;
   return (
     <div className="concept-workspace">
-      <Link to={order.isOwner ? '/account/orders?tab=concepts' : '/concept-orders'}>
+      <Link
+        className="app-back-link"
+        to={order.isOwner ? '/account/orders?tab=concepts' : '/concept-orders'}
+      >
         ← Danh sách đơn concept
       </Link>
       <header>
@@ -164,6 +167,18 @@ export default function ConceptOrderPage() {
             </a>
           </p>
         ))}
+        {!!order.wardrobeMeasurements?.length && (
+          <section aria-label="Số đo chuẩn bị trang phục">
+            <h3>Số đo chuẩn bị trang phục</h3>
+            <ul>
+              {order.wardrobeMeasurements.map((row, i) => (
+                <li key={i}>
+                  Người {i + 1} · Size {row.size} · {row.heightCm} cm · {row.weightKg} kg
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <ul>
           {order.costumes.map((c) => (
             <li key={`${c.costumeId}:${c.size}`}>

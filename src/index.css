@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Back navigation stays undecorated in every interaction state. */
+a:is(.app-back-link, .customer-back-link, .concept-back-link, .concept-time-back):any-link,
+button.app-back-link:is(:enabled, :disabled) {
+  text-decoration: none;
+}
+
 /* ══════════════════════════════════════════════════
    shadcn/ui design tokens — mapped to Yume Studio brand
    primary = amber (#f59e0b), accent = cyan (#22d3ee)

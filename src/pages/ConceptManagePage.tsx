@@ -1,18 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ManagedCatalog,
+  Concept,
   ConceptPackage,
   Profile,
   StudioSettings,
   conceptError,
   conceptService,
   money,
+  conceptDecorLabels,
+  conceptDeliveryLabels,
+  photographerContentFields,
 } from '../services/conceptService';
 import '../styles/concept.css';
 
 const defaultPackage = {
   concept: '',
   name: '',
+  imageUrl: '',
+  introduction: '',
+  studioSupport: [] as { title: string; description: string }[],
+  delivery: { timeline: '', format: '', originals: '' },
+  showcase: { title: '', description: '', images: [] as { url: string; caption: string }[] },
+  decor: { backdrop: '', props: '', layout: '', included: '' },
   price: 1000000,
   durationMinutes: 60,
   maxPeople: 2,
@@ -23,13 +33,7 @@ const defaultPackage = {
   active: true,
 };
 type PackageForm = typeof defaultPackage & { id?: string; expectedVersion?: number };
-type ConceptForm = {
-  id?: string;
-  name: string;
-  description: string;
-  coverUrl: string;
-  active: boolean;
-};
+type ConceptForm = Omit<Concept, '_id'> & { id?: string };
 type ProfileForm = Omit<Profile, '_id'> & { id?: string };
 export default function ConceptManagePage() {
   const [data, setData] = useState<ManagedCatalog | null>(null),
@@ -93,7 +97,16 @@ export default function ConceptManagePage() {
       if (kind === 'package') {
         const value = body as PackageForm;
         const p = d.packages.find((p) => p._id === value.id);
-        if (p) setPkg({ ...p, id: p._id, expectedVersion: p.version });
+        if (p)
+          setPkg({
+            ...defaultPackage,
+            ...p,
+            decor: { ...defaultPackage.decor, ...p.decor },
+            delivery: { ...defaultPackage.delivery, ...p.delivery },
+            showcase: { ...defaultPackage.showcase, ...p.showcase },
+            id: p._id,
+            expectedVersion: p.version,
+          });
         else setPkg(defaultPackage);
       }
     } catch (e) {
@@ -103,7 +116,15 @@ export default function ConceptManagePage() {
     }
   };
   const editPackage = (p: ConceptPackage) =>
-    setPkg({ ...p, id: p._id, expectedVersion: p.version });
+    setPkg({
+      ...defaultPackage,
+      ...p,
+      decor: { ...defaultPackage.decor, ...p.decor },
+      delivery: { ...defaultPackage.delivery, ...p.delivery },
+      showcase: { ...defaultPackage.showcase, ...p.showcase },
+      id: p._id,
+      expectedVersion: p.version,
+    });
   return (
     <div className="concept-workspace">
       <h1>Concept, gói chụp và ekip</h1>
@@ -163,13 +184,93 @@ export default function ConceptManagePage() {
               />
             </label>
             <label>
-              Ảnh đại diện (HTTPS)
+              Ảnh đại diện
               <input
-                type="url"
+                inputMode="url"
                 value={concept.coverUrl}
                 onChange={(e) => setConcept({ ...concept, coverUrl: e.target.value })}
               />
             </label>
+            {(
+              [
+                ['story', 'Câu chuyện và phong cách', 6000],
+                ['styleSummary', 'Tóm tắt phong cách', 300],
+                ['audience', 'Phù hợp với', 1000],
+                ['setting', 'Không gian chụp', 1000],
+                ['wardrobeGuidance', 'Gợi ý trang phục', 1000],
+                ['preparation', 'Chuẩn bị trước buổi chụp', 2000],
+              ] as const
+            ).map(([field, label, max]) => (
+              <label key={field}>
+                {label}
+                <textarea
+                  maxLength={max}
+                  value={concept[field] || ''}
+                  onChange={(event) => setConcept({ ...concept, [field]: event.target.value })}
+                />
+              </label>
+            ))}
+            <fieldset>
+              <legend>Ảnh tham khảo</legend>
+              {(concept.gallery || []).map((image, index) => (
+                <div className="concept-form-grid" key={index}>
+                  <label>
+                    Đường dẫn ảnh {index + 1}
+                    <input
+                      required
+                      inputMode="url"
+                      value={image.url}
+                      onChange={(event) =>
+                        setConcept({
+                          ...concept,
+                          gallery: concept.gallery?.map((item, i) =>
+                            i === index ? { ...item, url: event.target.value } : item,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Chú thích ảnh {index + 1}
+                    <input
+                      maxLength={200}
+                      value={image.caption}
+                      onChange={(event) =>
+                        setConcept({
+                          ...concept,
+                          gallery: concept.gallery?.map((item, i) =>
+                            i === index ? { ...item, caption: event.target.value } : item,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setConcept({
+                        ...concept,
+                        gallery: concept.gallery?.filter((_, i) => i !== index),
+                      })
+                    }
+                  >
+                    Xóa ảnh {index + 1}
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                disabled={(concept.gallery?.length || 0) >= 24}
+                onClick={() =>
+                  setConcept({
+                    ...concept,
+                    gallery: [...(concept.gallery || []), { url: '', caption: '' }],
+                  })
+                }
+              >
+                Thêm ảnh tham khảo
+              </button>
+            </fieldset>
             <label className="concept-check">
               <input
                 type="checkbox"
@@ -239,6 +340,216 @@ export default function ConceptManagePage() {
                 onChange={(e) => setPkg({ ...pkg, name: e.target.value })}
               />
             </label>
+            <label>
+              Ảnh minh họa gói
+              <input
+                inputMode="url"
+                value={pkg.imageUrl}
+                onChange={(event) => setPkg({ ...pkg, imageUrl: event.target.value })}
+              />
+            </label>
+            <fieldset>
+              <legend>Decor &amp; bối cảnh</legend>
+              <div className="concept-form-grid">
+                {Object.entries(conceptDecorLabels).map(([field, label]) => (
+                  <label key={field}>
+                    {label}
+                    <textarea
+                      maxLength={1000}
+                      value={pkg.decor[field as keyof typeof conceptDecorLabels]}
+                      onChange={(event) =>
+                        setPkg({ ...pkg, decor: { ...pkg.decor, [field]: event.target.value } })
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <label>
+              Lời giới thiệu gói
+              <textarea
+                maxLength={1000}
+                value={pkg.introduction}
+                onChange={(e) => setPkg({ ...pkg, introduction: e.target.value })}
+              />
+            </label>
+            <fieldset>
+              <legend>Studio đồng hành cùng bạn</legend>
+              {pkg.studioSupport.map((item, index) => (
+                <div className="concept-form-grid" key={index}>
+                  <label>
+                    Tiêu đề quyền lợi {index + 1}
+                    <input
+                      required
+                      maxLength={120}
+                      value={item.title}
+                      onChange={(e) =>
+                        setPkg({
+                          ...pkg,
+                          studioSupport: pkg.studioSupport.map((row, i) =>
+                            i === index ? { ...row, title: e.target.value } : row,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Mô tả quyền lợi {index + 1}
+                    <textarea
+                      required
+                      maxLength={500}
+                      value={item.description}
+                      onChange={(e) =>
+                        setPkg({
+                          ...pkg,
+                          studioSupport: pkg.studioSupport.map((row, i) =>
+                            i === index ? { ...row, description: e.target.value } : row,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPkg({
+                        ...pkg,
+                        studioSupport: pkg.studioSupport.filter((_, i) => i !== index),
+                      })
+                    }
+                  >
+                    Xóa quyền lợi {index + 1}
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                disabled={pkg.studioSupport.length >= 4}
+                onClick={() =>
+                  setPkg({
+                    ...pkg,
+                    studioSupport: [...pkg.studioSupport, { title: '', description: '' }],
+                  })
+                }
+              >
+                Thêm quyền lợi
+              </button>
+            </fieldset>
+            <fieldset>
+              <legend>Bộ ảnh bạn nhận được</legend>
+              <p>
+                Số ảnh chỉnh sửa lấy từ gói; album riêng và hai vòng góp ý theo quy trình hiện tại.
+              </p>
+              {Object.entries(conceptDeliveryLabels).map(([field, label]) => (
+                <label key={field}>
+                  {label}
+                  <textarea
+                    maxLength={1000}
+                    value={pkg.delivery[field as keyof typeof conceptDeliveryLabels]}
+                    onChange={(e) =>
+                      setPkg({ ...pkg, delivery: { ...pkg.delivery, [field]: e.target.value } })
+                    }
+                  />
+                </label>
+              ))}
+            </fieldset>
+            <fieldset>
+              <legend>Bộ ảnh giới thiệu</legend>
+              <p>
+                Thêm bộ ảnh khách đã chụp hoặc hai ảnh cùng khung hình với chú thích “Trước hậu kỳ”
+                và “Sau hậu kỳ”.
+              </p>
+              <label>
+                Tiêu đề bộ ảnh
+                <input
+                  maxLength={120}
+                  value={pkg.showcase.title}
+                  onChange={(e) =>
+                    setPkg({ ...pkg, showcase: { ...pkg.showcase, title: e.target.value } })
+                  }
+                />
+              </label>
+              <label>
+                Câu chuyện bộ ảnh
+                <textarea
+                  maxLength={1000}
+                  value={pkg.showcase.description}
+                  onChange={(e) =>
+                    setPkg({ ...pkg, showcase: { ...pkg.showcase, description: e.target.value } })
+                  }
+                />
+              </label>
+              {pkg.showcase.images.map((image, index) => (
+                <div className="concept-form-grid" key={index}>
+                  <label>
+                    Đường dẫn ảnh giới thiệu {index + 1}
+                    <input
+                      required
+                      inputMode="url"
+                      value={image.url}
+                      onChange={(e) =>
+                        setPkg({
+                          ...pkg,
+                          showcase: {
+                            ...pkg.showcase,
+                            images: pkg.showcase.images.map((row, i) =>
+                              i === index ? { ...row, url: e.target.value } : row,
+                            ),
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Chú thích ảnh giới thiệu {index + 1}
+                    <input
+                      maxLength={200}
+                      value={image.caption}
+                      onChange={(e) =>
+                        setPkg({
+                          ...pkg,
+                          showcase: {
+                            ...pkg.showcase,
+                            images: pkg.showcase.images.map((row, i) =>
+                              i === index ? { ...row, caption: e.target.value } : row,
+                            ),
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPkg({
+                        ...pkg,
+                        showcase: {
+                          ...pkg.showcase,
+                          images: pkg.showcase.images.filter((_, i) => i !== index),
+                        },
+                      })
+                    }
+                  >
+                    Xóa ảnh giới thiệu {index + 1}
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                disabled={pkg.showcase.images.length >= 6}
+                onClick={() =>
+                  setPkg({
+                    ...pkg,
+                    showcase: {
+                      ...pkg.showcase,
+                      images: [...pkg.showcase.images, { url: '', caption: '' }],
+                    },
+                  })
+                }
+              >
+                Thêm ảnh giới thiệu
+              </button>
+            </fieldset>
             <div className="concept-form-grid">
               {(
                 [
@@ -346,6 +657,100 @@ export default function ConceptManagePage() {
             />
           </label>
           <fieldset>
+            <legend>Nội dung cá nhân hóa</legend>
+            {(['portraitUrl', 'coverUrl'] as const).map((field) => (
+              <label key={field}>
+                {field === 'portraitUrl' ? 'Ảnh chân dung thợ' : 'Ảnh bìa portfolio'}
+                <input
+                  inputMode="url"
+                  value={profile[field] || ''}
+                  onChange={(e) => setProfile({ ...profile, [field]: e.target.value })}
+                />
+              </label>
+            ))}
+            {Object.entries(photographerContentFields).map(([field, config]) => (
+              <label key={field}>
+                {config.label}
+                <textarea
+                  maxLength={config.max}
+                  value={profile[field as keyof typeof photographerContentFields] || ''}
+                  onChange={(e) => setProfile({ ...profile, [field]: e.target.value })}
+                />
+              </label>
+            ))}
+          </fieldset>
+          {(['approach', 'audience', 'milestones'] as const).map((field) => (
+            <fieldset key={field}>
+              <legend>
+                {
+                  {
+                    approach: 'Buổi chụp cùng tôi',
+                    audience: 'Phù hợp nếu bạn…',
+                    milestones: 'Dấu mốc & kinh nghiệm',
+                  }[field]
+                }
+              </legend>
+              {(profile[field] || []).map((item, index) => (
+                <div key={index} className="concept-form-grid">
+                  <label>
+                    Tiêu đề {index + 1}
+                    <input
+                      required
+                      maxLength={120}
+                      value={item.title}
+                      onChange={(e) =>
+                        setProfile({
+                          ...profile,
+                          [field]: profile[field]?.map((row, i) =>
+                            i === index ? { ...row, title: e.target.value } : row,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Nội dung {index + 1}
+                    <textarea
+                      maxLength={600}
+                      value={item.description}
+                      onChange={(e) =>
+                        setProfile({
+                          ...profile,
+                          [field]: profile[field]?.map((row, i) =>
+                            i === index ? { ...row, description: e.target.value } : row,
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setProfile({
+                        ...profile,
+                        [field]: profile[field]?.filter((_, i) => i !== index),
+                      })
+                    }
+                  >
+                    Bỏ mục {index + 1}
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                disabled={(profile[field]?.length || 0) >= (field === 'milestones' ? 6 : 4)}
+                onClick={() =>
+                  setProfile({
+                    ...profile,
+                    [field]: [...(profile[field] || []), { title: '', description: '' }],
+                  })
+                }
+              >
+                Thêm mục
+              </button>
+            </fieldset>
+          ))}
+          <fieldset>
             <legend>Concept có thể chụp</legend>
             {data.concepts.map((c) => (
               <label className="concept-check" key={c._id}>
@@ -401,10 +806,10 @@ export default function ConceptManagePage() {
                 </select>
               </label>
               <label>
-                Ảnh (HTTPS)
+                Đường dẫn ảnh
                 <input
                   required
-                  type="url"
+                  inputMode="url"
                   value={p.url}
                   onChange={(e) =>
                     setProfile({

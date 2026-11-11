@@ -527,7 +527,7 @@ export default function BookingWizardPage() {
     }
     if (!isClient) {
       setSubmitError(
-        'Yêu cầu đặt dịch vụ cần tài khoản khách hàng. Hãy đăng xuất rồi đăng nhập tài khoản khách hàng.',
+        'Yêu cầu chụp kỉ yếu cần tài khoản khách hàng. Hãy đăng xuất rồi đăng nhập tài khoản khách hàng.',
       );
       return;
     }
@@ -583,7 +583,7 @@ export default function BookingWizardPage() {
 
   return (
     <div className={`customer-wizard${isPublic ? '' : ' customer-wizard--account'}`}>
-      <aside className="customer-wizard__story" aria-label="Hành trình đặt dịch vụ">
+      <aside className="customer-wizard__story" aria-label="Hành trình chụp kỉ yếu">
         <div className="customer-wizard__story-inner">
           <Link to={accountPath} className="customer-wizard__brand" aria-label="Yume Studio">
             <span aria-hidden="true">
@@ -630,7 +630,7 @@ export default function BookingWizardPage() {
           </ol>
         </div>
       </aside>
-      <ContentTag className="customer-wizard__content" aria-label="Yêu cầu đặt dịch vụ">
+      <ContentTag className="customer-wizard__content" aria-label="Yêu cầu chụp kỉ yếu">
         {customerContext.length > 0 && (
           <CustomerSurface as="div" padding="compact" className="customer-wizard__context">
             <aside aria-labelledby="booking-context-title">

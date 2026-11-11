@@ -418,7 +418,10 @@ export default function BookingAlbumPage({
             <p>Chọn khoảnh khắc bạn muốn giữ lại.</p>
           </div>
           {staff && (
-            <Link className="album-button album-button--quiet" to={`/workflow-bookings/${id}`}>
+            <Link
+              className="app-back-link album-button album-button--quiet"
+              to={`/workflow-bookings/${id}`}
+            >
               <ArrowLeft size={16} /> Hồ sơ đơn
             </Link>
           )}

@@ -209,7 +209,7 @@ export function CustomerBookingOrders() {
       total={total}
       page={page}
       view={view}
-      emptyMessage="Bạn chưa có đơn chụp ảnh. Chọn Đặt dịch vụ để bắt đầu."
+      emptyMessage="Bạn chưa có đơn chụp ảnh. Chọn Chụp kỉ yếu để bắt đầu."
       onViewChange={(value) => changeList(value as BookingOrderStage | '')}
       onPageChange={(value) => changeList(view, value)}
       onReload={() => setReload((value) => value + 1)}

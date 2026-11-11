@@ -607,7 +607,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
   it('takes the existing account booking action to the shared booking entry', async () => {
     renderPage(<BookingsPage />, '/account/bookings', '/account/bookings', false);
     await screen.findByText('Chưa có yêu cầu phù hợp.');
-    const booking = screen.getByRole('link', { name: 'Đặt dịch vụ' });
+    const booking = screen.getByRole('link', { name: 'Chụp kỉ yếu' });
     expect(booking).toHaveAttribute('href', '/account/bookings/new');
 
     fireEvent.click(booking);

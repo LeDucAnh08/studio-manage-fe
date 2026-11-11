@@ -304,7 +304,7 @@ export default function RentalDetailPage() {
     <ContentTag className={customer ? 'customer-orders customer-orders--detail' : 'space-y-6'}>
       <div className="flex flex-wrap justify-between gap-3">
         <Link
-          className={customer ? 'customer-back-link' : 'text-sm text-primary'}
+          className={customer ? 'customer-back-link' : 'app-back-link text-sm text-primary'}
           to={client ? customerBackPath : staffBackPath}
         >
           ← Danh sách đơn thuê

@@ -84,7 +84,7 @@ describe('Sidebar navigation', () => {
         'href',
         '/workflow-bookings',
       );
-      expect(screen.queryByRole('link', { name: 'Yêu cầu đặt dịch vụ' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Yêu cầu chụp kỉ yếu' })).not.toBeInTheDocument();
       expect(screen.queryByRole('link', { name: 'Quy trình dịch vụ' })).not.toBeInTheDocument();
     },
   );

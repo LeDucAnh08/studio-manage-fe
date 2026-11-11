@@ -45,7 +45,7 @@ const CustomerDetailPage = () => {
       <div className="flex items-center gap-3">
         <Link
           to="/customers"
-          className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+          className="app-back-link text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
         >
           <ArrowLeft className="h-4 w-4" />
           Danh sách lớp

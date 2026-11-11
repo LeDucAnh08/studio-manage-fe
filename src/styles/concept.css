@@ -125,6 +125,36 @@
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
   gap: 16px;
 }
+.concept-wizard-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 14px;
+}
+.concept-booking-flow {
+  width: calc(100% - 80px);
+}
+.concept-booking-flow h1 {
+  font-size: 30px;
+}
+.concept-measurements {
+  max-width: 900px;
+}
+.concept-measurements > label {
+  max-width: 260px;
+}
+.concept-measurement-card {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 16px 22px;
+  margin: 24px 0;
+}
+.concept-measurement-card legend {
+  font-size: 16px;
+  font-weight: 600;
+  padding: 0 8px;
+}
 .concept-workspace .concept-check {
   flex-direction: row;
   align-items: flex-start;
@@ -267,6 +297,12 @@
   border-bottom: 1px solid #ddd;
 }
 @media (max-width: 600px) {
+  .concept-booking-flow {
+    width: calc(100% - 40px);
+  }
+  .concept-booking-flow h1 {
+    font-size: 26px;
+  }
   .concept-workspace {
     padding: 16px 0 32px;
   }

@@ -123,12 +123,12 @@ describe('Customer shared navigation', () => {
 
       const navigation = screen.getByRole('navigation', { name: 'Tài khoản khách hàng' });
       expect(navLabels(navigation)).toEqual([
-        'Đặt dịch vụ',
+        'Chụp kỉ yếu',
         'Trang phục',
         'Bảng giá',
         'Đơn của tôi',
       ]);
-      expect(within(navigation).getByRole('link', { name: 'Đặt dịch vụ' })).toHaveAttribute(
+      expect(within(navigation).getByRole('link', { name: 'Chụp kỉ yếu' })).toHaveAttribute(
         'href',
         '/account/bookings/new',
       );
@@ -180,7 +180,7 @@ describe('Customer shared navigation', () => {
       name: 'Điều hướng chính trên điện thoại',
     });
     expect(navLabels(navigation)).toEqual([
-      'Đặt dịch vụ',
+      'Chụp kỉ yếu',
       'Trang phục',
       'Bảng giá',
       'Đơn của tôi',

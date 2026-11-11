@@ -6,12 +6,25 @@ export interface Concept {
   name: string;
   description: string;
   coverUrl: string;
+  story?: string;
+  styleSummary?: string;
+  audience?: string;
+  setting?: string;
+  wardrobeGuidance?: string;
+  preparation?: string;
+  gallery?: { url: string; caption: string }[];
   active: boolean;
 }
 export interface ConceptPackage {
   _id: string;
   concept: string;
   name: string;
+  imageUrl?: string;
+  introduction?: string;
+  studioSupport?: { title: string; description: string }[];
+  delivery?: { timeline?: string; format?: string; originals?: string };
+  showcase?: { title?: string; description?: string; images: { url: string; caption: string }[] };
+  decor?: { backdrop?: string; props?: string; layout?: string; included?: string };
   price: number;
   durationMinutes: number;
   maxPeople: number;
@@ -22,11 +35,49 @@ export interface ConceptPackage {
   active: boolean;
   version: number;
 }
-export interface Photographer {
+export const conceptDecorLabels = {
+  backdrop: 'Phông nền',
+  props: 'Đạo cụ',
+  layout: 'Cách bố trí',
+  included: 'Decor đi kèm gói',
+} as const;
+export const conceptDeliveryLabels = {
+  timeline: 'Thời gian giao ảnh',
+  format: 'Định dạng & cách nhận',
+  originals: 'Ảnh gốc',
+} as const;
+export interface PhotographerContent {
+  portraitUrl?: string;
+  coverUrl?: string;
+  title?: string;
+  tagline?: string;
+  story?: string;
+  specialty?: string;
+  style?: string;
+  guidance?: string;
+  philosophy?: string;
+  approach?: { title: string; description: string }[];
+  audience?: { title: string; description: string }[];
+  milestones?: { title: string; description: string }[];
+}
+export const photographerContentFields = {
+  title: { label: 'Chuyên môn / vai trò', max: 120 },
+  tagline: { label: 'Câu định vị riêng', max: 180 },
+  story: { label: 'Câu chuyện & lời giới thiệu cá nhân', max: 4000 },
+  specialty: { label: 'Sở trường', max: 300 },
+  style: { label: 'Dấu ấn hình ảnh', max: 600 },
+  guidance: { label: 'Cách hướng dẫn khách', max: 600 },
+  philosophy: { label: 'Điều tôi chú trọng', max: 1500 },
+} as const;
+export interface Photographer extends PhotographerContent {
   _id: string;
   name: string;
   bio?: string;
   portfolio?: { url: string; caption?: string }[];
+}
+export interface PublicPhotographer extends Photographer {
+  concepts: { _id: string; name: string }[];
+  portfolio: { concept: string; url: string; caption: string }[];
 }
 export interface StudioSettings {
   openMinutes: number;
@@ -57,6 +108,11 @@ export interface CostumeChoice {
   size: string;
   quantity: number;
   name?: string;
+}
+export interface WardrobeMeasurement {
+  size: string;
+  heightCm: number;
+  weightKg: number;
 }
 export interface ConceptPayment {
   id: string;
@@ -93,6 +149,7 @@ export interface ConceptOrder {
   editor?: string;
   wardrobe: string;
   costumes: CostumeChoice[];
+  wardrobeMeasurements?: WardrobeMeasurement[];
   reservation: { status: string; expiresAt: string };
   paymentRequests: ConceptPayment[];
   payments?: { amount: number; kind: string; at: string; reference?: string }[];
@@ -159,7 +216,7 @@ export interface ConceptAlbum {
   share?: { publicId?: string; expiresAt?: string };
   token?: string;
 }
-export interface Profile {
+export interface Profile extends PhotographerContent {
   _id: string;
   photographer: string;
   concepts: string[];
@@ -211,6 +268,12 @@ export const vnTime = (value: string) =>
     timeStyle: 'short',
   });
 export const conceptService = {
+  photographer: (id: string, signal?: AbortSignal) =>
+    guestApi
+      .get<{
+        data: PublicPhotographer;
+      }>(`/concepts/photographers/${encodeURIComponent(id)}`, { signal })
+      .then((r) => r.data.data),
   catalog: (signal?: AbortSignal) =>
     guestApi.get<{ data: Catalog }>('/concepts', { signal }).then((r) => r.data.data),
   manage: () => api.get<{ data: ManagedCatalog }>('/concepts/manage').then((r) => r.data.data),

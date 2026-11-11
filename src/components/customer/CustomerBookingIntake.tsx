@@ -67,7 +67,7 @@ export function CustomerBookingIntake({
       )}
 
       <header className="customer-booking-intake__heading">
-        <p className="customer-booking-intake__eyebrow">Hồ sơ đặt dịch vụ</p>
+        <p className="customer-booking-intake__eyebrow">Hồ sơ chụp kỉ yếu</p>
         <div className="customer-booking-intake__title-row">
           <h1 id="customer-intake-title" className="customer-booking-intake__title">
             {booking.className?.trim() ? `Yêu cầu của lớp ${title}` : title}

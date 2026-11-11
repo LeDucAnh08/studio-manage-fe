@@ -61,7 +61,7 @@ const RegisterRequestPage = () => {
           <p className="mt-2 text-sm text-muted-foreground">
             Quản trị viên sẽ xét duyệt và cấp quyền truy cập cho bạn.
           </p>
-          <Link to="/login" className="mt-6 inline-block text-sm text-primary">
+          <Link to="/login" className="app-back-link mt-6 inline-block text-sm text-primary">
             Quay lại đăng nhập
           </Link>
         </section>
