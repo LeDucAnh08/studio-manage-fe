@@ -27,7 +27,7 @@ describe('deposit QR presentation', () => {
   it('offers local simulation only with explicit sandbox capability and prevents double clicks', async () => {
     mocks.simulate.mockResolvedValue({ status: 'applied' });
     render(<DepositPaymentPanel payment={{ ...fixture(), demoSimulation: true }} />);
-    const button = screen.getByRole('button', { name: 'Thanh toán thử' });
+    const button = screen.getByRole('button', { name: 'Thanh toán' });
     expect(
       screen.queryByText(/Chế độ thử nghiệm|Demo local|mô phỏng|Trang tự cập nhật sau khi bạn bấm/),
     ).not.toBeInTheDocument();
@@ -43,15 +43,15 @@ describe('deposit QR presentation', () => {
       .mockRejectedValueOnce(new Error('offline'))
       .mockResolvedValueOnce({ status: 'applied' });
     render(<DepositPaymentPanel payment={{ ...fixture(), demoSimulation: true }} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Thanh toán thử' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Thanh toán' }));
     await screen.findByRole('alert');
-    fireEvent.click(screen.getByRole('button', { name: 'Thanh toán thử' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Thanh toán' }));
     await screen.findByText('Đã ghi nhận thanh toán.');
     expect(mocks.simulate.mock.calls[0][1]).toBe(mocks.simulate.mock.calls[1][1]);
   });
   it('never offers simulation for a live payment even if the capability is spoofed', () => {
     render(<DepositPaymentPanel payment={{ ...fixture(), mode: 'live', demoSimulation: true }} />);
-    expect(screen.queryByRole('button', { name: 'Thanh toán thử' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Thanh toán' })).not.toBeInTheDocument();
   });
   it('shows payment details, copy and download without extra mode notices or a payment confirmation button', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
@@ -89,10 +89,26 @@ describe('deposit QR presentation', () => {
       />,
     );
     expect(screen.getByRole('img')).toBeInTheDocument();
+    expect(screen.getByRole('timer')).toHaveTextContent('00:01');
     await act(async () => {
       vi.advanceTimersByTime(1001);
     });
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.getByRole('timer')).toHaveTextContent('00:00');
+  });
+  it('updates the countdown for a renewed deadline and removes it after payment', () => {
+    vi.useFakeTimers();
+    const payment = { ...fixture(), expiresAt: new Date(Date.now() + 120000).toISOString() };
+    const { rerender } = render(<DepositPaymentPanel payment={payment} rental />);
+    expect(screen.getByRole('timer')).toHaveTextContent('02:00');
+    act(() => vi.advanceTimersByTime(30000));
+    expect(screen.getByRole('timer')).toHaveTextContent('01:30');
+    rerender(<DepositPaymentPanel payment={{ ...payment }} rental />);
+    expect(screen.getByRole('timer')).toHaveTextContent('01:30');
+    rerender(<DepositPaymentPanel payment={{ ...payment, status: 'paid' }} rental />);
+    expect(screen.queryByRole('timer')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Đã nhận cọc');
   });
   it('keeps transfer details readable when the QR image fails', () => {
     render(<DepositPaymentPanel payment={fixture()} />);

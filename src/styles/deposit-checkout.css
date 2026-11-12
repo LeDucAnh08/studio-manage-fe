@@ -1,0 +1,1006 @@
+.deposit-checkout {
+  background: #fafafa;
+  min-height: 100vh;
+  font-family: var(--customer-font);
+  font-size: 14px;
+  line-height: 1.55;
+  color: #222;
+}
+.deposit-checkout * {
+  box-sizing: border-box;
+}
+.deposit-checkout button,
+.deposit-checkout select {
+  font: inherit;
+}
+.deposit-checkout button,
+.deposit-checkout a {
+  touch-action: manipulation;
+}
+.deposit-checkout button {
+  cursor: pointer;
+}
+.deposit-checkout button:focus-visible,
+.deposit-checkout a:focus-visible,
+.deposit-checkout select:focus-visible,
+.deposit-checkout summary:focus-visible {
+  outline: 2px solid #222;
+  outline-offset: 4px;
+}
+.deposit-checkout h1,
+.deposit-checkout h2,
+.deposit-checkout h3,
+.deposit-checkout p,
+.deposit-checkout dl {
+  margin: 0;
+}
+.deposit-checkout .app-back-link:is(:hover, :focus, :active) {
+  text-decoration: none !important;
+}
+.deposit-checkout .deposit-main {
+  max-width: 1168px;
+  padding: 24px 24px 0;
+  margin: auto;
+}
+.deposit-checkout .deposit-main svg {
+  flex-shrink: 0;
+  stroke-width: 1.7;
+}
+.deposit-checkout .deposit-main button {
+  background: none;
+  border: 0;
+}
+.deposit-checkout .deposit-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #666 !important;
+  font-size: 13px !important;
+  min-height: 32px;
+  padding: 0 !important;
+  text-decoration: none !important;
+}
+.deposit-checkout .deposit-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 16px 0 24px;
+}
+.deposit-checkout .deposit-page-heading h1 {
+  font-size: 30px;
+  line-height: 1.25;
+  font-weight: 650;
+  letter-spacing: -1.1px;
+}
+.deposit-checkout .deposit-page-heading p {
+  margin-top: 9px;
+  color: #737373;
+  font-size: 14px;
+}
+.deposit-checkout .payment-state-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #fff2f5;
+  border: 1px solid #ffe0e7;
+  border-radius: 30px;
+  padding: 8px 12px;
+  color: #b72a48;
+  font-size: 12px;
+  font-weight: 550;
+  white-space: nowrap;
+}
+.deposit-checkout .status-dot {
+  width: 6px;
+  height: 6px;
+  background: #ef4265;
+  border-radius: 50%;
+}
+.deposit-checkout .payment-state-pill.is-paid {
+  background: #eff8f3;
+  color: #287b52;
+  border-color: #daebdf;
+}
+.deposit-checkout .payment-state-pill.is-ended {
+  background: #f1f1f1;
+  color: #717171;
+  border-color: #e7e7e7;
+}
+.deposit-checkout .deposit-steps {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  list-style: none;
+  margin: 0 0 28px;
+  padding: 17px 0;
+  border-top: 1px solid #e8e8e8;
+  border-bottom: 1px solid #e8e8e8;
+}
+.deposit-checkout .deposit-steps li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #929292;
+  font-size: 12px;
+}
+.deposit-checkout .deposit-steps li > span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ededed;
+  color: #888;
+  font-size: 11px;
+  font-weight: 600;
+}
+.deposit-checkout .deposit-steps .is-done {
+  color: #686868;
+}
+.deposit-checkout .deposit-steps .is-done > span {
+  background: #ebebeb;
+  color: #575757;
+}
+.deposit-checkout .deposit-steps .is-current {
+  font-weight: 600;
+  color: #222;
+}
+.deposit-checkout .deposit-steps .is-current > span {
+  background: #ff385c;
+  color: #fff;
+}
+.deposit-checkout .deposit-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 348px;
+  gap: 24px;
+  align-items: start;
+}
+.deposit-checkout .deposit-payment-column {
+  min-width: 0;
+  display: grid;
+  gap: 15px;
+}
+.deposit-checkout .deposit-payment-card,
+.deposit-checkout .deposit-summary {
+  border: 1px solid #e3e3e3;
+  border-radius: 14px;
+  background: #fff;
+}
+.deposit-checkout .deposit-payment-card {
+  padding: 26px;
+}
+.deposit-checkout .payment-card-heading {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.deposit-checkout .payment-heading-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid #e9e9e9;
+  border-radius: 11px;
+  color: #5a5a5a;
+}
+.deposit-checkout .payment-card-heading h2 {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
+.deposit-checkout .payment-card-heading p {
+  font-size: 12px;
+  color: #777;
+  margin-top: 4px;
+}
+.deposit-checkout .deposit-payment-card .payment-countdown {
+  border: 1px solid #f6dbe1;
+  background: #fff5f7;
+  border-radius: 8px;
+  padding: 11px 14px;
+  margin: 23px 0 24px;
+  gap: 10px;
+}
+.deposit-checkout .deposit-payment-card .payment-countdown__label {
+  color: #80515a;
+  font-size: 12px;
+  gap: 8px;
+}
+.deposit-checkout .deposit-payment-card .payment-countdown__label svg {
+  width: 16px;
+  height: 16px;
+}
+.deposit-checkout .deposit-payment-card .payment-countdown__value {
+  font-size: 21px;
+  letter-spacing: 0.4px;
+  color: #b82c48;
+  font-weight: 650;
+}
+.deposit-checkout .deposit-payment-card .payment-countdown.is-urgent {
+  background: #fff8e9;
+  border-color: #edd9ad;
+}
+.deposit-checkout .deposit-payment-card .payment-countdown.is-urgent .payment-countdown__value {
+  color: #85500d;
+}
+.deposit-checkout .payment-method-body {
+  display: grid;
+  grid-template-columns: 246px minmax(0, 1fr);
+  align-items: start;
+  gap: 25px;
+}
+.deposit-checkout .qr-column {
+  display: grid;
+  gap: 13px;
+  min-width: 0;
+}
+.deposit-checkout .qr-image-frame {
+  padding: 9px;
+  border: 1px solid #e8e8e8;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  background: #fff;
+}
+.deposit-checkout .qr-image-frame img {
+  display: block;
+  width: 100%;
+  max-width: 234px;
+  height: auto;
+  image-rendering: pixelated;
+}
+.deposit-checkout .qr-caption {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  font-size: 9px;
+  color: #8b8b8b;
+  margin: 3px 0 6px;
+}
+.deposit-checkout .deposit-button {
+  min-height: 43px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 17px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none !important;
+  transition: background 0.15s;
+}
+.deposit-checkout .deposit-button.is-outline {
+  border: 1px solid #d5d5d5;
+  background: #fff;
+  color: #444;
+}
+.deposit-checkout .deposit-button.is-outline:hover {
+  background: #f7f7f7;
+}
+.deposit-checkout .deposit-button.is-primary {
+  background: #ff385c;
+  color: #fff;
+  border: 1px solid #ff385c;
+  min-height: 46px;
+}
+.deposit-checkout .deposit-button.is-primary:hover {
+  background: #e92b50;
+}
+.deposit-checkout .download-qr {
+  width: 100%;
+  min-height: 40px;
+}
+.deposit-checkout .bank-column {
+  min-width: 0;
+  padding-top: 2px;
+}
+.deposit-checkout .transfer-amount {
+  padding-bottom: 17px;
+  border-bottom: 1px solid #ededed;
+}
+.deposit-checkout .transfer-amount > span {
+  display: block;
+  font-size: 11px;
+  color: #777;
+}
+.deposit-checkout .transfer-amount > strong {
+  display: block;
+  font-size: 28px;
+  line-height: 1.4;
+  letter-spacing: -0.9px;
+  font-weight: 650;
+  color: #222;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+.deposit-checkout .transfer-amount > small {
+  display: block;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #888;
+  margin-top: 3px;
+}
+.deposit-checkout .transfer-details {
+  display: grid;
+  gap: 14px;
+  padding-top: 16px;
+}
+.deposit-checkout .transfer-details dt {
+  font-size: 10px;
+  color: #858585;
+  margin-bottom: 2px;
+}
+.deposit-checkout .transfer-details dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.deposit-checkout .transfer-details dd > svg {
+  width: 14px;
+  height: 14px;
+  color: #777;
+}
+.deposit-checkout .transfer-details .copy-value {
+  display: flex;
+  justify-content: space-between;
+  gap: 3px;
+  min-height: 22px;
+}
+.deposit-checkout .copy-value > span {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.deposit-checkout .copy-value > button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin: -6px -8px -4px 0;
+  color: #777;
+  flex-shrink: 0;
+  border-radius: 5px;
+}
+.deposit-checkout .copy-value > button:hover {
+  background: #f3f3f3;
+  color: #222;
+}
+.deposit-checkout .transfer-details .transfer-reference {
+  font-size: 11px;
+  letter-spacing: -0.25px;
+}
+.deposit-checkout .automatic-status {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 16px 0 0;
+  margin-top: 23px;
+  border-top: 1px solid #eee;
+}
+.deposit-checkout .live-indicator {
+  display: flex;
+  color: #ef3d61;
+}
+.deposit-checkout .live-indicator > svg {
+  animation: deposit-spin 2.5s linear infinite;
+}
+.deposit-checkout .automatic-status strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+.deposit-checkout .automatic-status p {
+  font-size: 11px;
+  color: #7b7b7b;
+  margin-top: 3px;
+}
+.deposit-checkout .automatic-badge {
+  margin-left: auto;
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: #f6f6f6;
+  color: #888;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.deposit-checkout .transfer-reminder {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #8a8a8a;
+  font-size: 10px;
+  line-height: 1.7;
+  margin-top: 17px !important;
+}
+.deposit-checkout .transfer-reminder svg {
+  width: 15px;
+  height: 15px;
+  margin-top: 1px;
+  color: #a0a0a0;
+}
+.deposit-checkout .partial-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #fff9ed;
+  color: #805e24;
+  border: 1px solid #f1e5cc;
+  border-radius: 8px;
+  padding: 11px 12px;
+  margin-bottom: 20px;
+  font-size: 12px;
+}
+.deposit-checkout .partial-notice svg {
+  margin-top: 2px;
+}
+.deposit-checkout .deposit-summary {
+  padding: 25px 24px;
+}
+.deposit-checkout .summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+.deposit-checkout .service-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #666;
+  font-size: 11px;
+  font-weight: 500;
+}
+.deposit-checkout .order-short-id {
+  font-size: 9px;
+  color: #999;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+.deposit-checkout .deposit-summary h2 {
+  font-size: 19px;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: -0.45px;
+  margin-bottom: 5px;
+}
+.deposit-checkout .summary-description {
+  color: #858585;
+  font-size: 12px;
+}
+.deposit-checkout .order-facts {
+  display: grid;
+  gap: 10px;
+  padding: 22px 0;
+  border-bottom: 1px solid #ececec;
+}
+.deposit-checkout .order-facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 12px;
+}
+.deposit-checkout .order-facts dt {
+  color: #858585;
+}
+.deposit-checkout .order-facts dd {
+  margin: 0;
+  text-align: right;
+  color: #484848;
+  font-weight: 450;
+}
+.deposit-checkout .summary-price {
+  padding-top: 21px;
+}
+.deposit-checkout .summary-price > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+.deposit-checkout .summary-price > div > span {
+  font-size: 12px;
+  color: #707070;
+}
+.deposit-checkout .summary-price > div > strong {
+  font-size: 13px;
+  font-weight: 550;
+  white-space: nowrap;
+}
+.deposit-checkout .summary-price .deposit-price-row {
+  padding: 19px 0;
+  margin: 17px 0 16px;
+  border-top: 1px dashed #e5e5e5;
+  border-bottom: 1px dashed #e5e5e5;
+  align-items: center;
+}
+.deposit-checkout .deposit-price-row > div > strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 550;
+}
+.deposit-checkout .deposit-price-row > div > span {
+  display: block;
+  font-size: 10px;
+  color: #939393;
+  margin-top: 4px;
+}
+.deposit-checkout .summary-price .deposit-price {
+  font-size: 25px;
+  color: #ed3155;
+  font-weight: 650;
+  letter-spacing: -0.9px;
+}
+.deposit-checkout .summary-price .remaining-price > strong {
+  font-size: 13px;
+  font-weight: 550;
+}
+.deposit-checkout .remaining-note {
+  font-size: 10px;
+  color: #999;
+  margin: 6px 0 0 !important;
+  text-align: right;
+}
+.deposit-checkout .summary-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  background: #f7f7f7;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 23px;
+  color: #737373;
+  font-size: 11px;
+  line-height: 1.65;
+}
+.deposit-checkout .summary-confirm svg {
+  color: #888;
+  margin-top: 1px;
+  width: 18px;
+  height: 18px;
+}
+.deposit-checkout .deposit-help {
+  border: 1px solid #e7e7e7;
+  border-radius: 9px;
+  background: #fff;
+}
+.deposit-checkout .deposit-help summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 17px;
+  list-style: none;
+  font-size: 12px;
+  color: #717171;
+}
+.deposit-checkout .deposit-help summary::-webkit-details-marker {
+  display: none;
+}
+.deposit-checkout .deposit-help summary > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.deposit-checkout .deposit-help[open] summary > svg {
+  transform: rotate(180deg);
+}
+.deposit-checkout .deposit-help > div {
+  border-top: 1px solid #eee;
+  padding: 14px 17px;
+  display: grid;
+  gap: 12px;
+  color: #777;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.deposit-checkout .deposit-help strong {
+  color: #555;
+  font-weight: 550;
+}
+.deposit-checkout .deposit-footer {
+  text-align: center;
+  color: #999;
+  font-size: 10px;
+  padding: 30px 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.deposit-checkout .deposit-footer > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.deposit-checkout .deposit-footer .footer-divider {
+  height: 10px;
+  width: 1px;
+  background: #dedede;
+}
+.deposit-checkout .deposit-footer > p {
+  width: 100%;
+  font-size: 9px;
+  color: #b0b0b0;
+  margin-top: 6px;
+}
+.deposit-checkout .terminal-content {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  min-height: 460px;
+  justify-content: center;
+  text-align: center;
+  padding: 20px 25px;
+}
+.deposit-checkout .terminal-icon {
+  width: 76px;
+  height: 76px;
+  display: grid;
+  place-items: center;
+  background: #f4f4f4;
+  color: #818181;
+  border-radius: 50%;
+  margin-bottom: 23px;
+}
+.deposit-checkout .terminal-content.is-success .terminal-icon {
+  background: #eff8f2;
+  color: #3b8b5d;
+}
+.deposit-checkout .terminal-eyebrow {
+  color: #929292;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  font-weight: 600;
+}
+.deposit-checkout .terminal-content h2 {
+  font-size: 23px;
+  letter-spacing: -0.6px;
+  line-height: 1.4;
+  font-weight: 600;
+  margin: 10px 0 12px;
+}
+.deposit-checkout .terminal-content > p {
+  max-width: 380px;
+  color: #808080;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.deposit-checkout .terminal-content .deposit-button {
+  margin-top: 25px;
+  min-width: 210px;
+}
+.deposit-checkout .received-amount {
+  margin-top: 23px;
+  padding: 13px 30px;
+  background: #f8faf8;
+  border-radius: 9px;
+  display: grid;
+  gap: 3px;
+}
+.deposit-checkout .received-amount span {
+  font-size: 11px;
+  color: #7d8c81;
+}
+.deposit-checkout .received-amount strong {
+  font-size: 25px;
+  letter-spacing: -0.5px;
+  color: #347851;
+  font-weight: 600;
+}
+.deposit-checkout .terminal-footnote {
+  color: #aaa;
+  font-size: 10px;
+  margin-top: 15px;
+}
+@keyframes deposit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (min-width: 1000px) {
+  .deposit-checkout .deposit-summary {
+    position: sticky;
+    top: 24px;
+  }
+}
+@media (max-width: 1080px) {
+  .deposit-checkout .deposit-layout {
+    grid-template-columns: minmax(0, 1fr) 310px;
+    gap: 20px;
+  }
+  .deposit-checkout .deposit-payment-card {
+    padding: 23px;
+  }
+  .deposit-checkout .payment-method-body {
+    grid-template-columns: 210px minmax(0, 1fr);
+    gap: 20px;
+  }
+  .deposit-checkout .deposit-summary {
+    padding: 23px 20px;
+  }
+  .deposit-checkout .summary-price .deposit-price {
+    font-size: 23px;
+  }
+  .deposit-checkout .transfer-amount > strong {
+    font-size: 25px;
+  }
+}
+@media (max-width: 940px) {
+  .deposit-checkout .deposit-layout {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 18px;
+  }
+  .deposit-checkout .payment-method-body {
+    grid-template-columns: 1fr;
+  }
+  .deposit-checkout .qr-column {
+    max-width: 246px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .deposit-checkout .bank-column {
+    padding-top: 5px;
+  }
+  .deposit-checkout .transfer-amount {
+    text-align: center;
+  }
+  .deposit-checkout .transfer-details {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 22px;
+  }
+  .deposit-checkout .transfer-details > div:last-child {
+    grid-column: 1/-1;
+  }
+  .deposit-checkout .payment-card-heading h2 {
+    font-size: 17px;
+  }
+  .deposit-checkout .automatic-badge {
+    display: none;
+  }
+}
+@media (max-width: 720px) {
+  .deposit-checkout .deposit-main {
+    padding: 18px 20px 0;
+  }
+  .deposit-checkout .deposit-back {
+    font-size: 12px !important;
+  }
+  .deposit-checkout .deposit-page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+    margin: 15px 0 19px;
+  }
+  .deposit-checkout .deposit-page-heading h1 {
+    font-size: 27px;
+    letter-spacing: -0.9px;
+  }
+  .deposit-checkout .deposit-page-heading p {
+    font-size: 12px;
+    line-height: 1.7;
+    margin-top: 7px;
+  }
+  .deposit-checkout .payment-state-pill {
+    font-size: 10px;
+    padding: 6px 10px;
+  }
+  .deposit-checkout .deposit-steps {
+    gap: 0;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding: 14px 0;
+  }
+  .deposit-checkout .deposit-steps li {
+    gap: 6px;
+    font-size: 9px;
+  }
+  .deposit-checkout .deposit-steps li > span {
+    width: 21px;
+    height: 21px;
+    font-size: 9px;
+  }
+  .deposit-checkout .deposit-steps li svg {
+    width: 12px;
+    height: 12px;
+  }
+  .deposit-checkout .deposit-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .deposit-checkout .deposit-payment-card {
+    padding: 20px;
+  }
+  .deposit-checkout .payment-card-heading h2 {
+    font-size: 18px;
+  }
+  .deposit-checkout .payment-card-heading p {
+    font-size: 11px;
+  }
+  .deposit-checkout .payment-heading-icon {
+    width: 37px;
+    height: 37px;
+  }
+  .deposit-checkout .deposit-payment-card .payment-countdown {
+    margin: 20px 0;
+    padding: 10px 12px;
+    flex-wrap: nowrap;
+  }
+  .deposit-checkout .deposit-payment-card .payment-countdown__label {
+    font-size: 10px;
+    gap: 6px;
+  }
+  .deposit-checkout .deposit-payment-card .payment-countdown__value {
+    font-size: 20px;
+  }
+  .deposit-checkout .payment-method-body {
+    gap: 22px;
+  }
+  .deposit-checkout .qr-column {
+    max-width: 250px;
+  }
+  .deposit-checkout .bank-column {
+    padding-top: 0;
+  }
+  .deposit-checkout .transfer-amount > strong {
+    font-size: 31px;
+  }
+  .deposit-checkout .transfer-amount > span {
+    font-size: 12px;
+  }
+  .deposit-checkout .transfer-amount > small {
+    font-size: 10px;
+  }
+  .deposit-checkout .transfer-details {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding-top: 20px;
+  }
+  .deposit-checkout .transfer-details > div:last-child {
+    grid-column: auto;
+  }
+  .deposit-checkout .transfer-details dt {
+    font-size: 11px;
+  }
+  .deposit-checkout .transfer-details dd {
+    font-size: 14px;
+  }
+  .deposit-checkout .transfer-details .transfer-reference {
+    font-size: 13px;
+  }
+  .deposit-checkout .copy-value > button {
+    height: 38px;
+    width: 38px;
+    margin-top: -8px;
+    margin-bottom: -8px;
+    margin-right: -7px;
+  }
+  .deposit-checkout .automatic-status {
+    gap: 9px;
+    margin-top: 24px;
+    padding-top: 18px;
+  }
+  .deposit-checkout .automatic-status strong {
+    font-size: 12px;
+  }
+  .deposit-checkout .automatic-status p {
+    font-size: 10px;
+  }
+  .deposit-checkout .transfer-reminder {
+    font-size: 10px;
+    line-height: 1.7;
+  }
+  .deposit-checkout .deposit-summary {
+    padding: 22px;
+  }
+  .deposit-checkout .service-label {
+    font-size: 11px;
+  }
+  .deposit-checkout .order-short-id {
+    font-size: 10px;
+  }
+  .deposit-checkout .summary-price .deposit-price {
+    font-size: 27px;
+  }
+  .deposit-checkout .remaining-note {
+    font-size: 10px;
+  }
+  .deposit-checkout .summary-confirm {
+    font-size: 11px;
+  }
+  .deposit-checkout .deposit-footer {
+    padding: 24px 0;
+  }
+  .deposit-checkout .deposit-footer > p {
+    line-height: 1.7;
+    max-width: 280px;
+  }
+  .deposit-checkout .terminal-content {
+    min-height: 400px;
+    padding: 18px 4px;
+  }
+  .deposit-checkout .terminal-content h2 {
+    font-size: 21px;
+  }
+  .deposit-checkout .terminal-content > p {
+    font-size: 12px;
+  }
+  .deposit-checkout .terminal-icon {
+    width: 65px;
+    height: 65px;
+  }
+  .deposit-checkout .partial-notice {
+    font-size: 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .deposit-checkout .live-indicator > svg {
+    animation: none;
+  }
+}
+
+@media (max-width: 940px) {
+  .deposit-checkout .payment-method-body .bank-column {
+    display: contents;
+  }
+  .deposit-checkout .payment-method-body .transfer-amount {
+    grid-row: 1;
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+  .deposit-checkout .payment-method-body .qr-column {
+    grid-row: 2;
+  }
+  .deposit-checkout .payment-method-body .transfer-details {
+    grid-row: 3;
+    border-top: 1px solid #ededed;
+    padding-top: 20px;
+  }
+}
+
+.customer-shell:has(.deposit-checkout) {
+  background: #fafafa;
+}
+.customer-shell__main--account:has(.deposit-checkout) {
+  padding-top: 24px;
+}
+.deposit-checkout {
+  min-height: 0;
+}
+.deposit-checkout .deposit-main {
+  max-width: 1120px;
+  padding: 0;
+}
+.deposit-checkout .deposit-notice {
+  border: 1px solid #e7e7e7;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 18px;
+  color: #666;
+}
+.deposit-checkout .deposit-simulation {
+  margin-top: 16px;
+}
+.deposit-checkout button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+.deposit-checkout .deposit-summary {
+  top: 104px;
+  overflow-wrap: anywhere;
+}
+.deposit-checkout .order-facts dt {
+  flex-shrink: 0;
+}
+.deposit-checkout .terminal-content .payment-countdown {
+  width: 100%;
+}

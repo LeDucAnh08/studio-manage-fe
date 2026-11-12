@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Yume Studio · Kiểm tra & đặt cọc</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#fbfaf8;color:#242321;font:15px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:inherit}button,input{font:inherit}button,a,input{accent-color:#b52449}button,a{touch-action:manipulation}button{cursor:pointer}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #b52449;outline-offset:4px}.site-header{height:80px;background:#fff;border-bottom:1px solid #e8e4df}.header-inner{max-width:1208px;height:100%;margin:auto;display:flex;align-items:center;gap:38px;padding:0 20px}.brand{font-size:19px;font-weight:650;letter-spacing:-.5px;display:flex;gap:10px;align-items:center}.brand-mark{font-family:Georgia,serif;font-weight:900;line-height:.7;letter-spacing:-3px;font-size:24px}.nav{display:flex;gap:28px;margin:auto;font-size:14px;color:#777}.nav strong{color:#242321;font-weight:600}.preview-badge{font-size:11px;border:1px solid #e6dfd8;border-radius:30px;padding:4px 10px;color:#777;white-space:nowrap}.concept-workspace{max-width:1168px;margin:0 auto;padding:24px 0 50px}.concept-workspace h1{font-size:30px;line-height:1.3;letter-spacing:-.8px;margin:12px 0 8px}.concept-workspace h2{font-weight:600}.concept-workspace p{margin:8px 0}.app-back-link,.app-back-link:hover,.app-back-link:focus,.app-back-link:active{text-decoration:none!important}.concept-wizard-back{display:inline-flex;gap:9px;align-items:center;min-height:36px;color:#625d57;font-size:13px}.concept-workspace label{display:flex;gap:10px}.concept-check{align-items:flex-start;line-height:1.6}.concept-check input{width:18px;height:18px;margin:2px 0 0;flex-shrink:0}.concept-workspace button{min-height:48px;border:1px solid #ddd;border-radius:8px;padding:10px 16px}.concept-workspace button:disabled{background:#e9e6e2;border-color:#e9e6e2;color:#948c84;cursor:not-allowed}.concept-eyebrow{color:#8a7365}.concept-review-summary{box-shadow:0 8px 28px #362a1a05}.concept-review-summary-body>h2{font-size:22px;letter-spacing:-.4px}.concept-review-summary>img{height:150px;object-position:50% 40%}.concept-review-facts>div{padding:6px 0}.concept-review-policy{background:#f1efeb;border-radius:10px;padding:17px 20px;margin-bottom:0}.concept-review-policy h2{margin-bottom:6px;font-size:15px}.concept-review-policy p{font-size:12px;margin:0}.concept-review-block h2{font-size:19px}.concept-review-details .concept-review-block:not(:last-child){padding-bottom:18px;margin-bottom:18px}.chip{font-size:12px;display:inline-block;background:#f0ede7;border-radius:5px;padding:3px 9px;margin:3px 7px 7px 0}.concept-review-summary dl{margin-top:17px}.concept-review-summary .concept-review-deposit dd{font-size:27px;letter-spacing:-.7px}.concept-review-summary .concept-check{font-size:12px}.concept-review-summary .concept-review-muted{font-size:12px}.concept-review-next-hint{font-size:11px}.concept-checkout-progress{margin-top:20px}.ref{font-size:13px;color:#8c3650;text-decoration:underline;text-underline-offset:3px}.mockup-note{font-size:11px;color:#928b83;text-align:center;margin-top:28px!important}.qr-placeholder{width:230px;height:230px;margin:24px auto;border:1px solid #e5e0d9;border-radius:14px;background:white;display:grid;place-items:center;position:relative}.qr-placeholder svg{width:168px;height:168px;opacity:.7}.qr-placeholder small{position:absolute;bottom:5px;background:white;color:#777;font-size:10px}.bank-details{padding:16px 0;border-top:1px solid #eee}.bank-details>div{display:flex;justify-content:space-between;gap:16px;margin:8px 0;font-size:13px}.bank-details dt{color:#777}.bank-details dd{font-weight:550;margin:0;text-align:right}.expiry{display:inline-block;font-size:12px;background:#f6eee8;color:#8a573c;border-radius:5px;padding:5px 10px}.concept-deposit-transfer{text-align:center}.bank-details{text-align:left}.concept-deposit-status{justify-content:center}.payment-help{color:#777;font-size:12px}[hidden]{display:none!important}.concept-button{display:inline-flex;align-items:center;justify-content:center;border:1px solid #ded9d2;padding:10px 16px;border-radius:8px;text-decoration:none;font-size:13px}@media(max-width:1240px){.concept-workspace{margin:0 28px}}@media(max-width:860px){.nav{display:none}.preview-badge{margin-left:auto}.concept-workspace{margin:0 20px}.concept-review-layout{gap:22px}.concept-review-summary>img{height:170px}.concept-workspace h1{font-size:26px}.header-inner{gap:12px}.site-header{height:68px}.concept-review-summary{max-width:none}}
+.concept-review-page,
+.concept-deposit-page {
+  max-width: 1208px;
+  padding-top: 14px;
+  font-size: 15px;
+}
+.concept-review-page > header h1,
+.concept-deposit-page > header h1 {
+  margin-bottom: 8px;
+  letter-spacing: -0.03em;
+}
+.concept-review-page > header > p,
+.concept-deposit-page > header > p {
+  color: #656565;
+}
+.concept-checkout-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+  padding: 18px 0;
+  margin: 20px 0 26px;
+  border-top: 1px solid #e6e6e6;
+  border-bottom: 1px solid #e6e6e6;
+  list-style: none;
+  color: #777;
+  font-size: 14px;
+}
+.concept-checkout-progress li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.concept-checkout-progress span {
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #efefef;
+}
+.concept-checkout-progress [aria-current] {
+  color: #a82142;
+  font-weight: 600;
+}
+.concept-checkout-progress [aria-current] span {
+  color: white;
+  background: #b52449;
+}
+.concept-review-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  align-items: start;
+  gap: 40px;
+}
+.concept-review-details,
+.concept-review-block {
+  min-width: 0;
+}
+.concept-review-block {
+  padding-bottom: 22px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid #e6e6e6;
+}
+.concept-review-block h2,
+.concept-review-summary h2,
+.concept-deposit-transfer h2 {
+  margin: 0 0 16px;
+  font-size: 21px;
+}
+.concept-review-facts {
+  margin: 0;
+}
+.concept-review-facts > div,
+.concept-review-summary dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 7px 0;
+}
+.concept-review-facts dt {
+  color: #656565;
+  flex-shrink: 0;
+}
+.concept-review-facts dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 500;
+}
+.concept-review-muted,
+.concept-review-policy p {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.65;
+}
+.concept-review-block ul {
+  padding-left: 20px;
+  margin: 0 0 10px;
+}
+.concept-review-block p {
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+}
+.concept-review-brief {
+  white-space: pre-wrap;
+}
+.concept-review-policy {
+  border: 0;
+}
+.concept-review-policy h2 {
+  font-size: 18px;
+}
+.concept-review-summary {
+  overflow: hidden;
+  background: white;
+  border: 1px solid #e1dddd;
+  border-radius: 12px;
+}
+.concept-review-summary > img {
+  width: 100%;
+  height: 170px;
+  object-fit: cover;
+}
+.concept-review-summary-body {
+  padding: 24px;
+}
+.concept-review-summary .concept-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  margin: 0 0 6px;
+}
+.concept-review-summary dl {
+  margin: 20px 0 16px;
+  font-size: 14px;
+}
+.concept-review-summary dd {
+  margin: 0;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.concept-review-summary .concept-review-deposit {
+  align-items: center;
+  padding: 16px 0;
+  margin: 10px 0;
+  border-top: 1px solid #e6e0e0;
+  border-bottom: 1px solid #e6e0e0;
+}
+.concept-review-deposit small {
+  display: block;
+  color: #777;
+  font-size: 12px;
+}
+.concept-review-deposit dd {
+  color: #b52449;
+  font-size: 24px;
+}
+.concept-review-summary .concept-check {
+  font-weight: 400;
+  font-size: 13px;
+  margin: 22px 0 18px;
+}
+.concept-review-summary .concept-check input {
+  flex-shrink: 0;
+  accent-color: #b52449;
+}
+.concept-workspace .concept-checkout-next {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  background: #b52449;
+  border-color: #b52449;
+  color: white;
+  font-weight: 600;
+}
+.concept-workspace .concept-checkout-next:hover:not(:disabled) {
+  background: #961a39;
+  color: white;
+}
+.concept-review-next-hint {
+  color: #777;
+  font-size: 12px;
+  text-align: center;
+  margin: 10px 0 0;
+}
+.concept-deposit-transfer {
+  border: 1px solid #e1dddd;
+  border-radius: 12px;
+  background: white;
+  padding: 28px;
+}
+.concept-deposit-transfer .concept-card {
+  border: 0;
+  margin: 0;
+  padding: 16px 0;
+}
+.concept-deposit-transfer .concept-card > .concept-qr {
+  display: block;
+  width: 250px;
+  height: 250px;
+  aspect-ratio: 1;
+  margin: 16px auto;
+}
+.concept-deposit-transfer .concept-payments p {
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+.concept-deposit-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  margin: 0 0 24px;
+  border-radius: 8px;
+  background: #faf2f4;
+  color: #92213c;
+  font-size: 14px;
+}
+.concept-deposit-status svg {
+  flex-shrink: 0;
+}
+.concept-review-order-id {
+  color: #777;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 860px) {
+  .concept-review-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .concept-review-summary > img {
+    height: 210px;
+  }
+}
+@media (max-width: 480px) {
+  .concept-review-facts > div {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .concept-review-facts dd {
+    text-align: left;
+  }
+  .concept-review-summary-body,
+  .concept-deposit-transfer {
+    padding: 20px;
+  }
+  .concept-checkout-progress {
+    gap: 10px 18px;
+    font-size: 12px;
+  }
+}
+
+.payment-countdown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  padding: 14px 16px;
+  margin: 12px 0;
+  border: 1px solid #efd5dd;
+  border-radius: 10px;
+  background: #fff5f7;
+  color: #982341;
+  text-align: left;
+}
+.payment-countdown__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.payment-countdown__label svg {
+  flex-shrink: 0;
+}
+.payment-countdown__value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.payment-countdown.is-urgent {
+  border-color: #ebc88e;
+  background: #fff8e9;
+  color: #85500d;
+}
+.payment-countdown.is-expired {
+  border-color: #e6c5c5;
+  background: #fff1f1;
+  color: #a12626;
+}
+
+</style></head><body>
+<header class="site-header"><div class="header-inner"><div class="brand"><span class="brand-mark" aria-hidden="true">yu<br>me</span>Yume Studio</div><nav class="nav" aria-label="Điều hướng studio"><strong>Chụp concept</strong><span>Chụp kỉ yếu</span><span>Trang phục</span><span>Bảng giá</span><span>Đơn của tôi</span></nav><span class="preview-badge">Bản xem trước</span></div></header>
+<main class="concept-workspace concept-review-page">
+<section id="review-screen">
+<a class="app-back-link concept-wizard-back" href="/concept-booking/packages/6af3d2e4cb76d8c243ca857f/book/costumes"><span aria-hidden="true">←</span> Quay lại thông tin buổi chụp</a>
+<header><h1>Kiểm tra trước khi đặt cọc</h1><p style="color:#777">Mọi thứ đã sẵn sàng. Xem lại một lần trước khi xác nhận buổi chụp của bạn.</p></header>
+<ol class="concept-checkout-progress" aria-label="Tiến trình đặt cọc"><li aria-current="step"><span>1</span>Kiểm tra thông tin</li><li><span>2</span>Thanh toán cọc</li></ol>
+<div class="concept-review-layout"><div class="concept-review-details">
+<section class="concept-review-block"><h2>Buổi chụp của bạn</h2><dl class="concept-review-facts"><div><dt>Gói chụp</dt><dd>Chân dung Tự nhiên</dd></div><div><dt>Ngày & giờ</dt><dd>14:00–15:00 · Thứ Bảy, 14/11/2026</dd></div><div><dt>Thợ chụp</dt><dd>Lê Minh Đức</dd></div><div><dt>Số người tham gia</dt><dd>1 người</dd></div></dl></section>
+<section class="concept-review-block"><h2>Thông tin liên hệ</h2><dl class="concept-review-facts"><div><dt>Họ tên</dt><dd>Mai Anh</dd></div><div><dt>Số điện thoại</dt><dd>0912 345 678</dd></div></dl></section>
+<section class="concept-review-block"><h2>Trang phục cho buổi chụp</h2><span class="chip">Size M</span><span class="chip">Cao 165 cm</span><span class="chip">Nặng 55 kg</span><p class="concept-review-muted">Studio sẽ chuẩn bị trang phục phù hợp với số đo của bạn.</p></section>
+<section class="concept-review-block"><h2>Ý tưởng & mong muốn</h2><p>Mình thích ảnh tự nhiên, ánh sáng dịu và tông màu ấm.<br>Mong được hướng dẫn tạo dáng để thoải mái hơn trước ống kính.</p></section>
+<section class="concept-review-block concept-review-policy"><h2>Chính sách đổi lịch & hủy</h2><p>Miễn phí đổi lịch một lần trước 48 giờ. Hủy trước 48 giờ: hoàn cọc; trước 24–48 giờ: giữ 50% cọc; dưới 24 giờ: giữ toàn bộ cọc. Bao gồm 2 vòng góp ý; ảnh chỉnh sửa thêm: 70.000 đ/ảnh.</p></section>
+</div>
+<aside class="concept-review-summary" aria-label="Chi phí buổi chụp"><img src="/images/concepts/portrait-01.webp" alt="Ảnh minh họa phong cách chân dung" width="640" height="360"><div class="concept-review-summary-body"><p class="concept-eyebrow">BUỔI CHỤP DÀNH CHO BẠN</p><h2>Chân dung Tự nhiên</h2><p class="concept-review-muted">60 phút · 10 ảnh chỉnh sửa · 1 người</p><dl><div><dt>Giá gói</dt><dd>900.000 đ</dd></div><div class="concept-review-deposit"><dt>Đặt cọc hôm nay<small>30% giá gói</small></dt><dd>270.000 đ</dd></div><div><dt>Còn lại sau cọc</dt><dd>630.000 đ</dd></div></dl><p class="concept-review-muted">Ở bước tiếp theo, bạn có 15 phút để thanh toán cọc và xác nhận lịch chụp.</p><label class="concept-check"><input id="accept" type="checkbox"><span>Tôi đồng ý với giá gói, tiền cọc và chính sách đổi/hủy của studio.</span></label><button class="concept-checkout-next" id="next" disabled>Tiếp theo <span aria-hidden="true">→</span></button><p class="concept-review-next-hint">Tiếp theo: thanh toán cọc</p></div></aside>
+</div></section>
+<section id="payment-screen" hidden>
+<a class="app-back-link concept-wizard-back" href="#kiem-tra"><span aria-hidden="true">←</span>Quay lại kiểm tra thông tin</a>
+<header><h1>Thanh toán cọc</h1><p style="color:#777">Chỉ còn một bước để xác nhận buổi chụp của bạn.</p></header><ol class="concept-checkout-progress" aria-label="Tiến trình đặt cọc"><li><span>✓</span>Kiểm tra thông tin</li><li aria-current="step"><span>2</span>Thanh toán cọc</li></ol>
+<div class="concept-review-layout"><section class="concept-deposit-transfer"><h2>Quét mã để đặt cọc</h2><p class="concept-review-muted">Mở ứng dụng ngân hàng và quét mã bên dưới.</p><div class="payment-countdown"><span class="payment-countdown__label">◷ Thời gian thanh toán còn lại</span><span id="payment-timer" class="payment-countdown__value" role="timer" aria-live="off" aria-label="Thời gian thanh toán còn lại">15:00</span></div>
+<div class="qr-placeholder" role="img" aria-label="Vị trí QR minh họa, không dùng thanh toán"><svg viewBox="0 0 100 100" fill="#242321" aria-hidden="true"><path fill-rule="evenodd" d="M4 4h28v28H4zm5 5v18h18V9zM68 4h28v28H68zm5 5v18h18V9zM4 68h28v28H4zm5 5v18h18V73z"/><path d="M13 13h10v10H13zm64 0h10v10H77zM13 77h10v10H13zm27-73h8v8h-8zm12 0h8v20h-8zm-12 16h8v16h-8zm16 12h8v8h-8zM4 40h16v8H4zm24 0h12v8H28zm16 0h8v16h-8zm16 4h16v8H60zm24-4h12v16H84zM4 56h8v8H4zm16-4h16v12H20zm20 12h12v12H40zm20-8h8v16h-8zm16 8h20v8H76zm-24 16h12v16H52zm20 0h8v8h-8zm12-4h12v20H84zM36 84h8v12h-8zm36 8h8v4h-8z"/></svg><small>QR minh họa · không dùng thanh toán</small></div>
+<dl class="bank-details"><div><dt>Số tiền cọc</dt><dd>270.000 đ</dd></div><div><dt>Người thụ hưởng</dt><dd>Thông tin tài khoản studio</dd></div><div><dt>Nội dung chuyển khoản</dt><dd>YUME · MÃ ĐƠN MINH HỌA</dd></div></dl><p class="concept-deposit-status" role="status">◷ &nbsp; Đang chờ thanh toán · Tự động cập nhật</p><p class="payment-help">Giữ nguyên nội dung và chuyển đúng số tiền cọc.<br>Thông tin ngân hàng sẽ hiển thị khi đặt lịch thực tế.</p></section>
+<aside class="concept-review-summary"><div class="concept-review-summary-body"><p class="concept-eyebrow">THÔNG TIN ĐẶT LỊCH</p><h2>Chân dung Tự nhiên</h2><p class="concept-review-muted">14:00–15:00 · 14/11/2026<br>Thợ chụp: Lê Minh Đức<br>Mai Anh · 1 người</p><dl><div><dt>Giá gói</dt><dd>900.000 đ</dd></div><div class="concept-review-deposit"><dt>Tiền cọc<small>30% giá gói</small></dt><dd>270.000 đ</dd></div><div><dt>Còn lại sau cọc</dt><dd>630.000 đ</dd></div></dl><p class="concept-review-muted">Lịch chụp được xác nhận khi hệ thống nhận đủ cọc trong hạn.</p></div></aside></div></section>
+<p class="mockup-note">Mockup tương tác · Dữ liệu minh họa · Không tạo đơn hay thực hiện thanh toán</p>
+</main><script>
+const accept=document.querySelector('#accept'), next=document.querySelector('#next');
+const paymentKey='yume-concept-payment-mockup-expiry';
+let expiresAt=Number(sessionStorage.getItem(paymentKey))||0;
+function updateCountdown(){
+  if(location.hash!=='#thanh-toan-coc')return;
+  if(!expiresAt){expiresAt=Date.now()+15*60000;sessionStorage.setItem(paymentKey,String(expiresAt))}
+  const remaining=Math.max(0,Math.ceil((expiresAt-Date.now())/1000));
+  document.querySelector('#payment-timer').textContent=String(Math.floor(remaining/60)).padStart(2,'0')+':'+String(remaining%60).padStart(2,'0');
+  document.querySelector('.payment-countdown').classList.toggle('is-urgent',remaining>0&&remaining<=60);
+  document.querySelector('.payment-countdown').classList.toggle('is-expired',remaining===0);
+  document.querySelector('.payment-countdown__label').textContent=remaining?'◷ Thời gian thanh toán còn lại':'Đã hết thời hạn thanh toán';
+  document.querySelector('.qr-placeholder').hidden=!remaining;
+  document.querySelector('.concept-deposit-status').textContent=remaining?'◷ Đang chờ thanh toán · Tự động cập nhật':'Mã thanh toán đã hết hạn';
+}
+window.setInterval(updateCountdown,1000);
+window.addEventListener('focus',updateCountdown);
+document.addEventListener('visibilitychange',updateCountdown);
+accept.addEventListener('change',()=>{next.disabled=!accept.checked});
+next.addEventListener('click',()=>{location.hash='thanh-toan-coc'});
+function showStep(){const payment=location.hash==='#thanh-toan-coc';document.querySelector('#review-screen').hidden=payment;document.querySelector('#payment-screen').hidden=!payment;document.title=payment?'Yume Studio · Thanh toán cọc':'Yume Studio · Kiểm tra trước khi đặt cọc';window.scrollTo(0,0);updateCountdown()}
+window.addEventListener('hashchange',showStep);showStep();
+</script></body></html>

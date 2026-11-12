@@ -165,7 +165,7 @@ describe('unified photography workspace', () => {
           className: 'Hậu kỳ',
           lifecycle: 'revision_requested',
           bookingStatus: 'approved',
-          orderStage: 'active',
+          orderStage: 'editing',
         },
         {
           ...booking,
@@ -181,12 +181,12 @@ describe('unified photography workspace', () => {
     const deposit = await screen.findByRole('link', { name: 'Chờ cọc' });
     expect(deposit.closest('tr')).toHaveTextContent('Chờ chốt lịch');
     expect(screen.getByRole('link', { name: 'Hậu kỳ' }).closest('tr')).toHaveTextContent(
-      'Đang thực hiện',
+      'Đang hậu kỳ',
     );
     expect(screen.getByRole('combobox', { name: 'Trạng thái đơn' })).toHaveValue(
       'awaiting_confirmation',
     );
-    expect(screen.getAllByRole('option')).toHaveLength(9);
+    expect(screen.getAllByRole('option')).toHaveLength(10);
     expect(screen.queryByRole('option', { name: 'Đang xử lý' })).not.toBeInTheDocument();
     expect(bookingWorkflowService.list).toHaveBeenLastCalledWith(1, 20, 'awaiting_confirmation');
   });

@@ -92,6 +92,20 @@ describe('Unified orders tabs', () => {
     expect(screen.getByRole('button', { name: 'Tải lại đơn' })).toBeInTheDocument();
   });
 
+  it('resumes an automatic rental at deposit checkout from the orders list', async () => {
+    mocks.rentals.mockResolvedValue({
+      data: [{ ...rental('rental-1', 'awaiting_deposit'), autoCheckout: true }],
+      pagination: { total: 1 },
+    });
+    open('?tab=rentals');
+    const pay = await screen.findByRole('link', { name: 'Thanh toán cọc' });
+    expect(pay).toHaveAttribute('href', '/account/rentals/rental-1?payment=deposit');
+    expect(screen.getAllByText('Chờ thanh toán cọc')).toHaveLength(2);
+    expect(
+      screen.getByRole('region', { name: 'Tiến độ đơn' }).querySelector('[aria-current="step"]'),
+    ).toHaveTextContent('Thanh toán cọc');
+  });
+
   function rental(id = 'rental-1', status = 'confirmed'): RentalOrder {
     return {
       _id: id,
@@ -229,7 +243,7 @@ describe('Unified orders tabs', () => {
       />,
     );
     const progress = screen.getByRole('region', { name: 'Tiến độ đơn' });
-    expect(progress.querySelector('[aria-current="step"]')).toHaveTextContent('Chờ xác nhận');
+    expect(progress.querySelector('[aria-current="step"]')).toHaveTextContent('Thanh toán cọc');
     expect(
       within(progress).getByText(
         'Studio đang kiểm tra khoản thanh toán và khả năng giữ trang phục.',
@@ -301,11 +315,18 @@ describe('Unified orders tabs', () => {
   });
   it('matches booking filter labels with badges in both the list and selected record', async () => {
     mocks.bookings.mockResolvedValue({
-      data: [{ ...summary('order-1', 'change_pending'), orderStage: 'active' }],
+      data: [
+        {
+          ...summary('order-1', 'change_pending'),
+          orderStage: 'active',
+          shootWindow: ongoingWindow(),
+        },
+      ],
       pagination: { total: 1 },
     });
     const selected = record('order-1', 'change_pending');
     selected.workflow.orderStage = 'active';
+    selected.workflow.shootWindow = ongoingWindow();
     mocks.workflow.mockResolvedValue(selected);
     open('?view=active');
     const list = await screen.findByRole('list', { name: 'Danh sách đơn chụp ảnh' });
@@ -315,7 +336,7 @@ describe('Unified orders tabs', () => {
       'Đang thực hiện',
     );
     expect(screen.getByRole('option', { name: 'Đang thực hiện' })).toHaveValue('active');
-    expect(screen.getAllByRole('option')).toHaveLength(9);
+    expect(screen.getAllByRole('option')).toHaveLength(10);
     fireEvent.change(screen.getByLabelText('Trạng thái'), {
       target: { value: 'awaiting_confirmation' },
     });
@@ -323,6 +344,45 @@ describe('Unified orders tabs', () => {
       expect(mocks.bookings).toHaveBeenLastCalledWith(1, 20, 'awaiting_confirmation'),
     );
   });
+  it('reloads the active filter when a displayed shoot ends', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-20T08:00:00+07:00'));
+    const shootWindow = {
+      startAt: '2026-11-20T08:00:00+07:00',
+      endAt: '2026-11-20T08:00:02+07:00',
+    };
+    mocks.bookings
+      .mockResolvedValueOnce({
+        data: [{ ...summary(), orderStage: 'active', shootWindow }],
+        pagination: { total: 1 },
+      })
+      .mockResolvedValue({ data: [], pagination: { total: 0 } });
+    const selected = record();
+    selected.workflow.shootWindow = shootWindow;
+    mocks.workflow.mockResolvedValue(selected);
+    let page: ReturnType<typeof open> | undefined;
+    try {
+      await act(async () => {
+        page = open('?view=active');
+      });
+      expect(mocks.bookings).toHaveBeenCalledTimes(1);
+      expect(
+        within(screen.getByRole('list', { name: 'Danh sách đơn chụp ảnh' })).getByText(
+          'Đang thực hiện',
+        ),
+      ).toBeInTheDocument();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000);
+      });
+      expect(mocks.bookings).toHaveBeenCalledTimes(2);
+      expect(mocks.bookings).toHaveBeenLastCalledWith(1, 20, 'active');
+      expect(screen.getByText(/Chưa có đơn phù hợp với trạng thái này/)).toBeInTheDocument();
+    } finally {
+      page?.unmount();
+      vi.useRealTimers();
+    }
+  });
+
   function record(
     id = 'order-1',
     lifecycle: BookingWorkflowDto['workflow']['lifecycle'] = 'confirmed',
@@ -378,19 +438,27 @@ describe('Unified orders tabs', () => {
     };
   }
 
+  function ongoingWindow() {
+    return {
+      startAt: new Date(Date.now() - 3600000).toISOString(),
+      endAt: new Date(Date.now() + 3600000).toISOString(),
+    };
+  }
+
   it.each([
     ['intake', 'pending', 'Chờ duyệt'],
     ['quoting', 'awaiting_confirmation', 'Chờ chốt lịch'],
     ['confirmed', 'confirmed', 'Đã chốt lịch'],
     ['shooting', 'active', 'Đang thực hiện'],
-    ['revision_requested', 'active', 'Đang thực hiện'],
+    ['revision_requested', 'editing', 'Đang hậu kỳ'],
     ['delivered', 'delivered', 'Đã bàn giao'],
     ['accepted', 'delivered', 'Đã bàn giao'],
     ['completed', 'completed', 'Hoàn tất'],
-  ] as const)('keeps the same six progress milestones for %s', (lifecycle, stage, current) => {
+  ] as const)('keeps the same seven progress milestones for %s', (lifecycle, stage, current) => {
     const data = record('order-1', lifecycle);
     data.booking.status = lifecycle === 'intake' ? 'pending' : 'approved';
     data.workflow.orderStage = stage;
+    if (stage === 'active') data.workflow.shootWindow = ongoingWindow();
     render(<BookingOrderProgress record={data} />);
     const progress = screen.getByRole('region', { name: 'Tiến độ đơn' });
     const items = within(progress).getAllByRole('listitem');
@@ -399,11 +467,49 @@ describe('Unified orders tabs', () => {
       'Chờ chốt lịch',
       'Đã chốt lịch',
       'Đang thực hiện',
+      'Đang hậu kỳ',
       'Đã bàn giao',
       'Hoàn tất',
     ]);
     expect(progress.querySelectorAll('[aria-current="step"]')).toHaveLength(1);
     expect(progress.querySelector('[aria-current="step"]')).toHaveTextContent(current);
+  });
+
+  it('changes the current stage only within this record shoot window without reloading', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-20T07:59:59+07:00'));
+    const data = record('order-1', 'confirmed');
+    data.workflow.orderStage = 'confirmed';
+    data.workflow.shootWindow = {
+      startAt: '2026-11-20T08:00:00+07:00',
+      endAt: '2026-11-20T08:00:02+07:00',
+    };
+    const page = render(<BookingOrderProgress record={data} />);
+    const current = () => page.container.querySelector('[aria-current="step"]');
+    try {
+      expect(current()).toHaveTextContent('Đã chốt lịch');
+      act(() => vi.advanceTimersByTime(1000));
+      expect(current()).toHaveTextContent('Đang thực hiện');
+      act(() => vi.advanceTimersByTime(1999));
+      expect(current()).toHaveTextContent('Đang thực hiện');
+      act(() => vi.advanceTimersByTime(1));
+      expect(current()).toHaveTextContent('Đang hậu kỳ');
+      // A second record with a later window must stay scheduled.
+      data.workflow.shootWindow = {
+        startAt: '2026-11-21T08:00:00+07:00',
+        endAt: '2026-11-21T16:00:00+07:00',
+      };
+      page.rerender(<BookingOrderProgress record={data} />);
+      expect(current()).toHaveTextContent('Đã chốt lịch');
+      data.workflow.shootWindow = null;
+      data.workflow.orderStage = 'active';
+      data.workflow.lifecycle = 'shooting';
+      page.rerender(<BookingOrderProgress record={data} />);
+      expect(current()).toHaveTextContent('Đã chốt lịch');
+    } finally {
+      page.unmount();
+      vi.useRealTimers();
+    }
   });
 
   it('shows recorded milestone dates, leaves future stages undated and marks missing history', () => {

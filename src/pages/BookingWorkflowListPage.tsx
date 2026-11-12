@@ -9,6 +9,8 @@ import {
   type WorkflowSummary,
 } from '../services/bookingWorkflowService';
 import { useAuth } from '../context/AuthContext';
+import { useCurrentTime } from '../components/customer/useCurrentTime';
+import { useShootWindowRefresh } from '../components/customer/useShootWindowRefresh';
 import { PhotographerUnavailability } from '../components/PhotographerUnavailability';
 import { BookingNotifications } from './BookingsPage';
 
@@ -26,6 +28,7 @@ const errorText = (error: unknown) =>
   'Không tải được danh sách đơn chụp ảnh. Vui lòng thử lại.';
 
 export default function BookingWorkflowListPage() {
+  const now = useCurrentTime();
   const { user } = useAuth();
   const [items, setItems] = useState<WorkflowSummary[]>([]);
   const [params, setParams] = useSearchParams();
@@ -50,6 +53,7 @@ export default function BookingWorkflowListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
+  useShootWindowRefresh(items, setReloadKey);
 
   useEffect(() => {
     let active = true;
@@ -122,7 +126,13 @@ export default function BookingWorkflowListPage() {
                 : 'secondary'
           }
         >
-          {bookingOrderStatusLabel(item.bookingStatus, item.lifecycle, item.orderStage)}
+          {bookingOrderStatusLabel(
+            item.bookingStatus,
+            item.lifecycle,
+            item.orderStage,
+            item.shootWindow,
+            now,
+          )}
         </Badge>
       ),
     },

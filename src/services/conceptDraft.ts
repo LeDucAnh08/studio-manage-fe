@@ -1,7 +1,7 @@
 import type { CostumeChoice, WardrobeMeasurement } from './conceptService';
 
 export const CONCEPT_DRAFT_KEY = 'yume-concept-draft-v1';
-export const conceptScreens = ['date', 'photographer', 'costumes', 'brief', 'review'] as const;
+export const conceptScreens = ['date', 'photographer', 'costumes', 'review'] as const;
 export interface ConceptDraft {
   ownerId: string | null;
   packageId: string;

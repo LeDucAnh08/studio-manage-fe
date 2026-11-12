@@ -252,18 +252,9 @@ export default function NewRentalPage() {
     catalogReady && days && draft.lines.every((row) => lineEstimate(row) !== null)
       ? draft.lines.reduce((sum, row) => sum + (lineEstimate(row) ?? 0), 0)
       : null;
-  const securityDeposit =
-    catalogReady &&
-    draft.lines.every(
-      (row) => catalog.find((item) => item._id === row.costumeId)?.rentalSecurityDeposit != null,
-    )
-      ? draft.lines.reduce(
-          (sum, row) =>
-            sum +
-            (catalog.find((item) => item._id === row.costumeId)?.rentalSecurityDeposit ?? 0) *
-              Number(row.quantity),
-          0,
-        )
+  const deposit =
+    estimate !== null && policy && Number.isFinite(policy.depositPercent)
+      ? Math.ceil((estimate * policy.depositPercent) / 100)
       : null;
   const serviceDateError =
     policy && !periodError
@@ -283,8 +274,8 @@ export default function NewRentalPage() {
     serviceDateError ||
     policyError ||
     (!policy ? 'Đang tải điều khoản thuê…' : '') ||
-    (estimate === null || securityDeposit === null
-      ? 'Mẫu chưa cấu hình đủ giá/ngày hoặc cọc. Vui lòng liên hệ studio.'
+    (estimate === null || deposit === null
+      ? 'Mẫu chưa cấu hình giá thuê/ngày. Vui lòng liên hệ studio.'
       : '');
   const estimateContent = (
     <p className={customer ? 'customer-rental-form__estimate' : undefined}>
@@ -298,7 +289,7 @@ export default function NewRentalPage() {
       )}
       {estimate !== null && (
         <span className={customer ? 'sr-only' : 'block text-sm text-muted-foreground'}>
-          Giá/ngày × số lượng × {days} ngày. Chưa bao gồm cọc và phát sinh.
+          Giá/ngày × số lượng × {days} ngày. Cọc trước được trừ vào tiền thuê; chưa gồm phát sinh.
         </span>
       )}
     </p>
@@ -344,7 +335,7 @@ export default function NewRentalPage() {
     try {
       const order = await rentalService.create(data, requestKey);
       clearRentalDraft();
-      navigate(`/account/rentals/${order._id}`);
+      navigate(`/account/rentals/${order._id}?payment=deposit`);
     } catch (e) {
       setError(rentalError(e));
     } finally {
@@ -548,9 +539,9 @@ export default function NewRentalPage() {
               </p>
               <p className="whitespace-pre-wrap break-words">{draft.note}</p>
               <p>
-                Cọc bảo đảm:{' '}
-                {securityDeposit === null ? 'Chưa cấu hình' : rentalMoney(securityDeposit)}. Tiền
-                thuê được thanh toán đủ trước khi nhận đồ.
+                Cọc trước {policy?.depositPercent}%:{' '}
+                {deposit === null ? 'Đang tính' : rentalMoney(deposit)}. Cọc được trừ vào tiền thuê.
+                Thanh toán phần còn lại trước khi nhận đồ.
               </p>
               {policy && (
                 <ul className="list-disc space-y-2 pl-5 text-sm">
@@ -566,7 +557,7 @@ export default function NewRentalPage() {
                   checked={termsAccepted}
                   onChange={(event) => setTermsAccepted(event.target.checked)}
                 />
-                Tôi đã đọc và đồng ý giá thuê, cọc bảo đảm và điều khoản; sau khi ghi nhận cọc không
+                Tôi đã đọc và đồng ý giá thuê, cọc trước và điều khoản; sau khi ghi nhận cọc không
                 được hủy hoặc đổi đơn.
               </label>
               <div className="flex flex-wrap gap-3">
@@ -902,8 +893,8 @@ export default function NewRentalPage() {
                       {days} ngày
                     </p>
                     <p>
-                      Cọc bảo đảm hiển thị riêng. Hệ thống giữ hàng tạm sau khi đặt và xác nhận khi
-                      đủ cọc.
+                      Cọc trước {policy?.depositPercent}% được trừ vào tiền thuê. Hệ thống xác nhận
+                      giữ hàng khi đủ cọc.
                     </p>
                   </div>
                   <div className={customer ? 'customer-rental-form__footer-action' : undefined}>
@@ -1004,9 +995,12 @@ export default function NewRentalPage() {
               </p>
               {estimateContent}
               <p>
-                Cọc bảo đảm:{' '}
-                {securityDeposit === null ? 'Liên hệ studio' : rentalMoney(securityDeposit)}
+                Cọc trước {policy?.depositPercent}%:{' '}
+                {deposit === null ? 'Đang tính' : rentalMoney(deposit)}
               </p>
+              {estimate !== null && deposit !== null && (
+                <p>Còn thanh toán trước khi nhận đồ: {rentalMoney(estimate - deposit)}</p>
+              )}
             </div>
             {!draft.preview && (
               <Button form={formId} type="submit" disabled={!!selectionError}>
@@ -1014,7 +1008,8 @@ export default function NewRentalPage() {
               </Button>
             )}
             <p>
-              Cọc bảo đảm hiển thị riêng. Hệ thống giữ hàng tạm sau khi đặt và xác nhận khi đủ cọc.
+              Cọc trước được trừ vào tiền thuê. Hệ thống giữ hàng tạm sau khi đặt và xác nhận khi đủ
+              cọc.
             </p>
             <p>Sau khi đặt, vui lòng thanh toán cọc trong hạn để xác nhận giữ hàng.</p>
             {policy && (

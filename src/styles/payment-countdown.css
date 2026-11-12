@@ -1,0 +1,41 @@
+.payment-countdown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  padding: 14px 16px;
+  margin: 12px 0;
+  border: 1px solid #efd5dd;
+  border-radius: 10px;
+  background: #fff5f7;
+  color: #982341;
+  text-align: left;
+}
+.payment-countdown__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.payment-countdown__label svg {
+  flex-shrink: 0;
+}
+.payment-countdown__value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.payment-countdown.is-urgent {
+  border-color: #ebc88e;
+  background: #fff8e9;
+  color: #85500d;
+}
+.payment-countdown.is-expired {
+  border-color: #e6c5c5;
+  background: #fff1f1;
+  color: #a12626;
+}

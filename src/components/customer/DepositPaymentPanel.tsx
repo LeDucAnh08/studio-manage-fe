@@ -3,6 +3,8 @@ import { toast } from 'react-toastify';
 import { OrderButton } from './CustomerOrderControls';
 import type { DepositPayment } from '../../services/bookingWorkflowService';
 import { paymentService } from '../../services/paymentService';
+import { PaymentCountdown } from './PaymentCountdown';
+import { usePaymentClock } from './usePaymentClock';
 
 export function DepositPaymentPanel({
   payment,
@@ -11,7 +13,9 @@ export function DepositPaymentPanel({
   payment: DepositPayment;
   rental?: boolean;
 }) {
-  const [expired, setExpired] = useState(() => Date.parse(payment.expiresAt) <= Date.now());
+  const now = usePaymentClock();
+  const expired =
+    !Number.isFinite(Date.parse(payment.expiresAt)) || Date.parse(payment.expiresAt) <= now;
   const [imageError, setImageError] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const [simulationMessage, setSimulationMessage] = useState('');
@@ -22,7 +26,8 @@ export function DepositPaymentPanel({
     setSimulationError('');
   }, [payment.reference]);
   const simulate = async () => {
-    if (simulating) return;
+    if (simulating || payment.status !== 'pending' || Date.parse(payment.expiresAt) <= Date.now())
+      return;
     setSimulating(true);
     setSimulationError('');
     try {
@@ -46,14 +51,6 @@ export function DepositPaymentPanel({
       setSimulating(false);
     }
   };
-  useEffect(() => {
-    setExpired(Date.parse(payment.expiresAt) <= Date.now());
-    const timer = window.setTimeout(
-      () => setExpired(true),
-      Math.min(2_147_483_647, Math.max(0, Date.parse(payment.expiresAt) - Date.now())),
-    );
-    return () => window.clearTimeout(timer);
-  }, [payment.expiresAt]);
   useEffect(() => setImageError(false), [payment.qrUrl]);
   const copy = async (value: string) => {
     try {
@@ -72,6 +69,7 @@ export function DepositPaymentPanel({
       <h2 id="deposit-payment-title" className="text-lg font-semibold">
         Thanh toán tiền cọc
       </h2>
+      {payment.status === 'pending' && <PaymentCountdown expiresAt={payment.expiresAt} now={now} />}
       {payment.status === 'paid' ? (
         <p role="status">
           {rental
@@ -96,7 +94,7 @@ export function DepositPaymentPanel({
                 disabled={simulating || !!simulationMessage}
                 onClick={() => void simulate()}
               >
-                {simulating ? 'Đang xử lý…' : 'Thanh toán thử'}
+                {simulating ? 'Đang xử lý…' : 'Thanh toán'}
               </OrderButton>
               {simulationMessage && <p role="status">{simulationMessage}</p>}
               {simulationError && <p role="alert">{simulationError}</p>}

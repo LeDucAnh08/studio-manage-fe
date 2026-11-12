@@ -22,6 +22,7 @@ const titleFor = (order: RentalOrder) => {
 };
 
 function RentalPreview({ order }: { order: RentalOrder }) {
+  const awaitingDeposit = order.autoCheckout && order.status === 'awaiting_deposit';
   const location = useLocation();
   const lines = linesFor(order);
   const terminal = ['cancelled', 'rejected', 'expired'].includes(order.status);
@@ -36,7 +37,7 @@ function RentalPreview({ order }: { order: RentalOrder }) {
         : order.change && ['requested', 'proposed'].includes(order.change.status)
           ? 'Đơn có yêu cầu thay đổi. Mở hồ sơ để xem phản hồi và xác nhận với studio.'
           : order.autoCheckout && order.status === 'awaiting_deposit'
-            ? 'Đơn đã được duyệt tự động. Mở hồ sơ để đặt cọc trong thời hạn giữ hàng.'
+            ? 'Thanh toán cọc để xác nhận giữ trang phục trong kỳ thuê đã chọn.'
             : order.quote && !accepted
               ? 'Báo giá đã sẵn sàng. Mở hồ sơ để xem và xác nhận với studio.'
               : 'Mở hồ sơ để xem thông tin giữ hàng, giao nhận và các bước tiếp theo với studio.');
@@ -82,10 +83,11 @@ function RentalPreview({ order }: { order: RentalOrder }) {
         <p>{message}</p>
         <CustomerButton asChild>
           <Link
-            to={`/account/rentals/${order._id}`}
+            to={`/account/rentals/${order._id}${awaitingDeposit ? '?payment=deposit' : ''}`}
             state={{ ordersReturnTo: `${location.pathname}${location.search}` }}
           >
-            Xem hồ sơ đầy đủ <ArrowRight size={18} aria-hidden="true" />
+            {awaitingDeposit ? 'Thanh toán cọc' : 'Xem hồ sơ đầy đủ'}{' '}
+            <ArrowRight size={18} aria-hidden="true" />
           </Link>
         </CustomerButton>
       </footer>

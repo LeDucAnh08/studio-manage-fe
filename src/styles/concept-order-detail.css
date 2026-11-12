@@ -1,0 +1,62 @@
+.concept-order-detail .concept-payments {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+.concept-order-detail .concept-payment-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+.concept-order-detail .concept-payment-card .payment-countdown {
+  align-self: stretch;
+}
+.concept-order-detail .concept-qr {
+  align-self: center;
+}
+.concept-order-detail label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+}
+.concept-order-detail .concept-check {
+  flex-direction: row;
+  align-items: flex-start;
+}
+.concept-order-detail .concept-card {
+  padding: 16px;
+  margin: 0;
+  border-color: var(--customer-hairline);
+  background: var(--customer-surface-soft);
+}
+.concept-order-detail .concept-order-album h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.concept-order-detail .concept-photo,
+.concept-order-detail .concept-photo-grid,
+.concept-order-detail .concept-order-album {
+  min-width: 0;
+}
+.concept-order-detail .concept-photo > button,
+.concept-order-detail .concept-photo > .customer-button {
+  margin-top: 8px;
+}
+.concept-order-detail .concept-tabs .customer-button[aria-pressed='false'] {
+  background: var(--customer-canvas);
+  border-color: var(--customer-hairline);
+  color: var(--customer-ink);
+}
+.concept-order-detail .customer-order-surface > section,
+.concept-order-detail .customer-order-surface > details {
+  min-width: 0;
+}
+.concept-order-detail summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.concept-order-detail a:not(.customer-button):not(.app-back-link) {
+  overflow-wrap: anywhere;
+}

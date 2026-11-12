@@ -3,6 +3,7 @@ import type { ApiResponse } from '../types';
 import type { DepositPayment } from './bookingWorkflowService';
 
 export interface RentalPolicy {
+  depositPercent: number;
   version: string;
   holdMinutes: number;
   maxPending: number;
@@ -30,6 +31,8 @@ export interface RentalQuote {
   returnDate: string;
   fee?: number;
   deposit?: number;
+  depositKind?: 'advance' | 'security';
+  depositPercent?: number;
   terms: string[];
   acceptedAt?: string;
 }
@@ -155,7 +158,10 @@ const statusStages: Record<string, RentalStage> = {
 export const getRentalStage = (order: Pick<RentalOrder, 'status' | 'orderStage'>): RentalStage =>
   order.orderStage ?? statusStages[order.status] ?? 'awaiting_confirmation';
 export const rentalLabels: Record<string, string> = Object.fromEntries(
-  Object.entries(statusStages).map(([status, stage]) => [status, rentalStageLabels[stage]]),
+  Object.entries(statusStages).map(([status, stage]) => [
+    status,
+    status === 'awaiting_deposit' ? 'Chờ thanh toán cọc' : rentalStageLabels[stage],
+  ]),
 );
 export const normalizeRentalView = (view: string): string => {
   if (Object.prototype.hasOwnProperty.call(rentalStageLabels, view)) return view;

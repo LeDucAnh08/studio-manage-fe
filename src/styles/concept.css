@@ -138,23 +138,6 @@
 .concept-booking-flow h1 {
   font-size: 30px;
 }
-.concept-measurements {
-  max-width: 900px;
-}
-.concept-measurements > label {
-  max-width: 260px;
-}
-.concept-measurement-card {
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  padding: 16px 22px;
-  margin: 24px 0;
-}
-.concept-measurement-card legend {
-  font-size: 16px;
-  font-weight: 600;
-  padding: 0 8px;
-}
 .concept-workspace .concept-check {
   flex-direction: row;
   align-items: flex-start;

@@ -2,7 +2,7 @@ import * as Tabs from '@radix-ui/react-tabs';
 import { useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import ConceptOrdersPage from './ConceptOrdersPage';
+import { CustomerConceptOrders } from '../components/customer/CustomerConceptOrders';
 import { conceptBookingEnabled } from '../config/features';
 import { CustomerBookingOrders } from '../components/customer/CustomerBookingOrders';
 import { CustomerRentalOrders } from '../components/customer/CustomerRentalOrders';
@@ -63,7 +63,7 @@ export default function CustomerOrdersPage() {
         </Tabs.Content>
         {conceptBookingEnabled && (
           <Tabs.Content value="concepts" className="customer-order-panel">
-            {tab === 'concepts' && <ConceptOrdersPage />}
+            {tab === 'concepts' && <CustomerConceptOrders />}
           </Tabs.Content>
         )}
       </Tabs.Root>

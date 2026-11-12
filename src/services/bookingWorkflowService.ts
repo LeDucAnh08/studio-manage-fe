@@ -62,23 +62,44 @@ export const bookingOrderStageLabels = {
   awaiting_confirmation: 'Chờ chốt lịch',
   confirmed: 'Đã chốt lịch',
   active: 'Đang thực hiện',
+  editing: 'Đang hậu kỳ',
   delivered: 'Đã bàn giao',
   completed: 'Hoàn tất',
   cancelled: 'Đã hủy',
   rejected: 'Đã từ chối',
 } as const;
 export type BookingOrderStage = keyof typeof bookingOrderStageLabels;
+export type BookingShootWindow = { startAt: string; endAt: string };
 
 export const getBookingOrderStage = (
   status: BookingStatus,
   lifecycle: BookingWorkflowLifecycle,
   stage?: BookingOrderStage,
+  shootWindow?: BookingShootWindow | null,
+  now = Date.now(),
 ): BookingOrderStage => {
-  if (stage) return stage;
   if (status === 'rejected') return 'rejected';
   if (status === 'cancelled' || lifecycle === 'cancelled') return 'cancelled';
   if (status === 'pending') return 'pending';
-  if (['shooting', 'editing', 'revision_requested'].includes(lifecycle)) return 'active';
+  const current =
+    stage ||
+    (['confirmed', 'change_pending', 'shooting'].includes(lifecycle)
+      ? 'confirmed'
+      : ['editing', 'revision_requested'].includes(lifecycle)
+        ? 'editing'
+        : undefined);
+  if (current && ['confirmed', 'active', 'editing'].includes(current)) {
+    const start = Date.parse(shootWindow?.startAt || '');
+    const end = Date.parse(shootWindow?.endAt || '');
+    if (Number.isFinite(start) && Number.isFinite(end) && end > start)
+      return now < start ? 'confirmed' : now < end ? 'active' : 'editing';
+    return current === 'active'
+      ? ['editing', 'revision_requested'].includes(lifecycle)
+        ? 'editing'
+        : 'confirmed'
+      : current;
+  }
+  if (stage) return stage;
   if (['delivered', 'accepted'].includes(lifecycle)) return 'delivered';
   if (lifecycle === 'completed') return 'completed';
   if (['confirmed', 'change_pending'].includes(lifecycle)) return 'confirmed';
@@ -89,7 +110,9 @@ export const bookingOrderStatusLabel = (
   status: BookingStatus,
   lifecycle: BookingWorkflowLifecycle,
   stage?: BookingOrderStage,
-) => bookingOrderStageLabels[getBookingOrderStage(status, lifecycle, stage)];
+  shootWindow?: BookingShootWindow | null,
+  now = Date.now(),
+) => bookingOrderStageLabels[getBookingOrderStage(status, lifecycle, stage, shootWindow, now)];
 
 export interface PaymentInstructions {
   bankName: string;
@@ -157,6 +180,7 @@ export interface BookingWorkflowDto {
   };
   workflow: {
     orderStage?: BookingOrderStage;
+    shootWindow?: BookingShootWindow | null;
     packageReservation?: {
       status: 'held' | 'confirmed' | 'expired' | 'released';
       expiresAt: string;
@@ -282,6 +306,7 @@ export interface BookingWorkflowDto {
 
 export interface WorkflowSummary {
   orderStage?: BookingOrderStage;
+  shootWindow?: BookingShootWindow | null;
   assignedPhotographer?: AssignedPhotographer | null;
   assignedSupportPhotographers?: AssignedPhotographer[];
   bookingId: string;

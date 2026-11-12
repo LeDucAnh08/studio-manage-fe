@@ -59,7 +59,10 @@ export function RentalOrderProgress({ order }: { order: RentalOrder }) {
         currentStep={current}
         terminal={terminal}
         stages={stages.map((value, index) => ({
-          label: rentalStageLabels[value],
+          label:
+            order.autoCheckout && value === 'awaiting_confirmation'
+              ? 'Thanh toán cọc'
+              : rentalStageLabels[value],
           done: terminal ? index <= reached : index < current || stage === 'completed',
           at: index <= reached ? dates[index] || null : undefined,
           description: value === stage ? descriptions[value] : undefined,

@@ -344,11 +344,13 @@ export default function PublicDiscoveryPage({
     <PublicSiteLayout source={page}>
       <div className="customer-portfolio">
         <div className="customer-portfolio__container customer-discovery-heading">
-          <nav aria-label="Đường dẫn trang">
-            <Link to="/services">Khám phá dịch vụ</Link>
-            <span aria-hidden="true"> / </span>
-            <span aria-current="page">{titles[page]}</span>
-          </nav>
+          {page !== 'pricing' && (
+            <nav aria-label="Đường dẫn trang">
+              <Link to="/services">Khám phá dịch vụ</Link>
+              <span aria-hidden="true"> / </span>
+              <span aria-current="page">{titles[page]}</span>
+            </nav>
+          )}
           <h1 className="customer-page-title">{titles[page]}</h1>
         </div>
         {page === 'services' && (

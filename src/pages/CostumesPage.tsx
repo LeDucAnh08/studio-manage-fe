@@ -520,9 +520,9 @@ const CostumesPage = () => {
               />
             </FormField>
             <FormField
-              label="Cọc bảo đảm/món (đồng)"
+              label="Cọc bảo đảm/món cho hồ sơ cũ (đồng)"
               htmlFor="rentalSecurityDeposit"
-              hint="Để trống: chưa cho đặt tự động. Nhập 0 nếu không yêu cầu cọc."
+              hint="Đơn đặt mới dùng cọc trước 30% tổng tiền thuê, được trừ vào tiền thuê. Trường này chỉ lưu cấu hình cọc bảo đảm cũ."
               error={errors.rentalSecurityDeposit?.message}
             >
               <Input

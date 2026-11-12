@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => {
   const proxyTarget =
     process.env.DEV_API_PROXY_TARGET ||
     loadEnv(mode, __dirname, 'DEV_API_PROXY_TARGET').DEV_API_PROXY_TARGET ||
-    'http://localhost:5002';
+    'http://127.0.0.1:5002';
   const deliveryRoot = path.resolve(
     __dirname,
     '../backend',

@@ -137,6 +137,7 @@ export interface ConceptOrder {
   snapshot: ConceptPackage & { conceptName: string; deposit: number };
   version: number;
   status: string;
+  orderStage?: ConceptOrderStage | null;
   startAt: string;
   endAt: string;
   originalStartAt: string;
@@ -245,6 +246,13 @@ const guestApi = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api' 
 export const conceptError = (error: unknown) =>
   (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
   'Không thể xử lý. Vui lòng thử lại.';
+export const conceptOrderStageLabels = {
+  deposited: 'Đã cọc',
+  handing_over: 'Đang bàn giao',
+  completed: 'Hoàn thành',
+  cancelled: 'Hủy',
+} as const;
+export type ConceptOrderStage = keyof typeof conceptOrderStageLabels;
 export const conceptStatus: Record<string, string> = {
   awaiting_deposit: 'Chờ cọc',
   confirmed: 'Đã xác nhận',
@@ -297,12 +305,12 @@ export const conceptService = {
         data: ConceptOrder;
       }>('/concept-orders', body, { headers: { 'Idempotency-Key': key } })
       .then((r) => r.data.data),
-  list: (status = '', page = 1) =>
+  list: (status = '', page = 1, view?: string) =>
     api
       .get<{
         data: ConceptOrder[];
         pagination: { total: number };
-      }>('/concept-orders', { params: { status, page } })
+      }>('/concept-orders', { params: { status, page, ...(view === undefined ? {} : { view }) } })
       .then((r) => r.data),
   order: (id: string) =>
     api.get<{ data: ConceptOrder }>(`/concept-orders/${id}`).then((r) => r.data.data),

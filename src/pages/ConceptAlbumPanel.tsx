@@ -12,6 +12,12 @@ import {
   vnTime,
 } from '../services/conceptService';
 import '../styles/concept.css';
+import { useCustomerAppearance } from '../components/customer/CustomerAppearance';
+import {
+  OrderButton as Button,
+  OrderInput as Input,
+  OrderTextarea as Textarea,
+} from '../components/customer/CustomerOrderControls';
 
 const saveBlob = (blob: Blob, name: string) => {
   const url = URL.createObjectURL(blob);
@@ -103,7 +109,7 @@ function Gallery({
   return (
     <div>
       <div className="concept-tabs">
-        <button
+        <Button
           aria-pressed={version === 0}
           onClick={() => {
             setVersion(0);
@@ -111,9 +117,9 @@ function Gallery({
           }}
         >
           Ảnh chỉnh màu
-        </button>
+        </Button>
         {album.deliveries.map((d) => (
-          <button
+          <Button
             key={d.version}
             aria-pressed={version === d.version}
             onClick={() => {
@@ -122,11 +128,11 @@ function Gallery({
             }}
           >
             Retouch v{d.version}
-          </button>
+          </Button>
         ))}
       </div>
       {version > 0 && album.allowDownload && !guest && (
-        <button
+        <Button
           disabled={busy}
           onClick={async () => {
             try {
@@ -137,12 +143,12 @@ function Gallery({
           }}
         >
           Tải toàn bộ bản v{version} (ZIP)
-        </button>
+        </Button>
       )}
       <div className="concept-photo-grid">
         {photos.slice(0, limit).map((photo) => (
           <article className="concept-photo" key={photo.id}>
-            <button
+            <Button
               aria-label={`Xem ảnh ${photo.name}`}
               onClick={() => {
                 setView(photo.id);
@@ -151,43 +157,43 @@ function Gallery({
               disabled={!photo.available}
             >
               <Image id={id} photo={photo} guest={guest} token={token} />
-            </button>
+            </Button>
             <p>
               {photo.name}
               {!photo.available ? ' · Nguồn không còn khả dụng' : ''}
             </p>
             {select && version === 0 && (
               <>
-                <button
+                <Button
                   disabled={busy || (!photo.available && !photo.selected)}
                   aria-pressed={!!photo.selected}
                   onClick={() => select(photo)}
                 >
                   {photo.selected ? '♥ Đã chọn' : '♡ Chọn retouch'}
-                </button>
+                </Button>
                 <label>
                   Ghi chú cho {photo.name}
-                  <textarea
+                  <Textarea
                     maxLength={2000}
                     value={notes[photo.id] ?? photo.note ?? ''}
                     onChange={(e) => setNotes((n) => ({ ...n, [photo.id]: e.target.value }))}
                   />
                 </label>
-                <button
+                <Button
                   disabled={busy || (notes[photo.id] ?? photo.note ?? '') === (photo.note || '')}
                   onClick={() => saveNote?.(photo, notes[photo.id] || '')}
                 >
                   Lưu ghi chú
-                </button>
+                </Button>
               </>
             )}
             {version > 0 && album.allowDownload && !guest && (
-              <button onClick={() => void download(photo)}>Tải ảnh</button>
+              <Button onClick={() => void download(photo)}>Tải ảnh</Button>
             )}
           </article>
         ))}
       </div>
-      {photos.length > limit && <button onClick={() => setLimit(limit + 16)}>Xem thêm ảnh</button>}
+      {photos.length > limit && <Button onClick={() => setLimit(limit + 16)}>Xem thêm ảnh</Button>}
       <Dialog.Root
         open={!!current}
         onOpenChange={(open) => {
@@ -215,16 +221,16 @@ function Gallery({
               </figure>
             )}
             <div className="concept-actions">
-              <button disabled={index <= 0} onClick={() => setView(photos[index - 1].id)}>
+              <Button disabled={index <= 0} onClick={() => setView(photos[index - 1].id)}>
                 Ảnh trước
-              </button>
-              <button onClick={() => setZoom(!zoom)}>{zoom ? 'Thu nhỏ' : 'Phóng to'}</button>
-              <button
+              </Button>
+              <Button onClick={() => setZoom(!zoom)}>{zoom ? 'Thu nhỏ' : 'Phóng to'}</Button>
+              <Button
                 disabled={index >= photos.length - 1}
                 onClick={() => setView(photos[index + 1].id)}
               >
                 Ảnh sau
-              </button>
+              </Button>
             </div>
           </Dialog.Content>
         </Dialog.Portal>
@@ -239,6 +245,7 @@ export default function ConceptAlbumPanel({
   order: ConceptOrder;
   onOrderChange: () => void;
 }) {
+  const customer = useCustomerAppearance();
   const id = order._id;
   const [album, setAlbum] = useState<ConceptAlbum | null>(null),
     [error, setError] = useState(''),
@@ -304,14 +311,14 @@ export default function ConceptAlbumPanel({
     .filter(([, note]) => note.trim())
     .map(([photoId, note]) => ({ photoId, note }));
   return (
-    <section>
-      <h2>Album và hậu kỳ</h2>
+    <section className={customer ? 'customer-order-surface concept-order-album' : undefined}>
+      <h2 className={customer ? 'customer-section-title' : undefined}>Album và hậu kỳ</h2>
       {error && (
         <p role="alert" className="concept-error">
           {error}{' '}
-          <button onClick={() => load().catch((e) => setError(conceptError(e)))}>
+          <Button onClick={() => load().catch((e) => setError(conceptError(e)))}>
             Tải lại album
-          </button>
+          </Button>
         </p>
       )}
       {order.canEdit && (
@@ -323,14 +330,14 @@ export default function ConceptAlbumPanel({
           </p>
           <label>
             Tên album
-            <input value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
           </label>
           <label>
             Link thư mục (mỗi dòng một link)
-            <textarea value={folders} onChange={(e) => setFolders(e.target.value)} />
+            <Textarea value={folders} onChange={(e) => setFolders(e.target.value)} />
           </label>
           <div className="concept-actions">
-            <button
+            <Button
               disabled={busy || !folders.trim()}
               onClick={() =>
                 void command('sync', {
@@ -343,9 +350,9 @@ export default function ConceptAlbumPanel({
               }
             >
               Lấy ảnh chỉnh màu
-            </button>
+            </Button>
             {album && (
-              <button
+              <Button
                 disabled={busy || !folders.trim()}
                 onClick={() =>
                   void command('deliver', {
@@ -357,7 +364,7 @@ export default function ConceptAlbumPanel({
                 }
               >
                 Gửi bản retouch mới
-              </button>
+              </Button>
             )}
           </div>
         </details>
@@ -377,36 +384,36 @@ export default function ConceptAlbumPanel({
           {order.canEdit && (
             <div className="concept-actions">
               {album.status === 'draft' && (
-                <button disabled={busy} onClick={() => void command('publish')}>
+                <Button disabled={busy} onClick={() => void command('publish')}>
                   Mở album chọn ảnh
-                </button>
+                </Button>
               )}
               {album.status === 'queued' && (
-                <button disabled={busy} onClick={() => void command('start')}>
+                <Button disabled={busy} onClick={() => void command('start')}>
                   Bắt đầu retouch
-                </button>
+                </Button>
               )}
               {order.canManage && ['queued', 'awaiting_extra'].includes(album.status) && (
-                <button disabled={busy} onClick={() => void command('reopen')}>
+                <Button disabled={busy} onClick={() => void command('reopen')}>
                   Mở lại lựa chọn
-                </button>
+                </Button>
               )}
               {order.canManage && (
                 <>
-                  <button disabled={busy} onClick={() => void command('share')}>
+                  <Button disabled={busy} onClick={() => void command('share')}>
                     Tạo link chỉ xem (7 ngày)
-                  </button>
-                  <button disabled={busy} onClick={() => void command('revoke')}>
+                  </Button>
+                  <Button disabled={busy} onClick={() => void command('revoke')}>
                     Thu hồi link
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     disabled={busy}
                     onClick={() =>
                       void command('download-policy', { allowed: !album.allowDownload })
                     }
                   >
                     {album.allowDownload ? 'Tắt tải ảnh' : 'Cho tải ảnh'}
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
@@ -433,12 +440,12 @@ export default function ConceptAlbumPanel({
                 />
                 Tôi chốt danh sách và đồng ý phí ảnh thêm {money(extra)}.
               </label>
-              <button
+              <Button
                 disabled={busy || !selected.length || !consent}
                 onClick={() => void command('finalize', { accepted: true })}
               >
                 Chốt ảnh retouch
-              </button>
+              </Button>
             </div>
           )}
           {album.status === 'awaiting_extra' && (
@@ -469,7 +476,7 @@ export default function ConceptAlbumPanel({
                   <pre>
                     {s.photos.map((p) => `${p.name}${p.note ? ' — ' + p.note : ''}`).join('\n')}
                   </pre>
-                  <button
+                  <Button
                     onClick={() =>
                       saveBlob(
                         new Blob([s.photos.map((p) => p.name).join('\n')], {
@@ -480,7 +487,7 @@ export default function ConceptAlbumPanel({
                     }
                   >
                     Xuất tên file TXT
-                  </button>
+                  </Button>
                 </div>
               ))}
             </details>
@@ -501,14 +508,14 @@ export default function ConceptAlbumPanel({
                 .map((p) => (
                   <label key={p.id}>
                     {p.name}
-                    <textarea
+                    <Textarea
                       maxLength={2000}
                       value={feedback[p.id] || ''}
                       onChange={(e) => setFeedback((f) => ({ ...f, [p.id]: e.target.value }))}
                     />
                   </label>
                 ))}
-              <button
+              <Button
                 disabled={busy || !feedbackItems.length}
                 onClick={() =>
                   void command(
@@ -522,14 +529,14 @@ export default function ConceptAlbumPanel({
                 {album.freeRoundsUsed < 2 && album.status === 'delivered'
                   ? 'Gửi vòng feedback'
                   : 'Yêu cầu báo phí'}
-              </button>
+              </Button>
               {album.status === 'delivered' && (
-                <button
+                <Button
                   disabled={busy}
                   onClick={() => void command('accept', { deliveryVersion: album.deliveryVersion })}
                 >
                   Xác nhận ảnh đã đạt yêu cầu
-                </button>
+                </Button>
               )}
             </section>
           )}
@@ -548,7 +555,7 @@ export default function ConceptAlbumPanel({
                       </p>
                       <p>{item.resolved ? 'Đã xử lý' : 'Chờ xử lý'}</p>
                       {order.canEdit && album.status === 'revising' && (
-                        <button
+                        <Button
                           disabled={busy}
                           onClick={() =>
                             void command('resolve', {
@@ -559,7 +566,7 @@ export default function ConceptAlbumPanel({
                           }
                         >
                           {item.resolved ? 'Đánh dấu chưa xong' : 'Đã xử lý góp ý'}
-                        </button>
+                        </Button>
                       )}
                     </div>
                   ))}
@@ -592,7 +599,7 @@ export default function ConceptAlbumPanel({
                     <p key={i.photoId}>
                       {album.photos.find((p) => p.id === i.photoId)?.name}: {i.note}
                       {order.canEdit && r.status === 'processing' && (
-                        <button
+                        <Button
                           disabled={busy}
                           onClick={() =>
                             void command('resolve', {
@@ -603,7 +610,7 @@ export default function ConceptAlbumPanel({
                           }
                         >
                           {i.resolved ? 'Đã xử lý · đánh dấu chưa xong' : 'Đánh dấu đã xử lý'}
-                        </button>
+                        </Button>
                       )}
                     </p>
                   ))}
@@ -616,7 +623,7 @@ export default function ConceptAlbumPanel({
                     <>
                       <label>
                         Phí chỉnh thêm
-                        <input
+                        <Input
                           type="number"
                           min="1"
                           value={quotes[r.id]?.amount || ''}
@@ -630,7 +637,7 @@ export default function ConceptAlbumPanel({
                       </label>
                       <label>
                         Phạm vi công việc
-                        <textarea
+                        <Textarea
                           value={quotes[r.id]?.terms || ''}
                           onChange={(e) =>
                             setQuotes((q) => ({
@@ -640,7 +647,7 @@ export default function ConceptAlbumPanel({
                           }
                         />
                       </label>
-                      <button
+                      <Button
                         disabled={busy || !quotes[r.id]?.amount || !quotes[r.id]?.terms}
                         onClick={() =>
                           void command('quote', {
@@ -651,11 +658,11 @@ export default function ConceptAlbumPanel({
                         }
                       >
                         Gửi báo giá
-                      </button>
+                      </Button>
                     </>
                   )}
                   {order.isOwner && r.status === 'quoted' && (
-                    <button
+                    <Button
                       disabled={busy}
                       onClick={() =>
                         void command('accept-quote', {
@@ -666,23 +673,23 @@ export default function ConceptAlbumPanel({
                       }
                     >
                       Đồng ý báo giá và tạo QR
-                    </button>
+                    </Button>
                   )}
                   {order.isOwner && ['requested', 'quoted'].includes(r.status) && (
-                    <button
+                    <Button
                       disabled={busy}
                       onClick={() => void command('decline-quote', { requestId: r.id })}
                     >
                       Hủy yêu cầu phát sinh
-                    </button>
+                    </Button>
                   )}
                   {order.canEdit && r.status === 'paid' && (
-                    <button
+                    <Button
                       disabled={busy}
                       onClick={() => void command('start', { requestId: r.id })}
                     >
                       Bắt đầu chỉnh thêm
-                    </button>
+                    </Button>
                   )}
                 </article>
               ))}

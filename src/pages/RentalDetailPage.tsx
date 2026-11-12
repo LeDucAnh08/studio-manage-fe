@@ -1,4 +1,5 @@
 import { RentalOrderProgress } from '../components/customer/RentalOrderProgress';
+import { RentalDepositCheckout } from '../components/customer/RentalDepositCheckout';
 import {
   cloneElement,
   isValidElement,
@@ -19,7 +20,6 @@ import {
 import { useCustomerAppearance } from '../components/customer/CustomerAppearance';
 import { CustomerPrice } from '../components/customer/CustomerPrice';
 import { CustomerPriceBreakdown } from '../components/customer/CustomerPriceBreakdown';
-import { DepositPaymentPanel } from '../components/customer/DepositPaymentPanel';
 import '../styles/customer-orders.css';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -128,7 +128,7 @@ export default function RentalDetailPage() {
   useEffect(() => {
     if (
       !client ||
-      !order?.autoCheckout ||
+      (!order?.autoCheckout && !order?.depositPayment) ||
       !['awaiting_deposit', 'expired', 'payment_review'].includes(order.status)
     )
       return;
@@ -147,7 +147,7 @@ export default function RentalDetailPage() {
       active = false;
       window.clearInterval(timer);
     };
-  }, [client, id, order?.autoCheckout, order?.status]);
+  }, [client, id, order?.autoCheckout, order?.depositPayment, order?.status]);
   useEffect(() => {
     if (!order) return;
     const rows = order.quote?.lines ?? order.requestedLines;
@@ -215,8 +215,24 @@ export default function RentalDetailPage() {
         <Button onClick={() => void load()}>Thử tải lại</Button>
       </section>
     );
+  if (
+    client &&
+    (order.autoCheckout || order.depositPayment) &&
+    new URLSearchParams(location.search).get('payment') === 'deposit'
+  )
+    return (
+      <RentalDepositCheckout
+        order={order}
+        returnTo={customerBackPath}
+        error={error}
+        loading={busy}
+        onReload={() => void load()}
+      />
+    );
   const quote = order.quote,
     changeOpen = !!order.change && ['requested', 'proposed'].includes(order.change.status);
+  const advanceDeposit = quote?.depositKind === 'advance';
+  const depositLabel = advanceDeposit ? `Cọc trước ${quote?.depositPercent ?? 30}%` : 'Cọc bảo đảm';
   const effectiveChangeKind =
     order.status === 'checked_out'
       ? 'extend'
@@ -391,7 +407,18 @@ export default function RentalDetailPage() {
         </p>
       )}
       {client && order.depositPayment && (
-        <DepositPaymentPanel payment={order.depositPayment} rental />
+        <section className="customer-order-surface">
+          <Button asChild>
+            <Link
+              to={`/account/rentals/${id}?payment=deposit`}
+              state={{ ordersReturnTo: customerBackPath }}
+            >
+              {order.depositPayment.status === 'pending'
+                ? 'Thanh toán tiền cọc'
+                : 'Xem thanh toán cọc'}
+            </Link>
+          </Button>
+        </section>
       )}
       {client &&
         order.autoCheckout &&
@@ -483,7 +510,17 @@ export default function RentalDetailPage() {
                     label: 'Phí thuê',
                     value: <CustomerPrice amount={quote.fee} emphasis="total" />,
                   },
-                  { label: 'Cọc bảo đảm', value: <CustomerPrice amount={quote.deposit ?? 0} /> },
+                  { label: depositLabel, value: <CustomerPrice amount={quote.deposit ?? 0} /> },
+                  ...(advanceDeposit
+                    ? [
+                        {
+                          label: 'Còn lại sau cọc',
+                          value: (
+                            <CustomerPrice amount={Math.max(0, quote.fee - (quote.deposit ?? 0))} />
+                          ),
+                        },
+                      ]
+                    : []),
                 ]}
               />
             ) : (
@@ -492,7 +529,7 @@ export default function RentalDetailPage() {
                   Phí thuê: <strong>{money(quote.fee)}</strong>
                 </p>
                 <p>
-                  Cọc bảo đảm: <strong>{money(quote.deposit)}</strong>
+                  {depositLabel}: <strong>{money(quote.deposit)}</strong>
                 </p>
               </div>
             ))}
@@ -528,7 +565,9 @@ export default function RentalDetailPage() {
             ))}
           </ul>
           <p className="text-sm text-muted-foreground">
-            Cọc bảo đảm được đối soát sau nhận trả. Phụ phí cần được xác nhận riêng.
+            {advanceDeposit
+              ? 'Cọc trước được trừ vào tiền thuê. Thanh toán phần còn lại trước khi nhận đồ. Phụ phí cần được xác nhận riêng.'
+              : 'Cọc bảo đảm được đối soát sau nhận trả. Phụ phí cần được xác nhận riêng.'}
           </p>
           {quote.acceptedAt ? (
             <p className={customer ? 'customer-order-meta' : 'font-medium text-primary'}>
@@ -686,7 +725,7 @@ export default function RentalDetailPage() {
       {order.payment && (
         <section className={customer ? 'customer-order-surface' : sectionClass}>
           <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
-            Thanh toán và cọc bảo đảm
+            {advanceDeposit ? 'Thanh toán tiền thuê' : 'Thanh toán và cọc bảo đảm'}
           </h2>
           {customer ? (
             <CustomerPriceBreakdown
@@ -713,8 +752,9 @@ export default function RentalDetailPage() {
             </div>
           )}
           <p className="text-sm text-muted-foreground">
-            Trước giao: phí thuê + cọc. Sau nhận trả: phí thuê + phát sinh khách đã đồng ý; cọc dư
-            được hoàn.
+            {advanceDeposit
+              ? 'Tiền cọc là một phần tiền thuê. Thanh toán đủ tiền thuê trước khi nhận đồ; phát sinh sau nhận trả cần khách xác nhận.'
+              : 'Trước giao: phí thuê + cọc. Sau nhận trả: phí thuê + phát sinh khách đã đồng ý; cọc dư được hoàn.'}
           </p>
           {order.payments?.map((row, index) => (
             <p
@@ -724,7 +764,7 @@ export default function RentalDetailPage() {
               {row.kind === 'refund'
                 ? 'Hoàn tiền'
                 : row.kind === 'deposit'
-                  ? 'Cọc bảo đảm'
+                  ? depositLabel
                   : 'Thanh toán'}{' '}
               · {customer ? <CustomerPrice amount={row.amount} /> : money(row.amount)} ·{' '}
               {date(row.at)} ·{' '}
@@ -765,7 +805,7 @@ export default function RentalDetailPage() {
                       {kind === 'refund'
                         ? 'Hoàn tiền'
                         : kind === 'deposit'
-                          ? 'Cọc bảo đảm'
+                          ? depositLabel
                           : 'Thanh toán'}
                     </option>
                   ))}
@@ -837,8 +877,12 @@ export default function RentalDetailPage() {
           </h2>
           <p>
             {order.readyForHandover
-              ? 'Đã đủ phí thuê và cọc.'
-              : 'Cần ghi nhận đủ phí thuê và cọc trước khi giao.'}{' '}
+              ? advanceDeposit
+                ? 'Đã thanh toán đủ tiền thuê.'
+                : 'Đã đủ phí thuê và cọc.'
+              : advanceDeposit
+                ? 'Thanh toán phần tiền thuê còn lại trước khi nhận đồ.'
+                : 'Cần ghi nhận đủ phí thuê và cọc trước khi giao.'}{' '}
             Chỉ giao trong kỳ thuê đã chốt.
           </p>
           {admin && (
@@ -1002,7 +1046,7 @@ export default function RentalDetailPage() {
           }}
         >
           <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
-            Lập đối soát phí và hoàn cọc
+            {advanceDeposit ? 'Lập đối soát phí' : 'Lập đối soát phí và hoàn cọc'}
           </h2>
           <p className="text-sm text-muted-foreground">
             Không có phụ phí thì để trống danh sách. Mọi phát sinh cần lý do và sự đồng ý của khách.
@@ -1313,8 +1357,10 @@ export default function RentalDetailPage() {
               </p>
               {history.deposit !== undefined && (
                 <p>
-                  Cọc bảo đảm:{' '}
-                  {customer ? <CustomerPrice amount={history.deposit} /> : money(history.deposit)}
+                  {history.depositKind === 'advance'
+                    ? `Cọc trước ${history.depositPercent ?? 30}%`
+                    : 'Cọc bảo đảm'}
+                  : {customer ? <CustomerPrice amount={history.deposit} /> : money(history.deposit)}
                 </p>
               )}
               <ul>

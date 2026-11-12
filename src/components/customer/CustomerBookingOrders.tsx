@@ -4,6 +4,8 @@ import { ArrowRight, LoaderCircle } from 'lucide-react';
 import { CustomerButton } from './CustomerButton';
 import { BookingOrderProgress } from './BookingOrderProgress';
 import { CustomerOrdersWorkspace } from './CustomerOrdersWorkspace';
+import { useCurrentTime } from './useCurrentTime';
+import { useShootWindowRefresh } from './useShootWindowRefresh';
 import { vietnamDisplayDate as day } from '../../utils/vietnamCalendarDate';
 import {
   bookingOrderStageLabels,
@@ -24,10 +26,17 @@ const time = (value: string) =>
 const errorMessage = (error: unknown) =>
   (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
   'Chưa tải được thông tin. Vui lòng thử lại.';
-const statusLabel = (order: WorkflowSummary) =>
-  bookingOrderStatusLabel(order.bookingStatus, order.lifecycle, order.orderStage);
+const statusLabel = (order: WorkflowSummary, now: number) =>
+  bookingOrderStatusLabel(
+    order.bookingStatus,
+    order.lifecycle,
+    order.orderStage,
+    order.shootWindow,
+    now,
+  );
 
 function OrderPreview({ order, reload }: { order: WorkflowSummary; reload: number }) {
+  const now = useCurrentTime();
   const location = useLocation();
   const [result, setResult] = useState<{ id: string; record?: BookingWorkflowDto; error?: string }>(
     { id: '' },
@@ -56,8 +65,14 @@ function OrderPreview({ order, reload }: { order: WorkflowSummary; reload: numbe
   const scheduled = !!workflow?.resources?.scheduleDetails;
   const label =
     booking && workflow
-      ? bookingOrderStatusLabel(booking.status, workflow.lifecycle, workflow.orderStage)
-      : statusLabel(order);
+      ? bookingOrderStatusLabel(
+          booking.status,
+          workflow.lifecycle,
+          workflow.orderStage,
+          workflow.shootWindow,
+          now,
+        )
+      : statusLabel(order, now);
   const summary = [booking?.school || order.school, booking && `${booking.members} thành viên`]
     .filter(Boolean)
     .join(' · ');
@@ -137,10 +152,13 @@ function OrderPreview({ order, reload }: { order: WorkflowSummary; reload: numbe
         <p>{stateMessage}</p>
         <CustomerButton asChild>
           <Link
-            to={`/account/bookings/${order.bookingId}`}
+            to={`/account/bookings/${order.bookingId}${workflow?.depositPayment?.status === 'pending' ? '?payment=deposit' : ''}`}
             state={{ ordersReturnTo: `${location.pathname}${location.search}` }}
           >
-            Xem hồ sơ đầy đủ <ArrowRight size={18} aria-hidden="true" />
+            {workflow?.depositPayment?.status === 'pending'
+              ? 'Thanh toán tiền cọc'
+              : 'Xem hồ sơ đầy đủ'}{' '}
+            <ArrowRight size={18} aria-hidden="true" />
           </Link>
         </CustomerButton>
       </footer>
@@ -149,6 +167,7 @@ function OrderPreview({ order, reload }: { order: WorkflowSummary; reload: numbe
 }
 
 export function CustomerBookingOrders() {
+  const now = useCurrentTime();
   const [params, setParams] = useSearchParams();
   const [items, setItems] = useState<WorkflowSummary[]>([]);
   const selectedId = params.get('order') || '';
@@ -177,6 +196,7 @@ export function CustomerBookingOrders() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
+  useShootWindowRefresh(items, setReload);
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -236,7 +256,7 @@ export function CustomerBookingOrders() {
               <span
                 className={`customer-orders-state ${item.lifecycle === 'completed' ? 'is-neutral' : ''}`}
               >
-                {statusLabel(item)}
+                {statusLabel(item, now)}
               </span>
             </span>
             <span className="customer-orders-workspace__muted">

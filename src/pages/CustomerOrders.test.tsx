@@ -222,10 +222,10 @@ function renderPage(page: ReactNode, path: string, route: string, customer = tru
     </CustomerAppearanceContext.Provider>,
   );
 }
-const renderBooking = (customer = true) =>
+const renderBooking = (customer = true, search = '') =>
   renderPage(
     <BookingWorkflowDetailPage />,
-    '/account/bookings/booking-1',
+    '/account/bookings/booking-1' + search,
     '/account/bookings/:id',
     customer,
   );
@@ -348,7 +348,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
     mocks.workflowGet.mockResolvedValue(paid);
     vi.useFakeTimers();
     const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
-    const page = renderBooking();
+    const page = renderBooking(true, '?payment=deposit');
     await act(async () => {});
     expect(screen.getByRole('img', { name: 'Mã QR thanh toán tiền cọc' })).toBeInTheDocument();
     try {
@@ -359,7 +359,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
       expect(
         screen.queryByRole('img', { name: 'Mã QR thanh toán tiền cọc' }),
       ).not.toBeInTheDocument();
-      expect(screen.getByText('Đã nhận cọc — lịch đã được xác nhận.')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Đã nhận tiền cọc' })).toBeInTheDocument();
       await act(async () => {
         await vi.advanceTimersByTimeAsync(15000);
       });
@@ -522,7 +522,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
     mocks.workflowGet.mockResolvedValueOnce(record).mockRejectedValue(new Error('offline'));
     vi.useFakeTimers();
     const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
-    const page = renderBooking();
+    const page = renderBooking(true, '?payment=deposit');
     try {
       await act(async () => {});
       await act(async () => {
@@ -562,6 +562,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
     mocks.rentalPolicy.mockResolvedValue({
       version: 'rental-auto-v1',
       holdMinutes: 15,
+      depositPercent: 30,
       maxPending: 2,
       leadHours: 24,
       turnaroundDays: 1,
@@ -624,7 +625,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
     expect(screen.getAllByRole('region', { name: 'Tiến độ đơn' })).toHaveLength(1);
     expect(
       within(screen.getByRole('region', { name: 'Tiến độ đơn' })).getAllByRole('listitem'),
-    ).toHaveLength(6);
+    ).toHaveLength(7);
     expect(container.querySelector('[aria-current="step"]')).toHaveTextContent('Chờ duyệt');
     expect(container.querySelector('.customer-booking-intake')).toHaveTextContent('18/10/2026');
     expect(
@@ -1089,6 +1090,9 @@ describe('Customer order presentation preserves workflow contracts', () => {
       fireEvent.click(await screen.findByRole('checkbox', { name: /Tôi đã đọc/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Đặt thuê và thanh toán cọc' }));
     await screen.findByTestId('destination');
+    expect(screen.getByTestId('destination')).toHaveTextContent(
+      '/account/rentals/created-rental?payment=deposit',
+    );
     expect(mocks.rentalCreate).toHaveBeenCalledTimes(2);
     expect(mocks.rentalCreate).toHaveBeenLastCalledWith(
       {

@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import ConceptCatalogPage from './ConceptCatalogPage';
 import ConceptPackageDetailPage from './ConceptPackageDetailPage';
 import ConceptPhotographerPage from './ConceptPhotographerPage';
 import ConceptBookingPage, { CONCEPT_DRAFT_KEY } from './ConceptBookingPage';
+import ConceptOrderPage from './ConceptOrderPage';
 import { GuestConceptAlbumPage } from './ConceptAlbumPanel';
 import {
   conceptService,
@@ -37,6 +38,7 @@ vi.mock('../services/conceptService', async (importOriginal) => {
       availability: vi.fn(),
       costumes: vi.fn(),
       checkout: vi.fn(),
+      order: vi.fn(),
       guestAlbum: vi.fn(),
       image: vi.fn(),
     },
@@ -136,6 +138,10 @@ beforeEach(() => {
   });
 });
 afterEach(() => vi.restoreAllMocks());
+function PaymentDestination() {
+  const location = useLocation();
+  return <p>{location.search === '?payment=deposit' ? 'Thanh toán cọc mới' : 'Sai màn hình'}</p>;
+}
 const renderWizard = (url = '/concept-booking') =>
   render(
     <MemoryRouter initialEntries={[url]}>
@@ -150,7 +156,7 @@ const renderWizard = (url = '/concept-booking') =>
           path="/concept-booking/packages/:packageId/book/:screen"
           element={<ConceptBookingPage />}
         />
-        <Route path="/account/concept-orders/:id" element={<p>Hồ sơ mới</p>} />
+        <Route path="/account/concept-orders/:id" element={<PaymentDestination />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -166,14 +172,181 @@ async function fillWizard() {
   fireEvent.click(await screen.findByRole('link', { name: 'Xem hồ sơ Thợ An' }));
   await waitFor(() => expect(screen.getByRole('button', { name: 'Chọn Thợ An' })).toBeEnabled());
   fireEvent.click(screen.getByRole('button', { name: 'Chọn Thợ An' }));
-  await screen.findByRole('heading', { name: 'Thông tin trang phục' });
-  fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
+  await screen.findByRole('heading', { name: 'Thông tin buổi chụp' });
   fireEvent.change(screen.getByLabelText('Họ tên liên hệ'), { target: { value: 'Khách An' } });
   fireEvent.change(screen.getByLabelText('Số điện thoại'), { target: { value: '0901234567' } });
   fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
   await screen.findByRole('heading', { name: 'Kiểm tra trước khi đặt cọc' });
 }
 describe('concept booking contract', () => {
+  it.each([
+    ['awaiting_deposit', 'pending', '2026-11-12T07:00:00Z', 'Quét mã để đặt cọc', true],
+    ['confirmed', 'paid', '2026-11-12T07:00:00Z', 'Đã nhận tiền cọc', false],
+    [
+      'awaiting_deposit',
+      'pending',
+      '2026-11-11T06:00:00Z',
+      'Đã kết thúc thời gian thanh toán',
+      false,
+    ],
+  ])(
+    'shows the dedicated deposit screen for %s / %s',
+    async (status, paymentStatus, expiresAt, heading, showQr) => {
+      vi.mocked(conceptService.order).mockResolvedValue({
+        _id: 'order-1',
+        package: 'pkg-1',
+        snapshot: { ...catalog.packages[0], conceptName: 'Nàng thơ', deposit: 300000 },
+        status,
+        startAt: '2026-11-14T10:00:00Z',
+        endAt: '2026-11-14T11:00:00Z',
+        originalStartAt: '2026-11-14T10:00:00Z',
+        contactName: 'Khách An',
+        phone: '0901234567',
+        people: 1,
+        isOwner: true,
+        paymentRequests: [
+          {
+            id: 'deposit-1',
+            kind: 'deposit',
+            amount: paymentStatus === 'paid' ? 0 : 300000,
+            status: paymentStatus,
+            expiresAt,
+            qrUrl: '/deposit-qr.png',
+            reference: 'TEST-DEPOSIT',
+            bankName: 'Ngân hàng mẫu',
+            accountNumber: '0000000000',
+            accountName: 'Studio mẫu',
+          },
+        ],
+      } as ConceptOrder);
+      render(
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/account/concept-orders/order-1',
+              search: '?payment=deposit',
+              state: { conceptDraft: { ownerId: 'client-1', packageId: 'pkg-1' } },
+            },
+          ]}
+        >
+          <Routes>
+            <Route path="/account/concept-orders/:id" element={<ConceptOrderPage />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Thanh toán cọc' })).toBeInTheDocument();
+      expect(!!screen.queryByRole('img', { name: /QR thanh toán/ })).toBe(showQr);
+      expect(screen.getByRole('link', { name: 'Quay lại kiểm tra thông tin' })).toHaveAttribute(
+        'href',
+        '/concept-booking/packages/pkg-1/book/review',
+      );
+      expect(screen.queryByRole('button', { name: /Tạo QR/ })).not.toBeInTheDocument();
+      expect(conceptService.checkout).not.toHaveBeenCalled();
+    },
+  );
+  it('keeps a one-person package fixed to one participant without a dropdown', async () => {
+    const single = structuredClone(catalog);
+    single.packages[0].maxPeople = 1;
+    single.packages[0].costumeCount = 1;
+    vi.mocked(conceptService.catalog).mockResolvedValue(single);
+    sessionStorage.setItem(
+      CONCEPT_DRAFT_KEY,
+      JSON.stringify({
+        ownerId: 'client-1',
+        packageId: 'pkg-1',
+        step: 4,
+        startAt: '2026-11-14T10:00:00.000Z',
+        photographerId: 'photo-1',
+        people: 2,
+        costumes: [],
+        wardrobeMeasurements: [
+          { size: 'M', heightCm: 165, weightKg: 55 },
+          { size: 'L', heightCm: 175, weightKg: 70 },
+        ],
+      }),
+    );
+    renderWizard('/concept-booking/packages/pkg-1/book/costumes');
+    await screen.findByRole('heading', { name: 'Thông tin buổi chụp' });
+    await waitFor(() =>
+      expect(screen.queryByLabelText('Số người tham gia')).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText('1 người', { exact: true })).toBeInTheDocument();
+    expect(screen.getByLabelText('Size người 1')).toHaveValue('M');
+    expect(screen.queryByLabelText('Size người 2')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(JSON.parse(sessionStorage.getItem(CONCEPT_DRAFT_KEY) || '{}')).toMatchObject({
+        people: 1,
+        wardrobeMeasurements: [{ size: 'M', heightCm: 165, weightKg: 55 }],
+      }),
+    );
+  });
+  it('opens old brief links in the merged form and restores all fields on reload', async () => {
+    sessionStorage.setItem(
+      CONCEPT_DRAFT_KEY,
+      JSON.stringify({
+        ownerId: 'client-1',
+        packageId: 'pkg-1',
+        step: 5,
+        startAt: '2026-11-14T10:00:00.000Z',
+        photographerId: 'photo-1',
+        costumes: [],
+        contactName: 'Mai Anh',
+        phone: '0912345678',
+        people: 2,
+        brief: 'Ánh sáng dịu, tông màu ấm.',
+        referencesText: 'https://example.com/style.jpg',
+      }),
+    );
+    const first = renderWizard('/concept-booking/packages/pkg-1/book/brief');
+    await screen.findByRole('heading', { name: 'Thông tin buổi chụp' });
+    expect(screen.getByRole('link', { name: 'Quay lại chọn thợ' })).toHaveAttribute(
+      'href',
+      '/concept-booking/packages/pkg-1/book/photographer',
+    );
+    expect(screen.getByText(/Gói sử dụng trang phục cá nhân/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Size người 1')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Số người tham gia')).toHaveValue('2');
+    fireEvent.change(screen.getByLabelText('Ý tưởng và yêu cầu'), {
+      target: { value: 'Thêm ảnh tự nhiên.' },
+    });
+    await waitFor(() =>
+      expect(JSON.parse(sessionStorage.getItem(CONCEPT_DRAFT_KEY) || '{}').brief).toBe(
+        'Thêm ảnh tự nhiên.',
+      ),
+    );
+    first.unmount();
+    renderWizard('/concept-booking/packages/pkg-1/book/costumes');
+    expect(await screen.findByLabelText('Họ tên liên hệ')).toHaveValue('Mai Anh');
+    expect(screen.getByLabelText('Số điện thoại')).toHaveValue('0912345678');
+    expect(screen.getByLabelText('Ý tưởng và yêu cầu')).toHaveValue('Thêm ảnh tự nhiên.');
+    expect(screen.getByLabelText(/^Link ảnh mẫu/)).toHaveValue('https://example.com/style.jpg');
+    expect(screen.getAllByRole('button', { name: 'Tiếp tục' })).toHaveLength(1);
+    expect(conceptService.costumes).not.toHaveBeenCalled();
+    expect(conceptService.checkout).not.toHaveBeenCalled();
+  });
+  it('returns a direct review link with invalid contact details to the merged form', async () => {
+    sessionStorage.setItem(
+      CONCEPT_DRAFT_KEY,
+      JSON.stringify({
+        ownerId: 'client-1',
+        packageId: 'pkg-1',
+        step: 6,
+        startAt: '2026-11-14T10:00:00.000Z',
+        photographerId: 'photo-1',
+        costumes: [],
+        contactName: 'Mai Anh',
+        phone: '123',
+        people: 1,
+      }),
+    );
+    renderWizard('/concept-booking/packages/pkg-1/book/review');
+    await screen.findByRole('heading', { name: 'Thông tin buổi chụp' });
+    expect(screen.queryByRole('button', { name: 'Tiếp theo' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
+    await screen.findByText('Kiểm tra họ tên, số điện thoại và số người.');
+    expect(conceptService.checkout).not.toHaveBeenCalled();
+  });
   it('collects size, height and weight per person and submits them without catalog choices', async () => {
     const included = structuredClone(catalog);
     included.packages[0].costumeCount = 2;
@@ -190,7 +363,7 @@ describe('concept booking contract', () => {
       }),
     );
     renderWizard('/concept-booking/packages/pkg-1/book/costumes');
-    await screen.findByRole('heading', { name: 'Thông tin trang phục' });
+    await screen.findByRole('heading', { name: 'Thông tin buổi chụp' });
     expect(screen.queryByRole('link', { name: 'Quay lại chi tiết gói' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Quay lại chọn thợ' })).toHaveAttribute(
       'href',
@@ -201,6 +374,7 @@ describe('concept booking contract', () => {
     ).not.toBeNull();
     expect(screen.queryByRole('button', { name: 'Quay lại' })).not.toBeInTheDocument();
     expect(conceptService.costumes).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Số người tham gia')).toHaveValue('1');
     fireEvent.change(screen.getByLabelText('Số người tham gia'), { target: { value: '2' } });
     fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
     await screen.findByText('Điền size, chiều cao và cân nặng cho từng người.');
@@ -215,26 +389,26 @@ describe('concept booking contract', () => {
       fireEvent.change(screen.getByLabelText(`Cân nặng người ${i}`), { target: { value: weight } });
     }
     fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
-    await screen.findByRole('heading', { name: 'Brief cho buổi chụp' });
-    const back = screen.getByRole('link', { name: 'Quay lại thông tin trang phục' });
-    expect(back).toHaveAttribute('href', '/concept-booking/packages/pkg-1/book/costumes');
-    fireEvent.click(back);
-    expect(await screen.findByLabelText('Size người 1')).toHaveValue('M');
-    expect(screen.getByLabelText('Cân nặng người 2')).toHaveValue(70);
-    fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
+    await screen.findByText('Kiểm tra họ tên, số điện thoại và số người.');
     fireEvent.change(screen.getByLabelText('Họ tên liên hệ'), { target: { value: 'Khách An' } });
     fireEvent.change(screen.getByLabelText('Số điện thoại'), { target: { value: '0901234567' } });
     fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
     await screen.findByRole('heading', { name: 'Kiểm tra trước khi đặt cọc' });
     expect(screen.getByRole('link', { name: 'Quay lại thông tin buổi chụp' })).toHaveAttribute(
       'href',
-      '/concept-booking/packages/pkg-1/book/brief',
+      '/concept-booking/packages/pkg-1/book/costumes',
     );
     expect(screen.getByText('Người 1 · Size M · 165.5 cm · 55.2 kg')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('link', { name: 'Quay lại thông tin buổi chụp' }));
+    expect(await screen.findByLabelText('Size người 1')).toHaveValue('M');
+    expect(screen.getByLabelText('Cân nặng người 2')).toHaveValue(70);
+    expect(screen.getByLabelText('Họ tên liên hệ')).toHaveValue('Khách An');
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
+    await screen.findByRole('heading', { name: 'Kiểm tra trước khi đặt cọc' });
     vi.mocked(conceptService.checkout).mockResolvedValue({ _id: 'new-order' } as ConceptOrder);
     fireEvent.click(screen.getByRole('checkbox', { name: /Tôi đồng ý/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Tạo QR cọc 30%' }));
-    await screen.findByText('Hồ sơ mới');
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp theo' }));
+    await screen.findByText('Thanh toán cọc mới');
     expect(vi.mocked(conceptService.checkout).mock.calls[0][0]).toMatchObject({
       people: 2,
       costumes: [],
@@ -261,7 +435,7 @@ describe('concept booking contract', () => {
       }),
     );
     renderWizard('/concept-booking/packages/pkg-1/book/review');
-    await screen.findByRole('heading', { name: 'Thông tin trang phục' });
+    await screen.findByRole('heading', { name: 'Thông tin buổi chụp' });
     expect(
       screen.queryByRole('heading', { name: 'Kiểm tra trước khi đặt cọc' }),
     ).not.toBeInTheDocument();
@@ -411,8 +585,10 @@ describe('concept booking contract', () => {
     renderWizard();
     await fillWizard();
     expect(conceptService.checkout).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /Tạo QR/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /QR/ })).not.toBeInTheDocument();
     expect(sessionStorage.getItem(CONCEPT_DRAFT_KEY)).toContain('Khách An');
-    expect(screen.getByRole('button', { name: 'Tạo QR cọc 30%' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Tiếp theo' })).toBeDisabled();
   });
   it('preserves the draft but blocks QR creation for an unverified account', async () => {
     auth.user = { _id: 'client-1', roles: [6] };
@@ -422,7 +598,7 @@ describe('concept booking contract', () => {
       'href',
       '/account/profile',
     );
-    expect(screen.queryByRole('button', { name: 'Tạo QR cọc 30%' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Tiếp theo' })).not.toBeInTheDocument();
     expect(conceptService.checkout).not.toHaveBeenCalled();
   });
   it('submits the agreed package version without trusting client prices and reuses retry identity', async () => {
@@ -432,10 +608,10 @@ describe('concept booking contract', () => {
     renderWizard();
     await fillWizard();
     fireEvent.click(screen.getByRole('checkbox'));
-    fireEvent.click(screen.getByRole('button', { name: 'Tạo QR cọc 30%' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp theo' }));
     await screen.findByRole('alert');
-    fireEvent.click(screen.getByRole('button', { name: 'Tạo QR cọc 30%' }));
-    await screen.findByText('Hồ sơ mới');
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp theo' }));
+    await screen.findByText('Thanh toán cọc mới');
     const [first, second] = vi.mocked(conceptService.checkout).mock.calls;
     expect(first[1]).toEqual(second[1]);
     expect(first[0]).toMatchObject({

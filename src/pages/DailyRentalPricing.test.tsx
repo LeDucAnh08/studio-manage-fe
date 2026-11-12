@@ -151,6 +151,7 @@ beforeEach(() => {
   mocks.policy.mockResolvedValue({
     version: 'rental-auto-v1',
     holdMinutes: 15,
+    depositPercent: 30,
     maxPending: 2,
     leadHours: 24,
     turnaroundDays: 1,
@@ -163,14 +164,19 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe('date-first daily rental form', () => {
-  it('blocks checkout when security deposit has not been configured', async () => {
+  it('uses a 30% advance and permits checkout without the old per-item security deposit', async () => {
     mocks.catalog.mockResolvedValue([{ ...item, rentalSecurityDeposit: null }]);
     renderNew(path);
     await choose();
     fireEvent.click(screen.getByRole('button', { name: 'Xem lại yêu cầu thuê' }));
-    await screen.findByText('Mẫu chưa cấu hình đủ giá/ngày hoặc cọc. Vui lòng liên hệ studio.');
+    expect(
+      within(screen.getByRole('complementary', { name: 'Tóm tắt kỳ thuê' })).getByText(
+        /Cọc trước 30%:/,
+      ),
+    ).toHaveTextContent('90.000');
+    expect(screen.getByText(/Còn thanh toán trước khi nhận đồ:/)).toHaveTextContent('210.000');
     fireEvent.click(await screen.findByRole('checkbox', { name: /Tôi đã đọc/ }));
-    expect(screen.getByRole('button', { name: 'Đặt thuê và thanh toán cọc' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Đặt thuê và thanh toán cọc' })).toBeEnabled();
     expect(mocks.create).not.toHaveBeenCalled();
   });
   it('consumes an add-item selection once, including another size of an existing model', async () => {
@@ -244,7 +250,9 @@ describe('date-first daily rental form', () => {
       if (authenticated) {
         await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
         await waitFor(() =>
-          expect(screen.getByTestId('location')).toHaveTextContent('/account/rentals/rental-1'),
+          expect(screen.getByTestId('location')).toHaveTextContent(
+            '/account/rentals/rental-1?payment=deposit',
+          ),
         );
       } else {
         expect(mocks.create).not.toHaveBeenCalled();
@@ -564,6 +572,25 @@ describe('date-first daily rental form', () => {
 });
 
 describe('automatic paid rental terms', () => {
+  it('presents the advance as part of the rental fee and shows the remaining 70%', async () => {
+    const record = orderFixture();
+    record.autoCheckout = true;
+    record.status = 'confirmed';
+    Object.assign(record.quote!, {
+      depositKind: 'advance',
+      depositPercent: 30,
+      deposit: 90000,
+      acceptedAt: receive,
+    });
+    record.payment = { netReceived: 90000, payable: 300000, due: 210000, refundDue: 0 };
+    renderDetail(record);
+    await screen.findByRole('heading', { name: 'Thanh toán tiền thuê' });
+    expect(screen.getByText(/Cọc trước 30%:/)).toHaveTextContent('90.000');
+    expect(screen.getByText(/Còn thu:/)).toHaveTextContent('210.000');
+    expect(screen.getByText(/Cọc trước được trừ vào tiền thuê/)).toBeInTheDocument();
+    expect(screen.queryByText(/Cọc bảo đảm được đối soát sau nhận trả/)).not.toBeInTheDocument();
+  });
+
   it('records cash consistently and directs bank collections to receipt reconciliation', async () => {
     mocks.auth.user = { _id: 'finance-1', roles: [5] };
     const record = orderFixture();

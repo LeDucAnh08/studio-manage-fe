@@ -5,6 +5,7 @@ import {
   type BookingWorkflowDto,
 } from '@/services/bookingWorkflowService';
 import { CustomerOrderProgress } from './CustomerOrdersWorkspace';
+import { useCurrentTime } from './useCurrentTime';
 import '../../styles/customer-orders-workspace.css';
 
 const stages = [
@@ -12,13 +13,21 @@ const stages = [
   'awaiting_confirmation',
   'confirmed',
   'active',
+  'editing',
   'delivered',
   'completed',
 ] as const;
 
 export function BookingOrderProgress({ record }: { record: BookingWorkflowDto }) {
+  const now = useCurrentTime();
   const { booking, workflow } = record;
-  const stage = getBookingOrderStage(booking.status, workflow.lifecycle, workflow.orderStage);
+  const stage = getBookingOrderStage(
+    booking.status,
+    workflow.lifecycle,
+    workflow.orderStage,
+    workflow.shootWindow,
+    now,
+  );
   const terminal = stage === 'cancelled' || stage === 'rejected';
   const current = stages.findIndex((value) => value === stage);
   const eventAt = (...actions: string[]) =>
@@ -27,9 +36,11 @@ export function BookingOrderProgress({ record }: { record: BookingWorkflowDto })
       .sort((a, b) => Date.parse(a.at) - Date.parse(b.at))[0]?.at;
   const reached = terminal
     ? workflow.progress?.deliveredAt
-      ? 4
+      ? 5
       : workflow.progress && workflow.progress.status !== 'not_started'
-        ? 3
+        ? workflow.progress.status === 'editing'
+          ? 4
+          : 3
         : workflow.resources?.scheduleId || eventAt('resources.confirm', 'resources.confirmed')
           ? 2
           : workflow.quote
@@ -42,7 +53,9 @@ export function BookingOrderProgress({ record }: { record: BookingWorkflowDto })
       workflow.quote?.proposedAt ||
       (booking.status === 'approved' ? booking.reviewedAt : undefined),
     eventAt('resources.confirm', 'resources.confirmed'),
-    eventAt('progress.update'),
+    workflow.shootWindow?.startAt || eventAt('progress.update'),
+    workflow.shootWindow?.endAt ||
+      (workflow.progress?.status === 'editing' ? eventAt('progress.update') : undefined),
     workflow.progress?.deliveredAt,
     eventAt('workflow.completed'),
   ];
@@ -54,10 +67,11 @@ export function BookingOrderProgress({ record }: { record: BookingWorkflowDto })
         : 'Hoàn tất tiền cọc và xác nhận lịch với studio.',
     confirmed:
       'Ekip và lịch chụp đã được xác nhận. Hoàn thiện danh sách thành viên trước buổi chụp.',
-    active:
-      workflow.lifecycle === 'change_pending'
-        ? 'Studio đang xử lý yêu cầu thay đổi.'
-        : bookingWorkflowLabels[workflow.lifecycle],
+    active: 'Đang trong khung giờ chụp đã xác nhận của hồ sơ.',
+    editing:
+      workflow.lifecycle === 'revision_requested'
+        ? bookingWorkflowLabels.revision_requested
+        : 'Buổi chụp đã kết thúc. Studio đang chuẩn bị và xử lý ảnh để bàn giao.',
     delivered:
       workflow.lifecycle === 'accepted'
         ? 'Bạn đã xác nhận ảnh đạt yêu cầu. Hoàn tất các khoản thanh toán còn lại.'

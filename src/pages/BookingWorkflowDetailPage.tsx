@@ -21,8 +21,10 @@ import { useCustomerAppearance } from '../components/customer/CustomerAppearance
 import { CustomerPrice } from '../components/customer/CustomerPrice';
 import { CustomerPriceBreakdown } from '../components/customer/CustomerPriceBreakdown';
 import { BookingOrderProgress } from '../components/customer/BookingOrderProgress';
+import { useCurrentTime } from '../components/customer/useCurrentTime';
 import { CustomerBookingIntake } from '../components/customer/CustomerBookingIntake';
 import { DepositPaymentPanel } from '../components/customer/DepositPaymentPanel';
+import { DepositCheckout } from '../components/customer/DepositCheckout';
 import { BookingCostumeDetails } from '../components/customer/BookingCostumeDetails';
 import '../styles/customer-orders.css';
 import { useAuth } from '../context/AuthContext';
@@ -248,6 +250,7 @@ function PaymentInstructionsPanel({ instructions }: { instructions: PaymentInstr
 }
 
 export default function BookingWorkflowDetailPage() {
+  const now = useCurrentTime();
   const location = useLocation();
   const customer = useCustomerAppearance();
   const { id = '' } = useParams();
@@ -344,7 +347,11 @@ export default function BookingWorkflowDetailPage() {
           setRecord((current) =>
             current?.workflow.version === updated.workflow.version &&
             current.booking.status === updated.booking.status &&
-            current.workflow.depositPayment?.status === updated.workflow.depositPayment?.status
+            current.workflow.depositPayment?.status === updated.workflow.depositPayment?.status &&
+            current.workflow.depositPayment?.amount === updated.workflow.depositPayment?.amount &&
+            current.workflow.depositPayment?.expiresAt ===
+              updated.workflow.depositPayment?.expiresAt &&
+            current.workflow.depositPayment?.qrUrl === updated.workflow.depositPayment?.qrUrl
               ? current
               : updated,
           );
@@ -848,6 +855,73 @@ export default function BookingWorkflowDetailPage() {
   const quoteLinesExist = quoteLines.length > 0;
   const scheduleReleased = workflow.lifecycle === 'cancelled';
 
+  if (isClient && new URLSearchParams(location.search).get('payment') === 'deposit') {
+    const total = workflow.quote?.total ?? booking.packageAgreement?.total ?? 0;
+    const deposit =
+      workflow.quote?.depositRequired ?? booking.packageAgreement?.depositRequired ?? 0;
+    const schedule = workflow.resources?.scheduleDetails || workflow.quote?.proposedSchedule;
+    const paid = !!workflow.resources?.scheduleId && effectivePayment.netReceived >= deposit;
+    return (
+      <DepositCheckout
+        service="yearbook"
+        orderId={booking._id}
+        title={booking.packageName}
+        description={[booking.className, `${booking.members} thành viên`]
+          .filter(Boolean)
+          .join(' · ')}
+        fields={[
+          [
+            workflow.resources?.scheduleId ? 'Ngày chụp' : 'Ngày chụp dự kiến',
+            formatDateOnly(schedule?.shootDate || booking.startAt),
+          ],
+          [
+            'Khung giờ',
+            schedule?.startTime
+              ? `${schedule.startTime}–${schedule.endTime || ''}`
+              : `${vnTimeInput(booking.startAt)}–${vnTimeInput(booking.endAt)}`,
+          ],
+          ['Địa điểm', schedule?.location || booking.location],
+          ['Người liên hệ', booking.contactName || booking.className || 'Đại diện lớp'],
+        ]}
+        total={total}
+        totalLabel="Tổng giá gói"
+        deposit={deposit}
+        depositNote={
+          booking.packageAgreement
+            ? `Cọc trước ${booking.packageAgreement.depositPercent}% · Được trừ vào giá gói`
+            : 'Tiền cọc theo báo giá đã lưu'
+        }
+        remaining={Math.max(0, total - deposit)}
+        remainingNote="Thanh toán theo tiến độ trong hồ sơ đơn."
+        confirmation={
+          paid
+            ? 'Lịch chụp đã được xác nhận. Theo dõi tiến độ trong hồ sơ đơn.'
+            : booking.packageAgreement
+              ? 'Lịch chụp được xác nhận khi hệ thống nhận đủ cọc trong hạn.'
+              : 'Tiền cọc được ghi nhận tự động. Studio chốt lịch theo hồ sơ đơn.'
+        }
+        payment={workflow.depositPayment}
+        deadline={workflow.packageReservation?.expiresAt}
+        state={
+          ['cancelled', 'rejected'].includes(booking.status) || scheduleReleased
+            ? 'cancelled'
+            : paid
+              ? 'paid'
+              : undefined
+        }
+        backTo={`/account/bookings/${id}`}
+        backLabel="Quay lại thông tin đơn"
+        backState={{ ordersReturnTo: backPath }}
+        profileTo={`/account/bookings/${id}`}
+        profileState={{ ordersReturnTo: backPath }}
+        restartTo="/account/bookings/new"
+        error={error || paymentRefreshError}
+        loading={!!busy}
+        onReload={() => void load()}
+      />
+    );
+  }
+
   if (
     customer &&
     isClient &&
@@ -948,7 +1022,13 @@ export default function BookingWorkflowDetailPage() {
                   : 'inline-flex rounded-full bg-primary/10 px-3 py-1 text-sm font-medium'
               }
             >
-              {bookingOrderStatusLabel(booking.status, workflow.lifecycle, workflow.orderStage)}
+              {bookingOrderStatusLabel(
+                booking.status,
+                workflow.lifecycle,
+                workflow.orderStage,
+                workflow.shootWindow,
+                now,
+              )}
             </span>
             <p className={customer ? 'customer-caption' : 'text-xs text-muted-foreground'}>
               Phiên bản hồ sơ {workflow.version}
@@ -1087,9 +1167,25 @@ export default function BookingWorkflowDetailPage() {
             </div>
           )}
       </BookingPhotographer>
-      {canSeeFinancials && booking.status === 'approved' && workflow.depositPayment && (
-        <DepositPaymentPanel payment={workflow.depositPayment} />
-      )}
+      {canSeeFinancials &&
+        booking.status === 'approved' &&
+        workflow.depositPayment &&
+        (isClient ? (
+          <section className="customer-order-surface">
+            <Button asChild>
+              <Link
+                to={`/account/bookings/${id}?payment=deposit`}
+                state={{ ordersReturnTo: backPath }}
+              >
+                {workflow.depositPayment.status === 'pending'
+                  ? 'Thanh toán tiền cọc'
+                  : 'Xem thanh toán cọc'}
+              </Link>
+            </Button>
+          </section>
+        ) : (
+          <DepositPaymentPanel payment={workflow.depositPayment} />
+        ))}
       {paymentRefreshError && (
         <p role="status" className="customer-order-notice">
           {paymentRefreshError}

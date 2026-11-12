@@ -24,6 +24,17 @@
   gap: 24px;
   min-width: 0;
 }
+.customer-concept-payment {
+  margin-bottom: 24px;
+}
+.customer-concept-payment > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
 .customer-orders-workspace__muted {
   color: var(--customer-muted);
 }
