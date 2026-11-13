@@ -9,7 +9,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { bookingDraftFromOrder, writeBookingDraft } from '../services/bookingDraft';
 import { toast } from 'react-toastify';
 import {
   OrderButton as Button,
@@ -250,6 +251,7 @@ function PaymentInstructionsPanel({ instructions }: { instructions: PaymentInstr
 }
 
 export default function BookingWorkflowDetailPage() {
+  const navigate = useNavigate();
   const now = useCurrentTime();
   const location = useLocation();
   const customer = useCustomerAppearance();
@@ -401,7 +403,10 @@ export default function BookingWorkflowDetailPage() {
       ? ordersReturnTo
       : '/account/orders?tab=bookings'
     : typeof staffReturnTo === 'string' &&
-        (staffReturnTo === '/workflow-bookings' || staffReturnTo.startsWith('/workflow-bookings?'))
+        (staffReturnTo === '/' ||
+          staffReturnTo.startsWith('/?') ||
+          staffReturnTo === '/workflow-bookings' ||
+          staffReturnTo.startsWith('/workflow-bookings?'))
       ? staffReturnTo
       : '/workflow-bookings';
   const effectivePayment = {
@@ -915,6 +920,15 @@ export default function BookingWorkflowDetailPage() {
         profileTo={`/account/bookings/${id}`}
         profileState={{ ordersReturnTo: backPath }}
         restartTo="/account/bookings/new"
+        onRestart={
+          user
+            ? () => {
+                const bookingDraft = bookingDraftFromOrder(record, user._id);
+                writeBookingDraft(bookingDraft);
+                navigate('/account/bookings/new', { state: { bookingDraft } });
+              }
+            : undefined
+        }
         error={error || paymentRefreshError}
         loading={!!busy}
         onReload={() => void load()}

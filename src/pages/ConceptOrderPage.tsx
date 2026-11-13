@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { DepositCheckout } from '../components/customer/DepositCheckout';
-import { conceptBookingPath, type ConceptDraft } from '../services/conceptDraft';
+import {
+  conceptBookingPath,
+  conceptDraftFromOrder,
+  writeConceptDraft,
+  type ConceptDraft,
+} from '../services/conceptDraft';
 import '../styles/concept-review.css';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -33,11 +38,13 @@ import {
 } from '../components/customer/CustomerOrderControls';
 import '../styles/customer-orders.css';
 import '../styles/concept-order-detail.css';
+import { isPersonalPhotographer } from '../utils/staffRole';
 
 export default function ConceptOrderPage() {
   const customer = useCustomerAppearance();
   const { id = '' } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const ordersReturnTo = location.state?.ordersReturnTo;
   const ordersPath =
     typeof ordersReturnTo === 'string' &&
@@ -46,6 +53,15 @@ export default function ConceptOrderPage() {
       : '/account/orders?tab=concepts';
   const depositOnly = new URLSearchParams(location.search).get('payment') === 'deposit';
   const { user } = useAuth();
+  const staffReturnTo = location.state?.bookingOrdersReturnTo;
+  const staffOrdersPath =
+    typeof staffReturnTo === 'string' &&
+    (staffReturnTo === '/' ||
+      staffReturnTo.startsWith('/?') ||
+      staffReturnTo === '/workflow-bookings' ||
+      staffReturnTo.startsWith('/workflow-bookings?'))
+      ? staffReturnTo
+      : '/workflow-bookings?service=concept';
   const now = usePaymentClock();
   const [order, setOrder] = useState<ConceptOrder | null>(null),
     [error, setError] = useState(''),
@@ -315,6 +331,15 @@ export default function ConceptOrderPage() {
         profileTo={`/account/concept-orders/${id}`}
         profileState={{ ordersReturnTo: ordersPath }}
         restartTo={conceptBookingPath(order.package)}
+        onRestart={
+          user
+            ? () => {
+                const conceptDraft = conceptDraftFromOrder(order, user._id);
+                writeConceptDraft(conceptDraft);
+                navigate(conceptBookingPath(order.package, 'review'), { state: { conceptDraft } });
+              }
+            : undefined
+        }
         error={error}
         loading={busy}
         onReload={() => void load().catch((e) => setError(conceptError(e)))}
@@ -337,7 +362,13 @@ export default function ConceptOrderPage() {
               ? 'app-back-link customer-back-link inline-flex items-center gap-2'
               : 'app-back-link'
           }
-          to={order.isOwner ? ordersPath : '/concept-orders'}
+          to={
+            order.isOwner
+              ? ordersPath
+              : isPersonalPhotographer(user)
+                ? staffOrdersPath
+                : '/concept-orders'
+          }
         >
           <ArrowLeft size={18} aria-hidden="true" /> Quay lại danh sách
         </Link>

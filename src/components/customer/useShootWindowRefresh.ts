@@ -3,7 +3,7 @@ import type { WorkflowSummary } from '@/services/bookingWorkflowService';
 
 // Re-run server-side filters and pagination when a displayed shoot changes stage.
 export function useShootWindowRefresh(
-  items: WorkflowSummary[],
+  items: Pick<WorkflowSummary, 'shootWindow'>[],
   reload: Dispatch<SetStateAction<number>>,
 ) {
   useEffect(() => {

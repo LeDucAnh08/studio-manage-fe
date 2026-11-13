@@ -57,6 +57,7 @@ export interface DepositCheckoutProps {
   profileLabel?: string;
   profileState?: unknown;
   restartTo: string;
+  onRestart?: () => void;
   error?: string;
   notice?: string | null;
   loading?: boolean;
@@ -425,14 +426,26 @@ export function DepositCheckout(props: DepositCheckoutProps) {
                   {expired && Number.isFinite(deadline) && deadline <= now && (
                     <PaymentCountdown expiresAt={new Date(deadline).toISOString()} now={now} />
                   )}
-                  <Link
-                    className="deposit-button is-primary"
-                    to={paid || reviewing ? props.profileTo : props.restartTo}
-                    state={paid || reviewing ? props.profileState : undefined}
-                  >
-                    {paid || reviewing ? props.profileLabel || 'Xem hồ sơ đơn' : 'Đặt lại dịch vụ'}
-                    <ArrowRight size={17} />
-                  </Link>
+                  {!paid && !reviewing && props.onRestart ? (
+                    <button
+                      type="button"
+                      className="deposit-button is-primary"
+                      onClick={props.onRestart}
+                    >
+                      Đặt lại dịch vụ <ArrowRight size={17} />
+                    </button>
+                  ) : (
+                    <Link
+                      className="deposit-button is-primary"
+                      to={paid || reviewing ? props.profileTo : props.restartTo}
+                      state={paid || reviewing ? props.profileState : undefined}
+                    >
+                      {paid || reviewing
+                        ? props.profileLabel || 'Xem hồ sơ đơn'
+                        : 'Đặt lại dịch vụ'}
+                      <ArrowRight size={17} />
+                    </Link>
+                  )}
                 </div>
               )}
             </section>

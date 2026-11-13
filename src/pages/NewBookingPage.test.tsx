@@ -3,7 +3,12 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { packageService } from '../services/packageService';
 import { bookingService } from '../services/bookingService';
-import { BOOKING_DRAFT_KEY, createBookingDraft, readBookingDraft } from '../services/bookingDraft';
+import {
+  BOOKING_DRAFT_KEY,
+  createBookingDraft,
+  readBookingDraft,
+  writeBookingDraft,
+} from '../services/bookingDraft';
 import { NewBookingPage } from './BookingsPage';
 
 const { auth } = vi.hoisted(() => ({
@@ -113,6 +118,65 @@ async function reviewRequest() {
 }
 
 describe('NewBookingPage', () => {
+  it('restores a yearbook review and keeps later edits instead of replaying stale history state', async () => {
+    const window = futureWindow();
+    const bookingDraft = {
+      ...createBookingDraft('client-1'),
+      restorationId: 'restore-yearbook',
+      step: 4 as const,
+      packageId: 'package-1',
+      className: '12A1',
+      school: 'Trường A',
+      contactName: 'Đại diện lớp',
+      phone: '0901234567',
+      members: '1',
+      startAt: window.start,
+      endAt: window.end,
+      location: 'Sân trường',
+      note: 'Nội dung từ đơn cũ',
+      students: [
+        {
+          name: 'Nguyễn An',
+          phone: '0912345678',
+          height: '165',
+          weight: '50',
+          pantsSize: '28',
+          shirtSize: 'M',
+          notes: 'Lưu ý',
+        },
+      ],
+    };
+    const open = () =>
+      render(
+        <MemoryRouter
+          initialEntries={[{ pathname: '/account/bookings/new', state: { bookingDraft } }]}
+        >
+          <NewBookingPage />
+        </MemoryRouter>,
+      );
+    let page = open();
+    expect(
+      await screen.findByRole('heading', { name: 'Kiểm tra trước khi gửi' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Nội dung từ đơn cũ')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Tôi đồng ý giá gói/ })).not.toBeChecked();
+    expect(readBookingDraft()?.students[0]).toMatchObject({
+      name: 'Nguyễn An',
+      height: '165',
+      shirtSize: 'M',
+    });
+    expect(bookingService.create).not.toHaveBeenCalled();
+    writeBookingDraft({
+      ...readBookingDraft()!,
+      note: 'Đã sửa sau khi khôi phục',
+      idempotencyKey: 'fresh-retry-key',
+    });
+    page.unmount();
+    page = open();
+    expect(await screen.findByText('Đã sửa sau khi khôi phục')).toBeInTheDocument();
+    expect(readBookingDraft()?.idempotencyKey).toBe('fresh-retry-key');
+    page.unmount();
+  });
   it.each([
     ['full_day', '19:00'],
     ['half_day', '13:00'],

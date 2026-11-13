@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Check } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import PublicSiteLayout from '../components/Layout/PublicSiteLayout';
-import { CustomerImage } from '../components/customer/CustomerImage';
+import PhotographerPortfolio from '../components/PhotographerPortfolio';
 import { useAuth } from '../context/AuthContext';
 import { useConceptCatalog } from '../hooks/useConceptCatalog';
 import { conceptError, conceptService, type PublicPhotographer } from '../services/conceptService';
@@ -138,48 +138,9 @@ export default function ConceptPhotographerPage() {
         {!profile && !error && <p role="status">Đang tải hồ sơ thợ…</p>}
         {profile && (
           <>
-            <header
-              className={`photographer-hero${!profile.portraitUrl ? ' photographer-hero--text' : ''}`}
-            >
-              {profile.portraitUrl && (
-                <CustomerImage
-                  src={profile.portraitUrl}
-                  alt={`Chân dung ${profile.name}`}
-                  width={340}
-                  height={440}
-                  priority
-                />
-              )}
-              <div className="photographer-identity">
-                <p className="photographer-eyebrow">Nhiếp ảnh gia tại Yume Studio</p>
-                <h1>{profile.name}</h1>
-                {(profile.title || profile.concepts.length > 0) && (
-                  <p className="photographer-role">
-                    {profile.title || profile.concepts.map((c) => c.name).join(' · ')}
-                  </p>
-                )}
-                {profile.tagline && <h2>{profile.tagline}</h2>}
-                {(profile.story || profile.bio) && (
-                  <div className="photographer-prose">
-                    {(profile.story || profile.bio || '').split(/\n\s*\n/).map((paragraph, i) => (
-                      <p key={i}>{paragraph}</p>
-                    ))}
-                  </div>
-                )}
-                <dl className="photographer-facts">
-                  {[
-                    { label: 'Sở trường', value: profile.specialty },
-                    { label: 'Phong cách', value: profile.style },
-                    { label: 'Cách hướng dẫn', value: profile.guidance },
-                  ]
-                    .filter((item) => item.value?.trim())
-                    .map((item) => (
-                      <div key={item.label}>
-                        <dt>{item.label}</dt>
-                        <dd>{item.value}</dd>
-                      </div>
-                    ))}
-                </dl>
+            <PhotographerPortfolio
+              profile={profile}
+              actions={
                 <div className="photographer-select">
                   <button
                     disabled={!pkg || availability !== 'available' || choosing || !!error}
@@ -221,75 +182,8 @@ export default function ConceptPhotographerPage() {
                     </div>
                   )}
                 </div>
-              </div>
-            </header>
-            {(profile.philosophy || !!profile.approach?.length) && (
-              <section className="photographer-section photographer-working">
-                {profile.philosophy && (
-                  <div>
-                    <h2>Điều tôi chú trọng</h2>
-                    <p className="photographer-prose">{profile.philosophy}</p>
-                  </div>
-                )}
-                {!!profile.approach?.length && (
-                  <div>
-                    <h2>Buổi chụp cùng tôi</h2>
-                    {profile.approach.map((item, i) => (
-                      <article key={i}>
-                        <h3>{item.title}</h3>
-                        {item.description && <p>{item.description}</p>}
-                      </article>
-                    ))}
-                  </div>
-                )}
-              </section>
-            )}
-            {!!profile.audience?.length && (
-              <section className="photographer-section">
-                <h2>Phù hợp nếu bạn…</h2>
-                <div className="photographer-audience">
-                  {profile.audience.map((item, i) => (
-                    <article key={i}>
-                      <h3>{item.title}</h3>
-                      {item.description && <p>{item.description}</p>}
-                    </article>
-                  ))}
-                </div>
-              </section>
-            )}
-            {!!profile.milestones?.length && (
-              <section className="photographer-section">
-                <h2>Dấu mốc &amp; kinh nghiệm</h2>
-                <div className="photographer-audience">
-                  {profile.milestones.map((item, i) => (
-                    <article key={i}>
-                      <h3>{item.title}</h3>
-                      <p>{item.description}</p>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            )}
-            {!!profile.portfolio.length && (
-              <section className="photographer-section">
-                <h2>Một số bộ ảnh tiêu biểu</h2>
-                <p className="photographer-section-intro">
-                  Góc nhìn thể hiện qua ánh sáng, bố cục và biểu cảm.
-                </p>
-                <div className="photographer-work-grid">
-                  {profile.portfolio.map((photo, i) => (
-                    <figure key={`${photo.url}-${i}`}>
-                      <CustomerImage
-                        src={photo.url}
-                        alt={photo.caption || `Tác phẩm của ${profile.name}`}
-                        width={400}
-                        height={230}
-                      />
-                    </figure>
-                  ))}
-                </div>
-              </section>
-            )}
+              }
+            />
             {pkg && startAt && (
               <footer className="photographer-booking-recap">
                 <strong>Buổi chụp của bạn</strong>

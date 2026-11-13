@@ -1,4 +1,5 @@
 import type { User } from '../types';
+import type { BookingWorkflowDto } from './bookingWorkflowService';
 
 export const BOOKING_DRAFT_KEY = 'yume.booking-draft.v4';
 const LEGACY_BOOKING_DRAFT_KEYS = [
@@ -37,6 +38,7 @@ export interface BookingDraft {
   idempotencyKey: string;
   submissionFingerprint?: string;
   packageConsentKey?: string;
+  restorationId?: string;
   step: 1 | 2 | 3 | 4;
   source: string;
   concept: string;
@@ -83,6 +85,52 @@ export const createBookingDraft = (ownerId: string | null = null): BookingDraft 
   location: '',
   note: '',
 });
+
+const vietnamDateTime = (value: string) => {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return '';
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value || '';
+  return `${part('year')}-${part('month')}-${part('day')}T${part('hour')}:${part('minute')}`;
+};
+export const bookingDraftFromOrder = (
+  record: BookingWorkflowDto,
+  ownerId: string,
+): BookingDraft => {
+  const draft = createBookingDraft(ownerId);
+  return {
+    ...draft,
+    restorationId: draft.idempotencyKey,
+    step: record.booking.packageId ? 4 : 1,
+    packageId: record.booking.packageId || '',
+    className: record.booking.className || '',
+    school: record.booking.school || '',
+    contactName: record.booking.contactName || '',
+    phone: record.booking.phone || '',
+    members: String(record.booking.members),
+    students: record.workflow.members.map((member) => ({
+      name: member.name,
+      phone: member.contact || '',
+      height: member.height == null ? '' : String(member.height),
+      weight: member.weight == null ? '' : String(member.weight),
+      pantsSize: member.pantsSize || '',
+      shirtSize: member.shirtSize || '',
+      notes: member.notes || '',
+    })),
+    startAt: vietnamDateTime(record.booking.startAt),
+    endAt: vietnamDateTime(record.booking.endAt),
+    location: record.booking.location,
+    note: record.booking.note || '',
+  };
+};
 
 type StoredBookingDraft = Omit<BookingDraft, 'version' | 'step' | 'members' | 'students'> & {
   version: 1 | 2 | 3 | 4;

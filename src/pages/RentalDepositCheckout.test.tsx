@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import RentalDetailPage from './RentalDetailPage';
 import { rentalService, type RentalOrder } from '../services/rentalService';
 import { CustomerAppearanceContext } from '../components/customer/CustomerAppearance';
+import { RENTAL_DRAFT_KEY } from '../services/rentalDraft';
 
 vi.mock('../context/AuthContext', () => ({
   useAuth: () => ({ user: { _id: 'client', roles: [6] } }),
@@ -84,6 +85,7 @@ async function open(order: RentalOrder, search = '?payment=deposit') {
       >
         <Routes>
           <Route path="/account/rentals/:id" element={<RentalDetailPage />} />
+          <Route path="/rental/start" element={<p>Khôi phục yêu cầu thuê</p>} />
         </Routes>
       </MemoryRouter>
     </CustomerAppearanceContext.Provider>,
@@ -98,6 +100,25 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe('direct rental deposit checkout', () => {
+  it('restores the expired order into a fresh rental review when rebooking', async () => {
+    const order = { ...fixture(), status: 'expired', note: 'Giữ đủ phụ kiện' };
+    await open(order);
+    fireEvent.click(screen.getByRole('button', { name: 'Đặt lại dịch vụ' }));
+    expect(screen.getByText('Khôi phục yêu cầu thuê')).toBeInTheDocument();
+    expect(JSON.parse(sessionStorage.getItem(RENTAL_DRAFT_KEY)!)).toMatchObject({
+      ownerId: 'client',
+      contactName: order.contactName,
+      phone: order.phone,
+      note: order.note,
+      receiveDate: '2026-11-21',
+      returnDate: '2026-11-22',
+      preview: true,
+      lines: [{ costumeId: 'costume-1', size: 'M', quantity: '3' }],
+    });
+    expect(JSON.parse(sessionStorage.getItem(RENTAL_DRAFT_KEY)!)).not.toHaveProperty(
+      'depositPayment',
+    );
+  });
   it('opens the QR and countdown directly, without approval or quote acceptance steps', async () => {
     await open(fixture());
     expect(screen.getByRole('heading', { name: 'Thanh toán tiền cọc' })).toBeInTheDocument();

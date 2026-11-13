@@ -107,8 +107,17 @@ function getInitialDraft(
   name: string | undefined,
   context: Pick<BookingDraft, 'packageId' | 'source' | 'concept' | 'itemId' | 'itemName'>,
   canResume: boolean,
+  incoming?: BookingDraft,
 ) {
-  const saved = readBookingDraft();
+  const stored = readBookingDraft();
+  const saved =
+    incoming?.ownerId === userId
+      ? stored?.ownerId === userId &&
+        stored.restorationId &&
+        stored.restorationId === incoming.restorationId
+        ? stored
+        : incoming
+      : stored;
   if (canResume && saved && (!saved.ownerId || saved.ownerId === userId)) {
     return {
       ...saved,
@@ -329,6 +338,7 @@ export default function BookingWizardPage() {
         itemName: params.get('itemName')?.slice(0, 150) || '',
       },
       !user || user.roles.includes(6),
+      location.state?.bookingDraft as BookingDraft | undefined,
     ),
   );
   const [packages, setPackages] = useState<Package[]>([]);

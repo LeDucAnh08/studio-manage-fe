@@ -1,0 +1,661 @@
+#yume-photographer-dashboard {
+  --yd-page: hsl(var(--background));
+  --yd-panel: hsl(var(--card));
+  --yd-ink: hsl(var(--foreground));
+  --yd-muted: hsl(var(--muted-foreground));
+  --yd-line: hsl(var(--border));
+  --yd-soft: hsl(var(--secondary));
+  --yd-accent: var(--staff-link);
+  --yd-tint: var(--staff-selection);
+  --yd-blue: light-dark(#397cbe, #8dbcf2);
+  --yd-blue-soft: light-dark(#ecf4fe, #24374b);
+  --yd-danger: var(--staff-danger-ink);
+  --yd-danger-soft: var(--staff-danger-bg);
+  --yd-warn: var(--staff-warning-ink);
+  --yd-warn-soft: var(--staff-warning-bg);
+  --yd-success: var(--staff-success-ink);
+  --yd-success-soft: var(--staff-success-bg);
+  font:
+    14px/1.5 Inter,
+    system-ui,
+    sans-serif;
+  color: var(--yd-ink);
+  width: 100%;
+  min-width: 0;
+}
+
+#yume-photographer-dashboard * {
+  box-sizing: border-box;
+}
+#yume-photographer-dashboard :is(h1, h2, h3, p) {
+  margin: 0;
+}
+#yume-photographer-dashboard button,
+#yume-photographer-dashboard select {
+  font: inherit;
+  color: inherit;
+  cursor: var(--cursor-interactive, pointer);
+}
+#yume-photographer-dashboard button:focus-visible,
+#yume-photographer-dashboard select:focus-visible {
+  outline: 2px solid var(--yd-accent);
+  outline-offset: 3px;
+}
+#yume-photographer-dashboard [hidden] {
+  display: none !important;
+}
+#yume-photographer-dashboard svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+#yume-photographer-dashboard select {
+  min-width: 0;
+  background: var(--yd-panel);
+  border: 1px solid var(--yd-line);
+  border-radius: 6px;
+  padding: 8px 9px;
+  font-size: 12px;
+  max-width: 100%;
+}
+#yume-photographer-dashboard .yd-header {
+  margin-bottom: 20px;
+}
+#yume-photographer-dashboard h1 {
+  font-size: 24px;
+  line-height: 1.3;
+  font-weight: 650;
+  letter-spacing: -0.6px;
+}
+#yume-photographer-dashboard .yd-subtitle {
+  font-size: 12px;
+  color: var(--yd-muted);
+  margin-top: 7px;
+}
+#yume-photographer-dashboard .yd-toolbar {
+  display: flex;
+  align-items: end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+#yume-photographer-dashboard .yd-field {
+  display: grid;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 550;
+}
+#yume-photographer-dashboard .yd-field select {
+  min-width: 150px;
+}
+#yume-photographer-dashboard .yd-today {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--yd-muted);
+  padding-bottom: 9px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#yume-photographer-dashboard #yd-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+#yume-photographer-dashboard .yd-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+#yume-photographer-dashboard .yd-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 15px 16px;
+  border: 1px solid var(--yd-line);
+  border-radius: 8px;
+  background: var(--yd-panel);
+  text-align: left;
+  min-width: 0;
+}
+#yume-photographer-dashboard .yd-stat:hover {
+  border-color: var(--yd-accent);
+  background: var(--yd-soft);
+}
+#yume-photographer-dashboard .yd-stat-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--yd-muted);
+}
+#yume-photographer-dashboard .yd-stat-value {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin-top: 10px;
+  font-size: 28px;
+  font-weight: 650;
+  letter-spacing: -0.7px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+#yume-photographer-dashboard .yd-stat-unit {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--yd-muted);
+}
+#yume-photographer-dashboard .yd-stat-note {
+  font-size: 11px;
+  color: var(--yd-muted);
+  margin-top: 8px;
+}
+#yume-photographer-dashboard .yd-stat[data-metric='overdue'] .yd-stat-value {
+  color: var(--yd-danger);
+}
+#yume-photographer-dashboard .yd-stat[data-metric='overdue'] .yd-stat-label svg {
+  color: var(--yd-danger);
+}
+#yume-photographer-dashboard .yd-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(255px, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+#yume-photographer-dashboard .yd-panel {
+  min-width: 0;
+  border: 1px solid var(--yd-line);
+  border-radius: 8px;
+  background: var(--yd-panel);
+  overflow: hidden;
+}
+#yume-photographer-dashboard .yd-panel-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 17px 18px 0;
+}
+#yume-photographer-dashboard h2 {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+#yume-photographer-dashboard .yd-panel-sub {
+  font-size: 11px;
+  color: var(--yd-muted);
+  margin-top: 4px;
+}
+#yume-photographer-dashboard .yd-chart {
+  padding: 18px 18px 14px;
+}
+#yume-photographer-dashboard .yd-chart-body {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 8px;
+}
+#yume-photographer-dashboard .yd-axis {
+  position: relative;
+  height: 160px;
+  color: var(--yd-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+#yume-photographer-dashboard .yd-axis span {
+  position: absolute;
+  right: 0;
+  transform: translateY(-50%);
+}
+#yume-photographer-dashboard .yd-chart-right {
+  min-width: 0;
+}
+#yume-photographer-dashboard .yd-plot {
+  position: relative;
+  height: 160px;
+  display: flex;
+  gap: 8px;
+  justify-content: space-around;
+}
+#yume-photographer-dashboard .yd-gridline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--yd-line);
+  pointer-events: none;
+}
+#yume-photographer-dashboard .yd-column {
+  position: relative;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  min-width: 0;
+  padding: 0;
+  z-index: 1;
+}
+#yume-photographer-dashboard .yd-column:hover {
+  background: var(--yd-soft);
+}
+#yume-photographer-dashboard .yd-stack {
+  position: absolute;
+  bottom: 0;
+  left: 25%;
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 4px 4px 0 0;
+}
+#yume-photographer-dashboard .yd-bar-concept {
+  background: var(--yd-accent);
+  border-radius: 4px 4px 0 0;
+}
+#yume-photographer-dashboard .yd-bar-yearbook {
+  background: var(--yd-blue);
+}
+#yume-photographer-dashboard .yd-stack-value {
+  position: absolute;
+  top: -23px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--yd-ink);
+  font-variant-numeric: tabular-nums;
+}
+#yume-photographer-dashboard .yd-chart-labels {
+  display: flex;
+  gap: 8px;
+  justify-content: space-around;
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--yd-muted);
+}
+#yume-photographer-dashboard .yd-chart-labels span {
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+}
+#yume-photographer-dashboard .yd-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 19px;
+  font-size: 11px;
+  color: var(--yd-muted);
+}
+#yume-photographer-dashboard .yd-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#yume-photographer-dashboard .yd-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  background: var(--yd-accent);
+}
+#yume-photographer-dashboard .yd-dot-yearbook {
+  background: var(--yd-blue);
+}
+#yume-photographer-dashboard .yd-text-button {
+  border: 0;
+  background: transparent;
+  padding: 3px 0;
+  color: var(--yd-accent);
+  font-size: 11px;
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  white-space: nowrap;
+}
+#yume-photographer-dashboard .yd-text-button:hover {
+  text-decoration: underline;
+}
+#yume-photographer-dashboard .yd-tasks {
+  padding: 5px 18px 7px;
+}
+#yume-photographer-dashboard .yd-task {
+  padding: 13px 0;
+  border-bottom: 1px solid var(--yd-line);
+  display: grid;
+  gap: 6px;
+}
+#yume-photographer-dashboard .yd-task:last-child {
+  border: 0;
+}
+#yume-photographer-dashboard .yd-task-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  align-items: start;
+}
+#yume-photographer-dashboard .yd-task-title {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+}
+#yume-photographer-dashboard .yd-task-title:hover {
+  color: var(--yd-accent);
+}
+#yume-photographer-dashboard .yd-task-meta {
+  font-size: 11px;
+  color: var(--yd-muted);
+}
+#yume-photographer-dashboard .yd-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 3px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  color: var(--yd-muted);
+  background: var(--yd-soft);
+}
+#yume-photographer-dashboard .yd-tag-danger {
+  color: var(--yd-danger);
+  background: var(--yd-danger-soft);
+}
+#yume-photographer-dashboard .yd-tag-warn {
+  color: var(--yd-warn);
+  background: var(--yd-warn-soft);
+}
+#yume-photographer-dashboard .yd-tag-success {
+  color: var(--yd-success);
+  background: var(--yd-success-soft);
+}
+#yume-photographer-dashboard .yd-tag-concept {
+  color: var(--yd-accent);
+  background: var(--yd-tint);
+}
+#yume-photographer-dashboard .yd-tag-yearbook {
+  color: var(--yd-blue);
+  background: var(--yd-blue-soft);
+}
+#yume-photographer-dashboard .yd-shoot-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto 26px;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--yd-line);
+}
+#yume-photographer-dashboard .yd-shoot-row:last-child {
+  border: 0;
+}
+#yume-photographer-dashboard .yd-date-block {
+  border-radius: 6px;
+  background: var(--yd-soft);
+  padding: 7px 2px;
+  text-align: center;
+}
+#yume-photographer-dashboard .yd-date-block strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+#yume-photographer-dashboard .yd-date-block small {
+  display: block;
+  font-size: 11px;
+  color: var(--yd-muted);
+  margin-top: 3px;
+}
+#yume-photographer-dashboard .yd-shoot-title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+  font-weight: 600;
+}
+#yume-photographer-dashboard .yd-shoot-meta {
+  font-size: 11px;
+  color: var(--yd-muted);
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+}
+#yume-photographer-dashboard .yd-shoot-time {
+  text-align: right;
+  font-size: 12px;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+}
+#yume-photographer-dashboard .yd-shoot-time small {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--yd-muted);
+  margin-top: 4px;
+}
+#yume-photographer-dashboard .yd-icon-button {
+  border: 0;
+  background: transparent;
+  color: var(--yd-muted);
+  padding: 6px;
+  display: grid;
+  place-items: center;
+}
+#yume-photographer-dashboard .yd-icon-button:hover {
+  color: var(--yd-accent);
+  background: var(--yd-soft);
+  border-radius: 4px;
+}
+#yume-photographer-dashboard .yd-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--yd-accent);
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+#yume-photographer-dashboard .app-back-link,
+#yume-photographer-dashboard .app-back-link:is(:hover, :focus, :active) {
+  text-decoration: none;
+}
+#yume-photographer-dashboard .yd-list {
+  padding: 0 18px;
+}
+#yume-photographer-dashboard .yd-list .yd-shoot-row {
+  grid-template-columns: 48px minmax(0, 1fr) auto 26px;
+}
+#yume-photographer-dashboard .yd-empty {
+  padding: 34px 14px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--yd-muted);
+}
+#yume-photographer-dashboard .yd-record {
+  padding: 20px;
+  display: grid;
+  gap: 18px;
+}
+#yume-photographer-dashboard .yd-record-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+#yume-photographer-dashboard .yd-record-grid dt {
+  font-size: 11px;
+  color: var(--yd-muted);
+  margin-bottom: 5px;
+}
+#yume-photographer-dashboard .yd-record-grid dd {
+  font-size: 13px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+#yume-photographer-dashboard .yd-note {
+  padding: 13px;
+  background: var(--yd-soft);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--yd-muted);
+}
+@media (max-width: 1000px) {
+  #yume-photographer-dashboard .yd-columns {
+    grid-template-columns: 1fr;
+  }
+  #yume-photographer-dashboard .yd-tasks {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+  #yume-photographer-dashboard .yd-task {
+    border: 0;
+  }
+  #yume-photographer-dashboard .yd-task-top {
+    display: grid;
+    gap: 7px;
+  }
+  #yume-photographer-dashboard .yd-tag {
+    justify-self: start;
+  }
+}
+@media (max-width: 767px) {
+  #yume-photographer-dashboard .yd-columns {
+    grid-template-columns: minmax(0, 1fr) minmax(235px, 0.9fr);
+  }
+  #yume-photographer-dashboard .yd-tasks {
+    display: block;
+  }
+  #yume-photographer-dashboard .yd-task {
+    border-bottom: 1px solid var(--yd-line);
+  }
+  #yume-photographer-dashboard .yd-task-top {
+    display: flex;
+  }
+}
+@media (max-width: 600px) {
+  #yume-photographer-dashboard .yd-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  #yume-photographer-dashboard .yd-stat {
+    padding: 13px 12px;
+  }
+  #yume-photographer-dashboard .yd-stat-label {
+    font-size: 11px;
+  }
+  #yume-photographer-dashboard .yd-stat-label svg {
+    width: 14px;
+    height: 14px;
+  }
+  #yume-photographer-dashboard .yd-stat-value {
+    font-size: 26px;
+  }
+  #yume-photographer-dashboard .yd-columns {
+    grid-template-columns: 1fr;
+  }
+  #yume-photographer-dashboard .yd-toolbar {
+    gap: 12px;
+    align-items: start;
+  }
+  #yume-photographer-dashboard .yd-field {
+    flex: 1;
+    min-width: 120px;
+  }
+  #yume-photographer-dashboard .yd-field select {
+    min-width: 0;
+    width: 100%;
+  }
+  #yume-photographer-dashboard .yd-today {
+    margin-left: 0;
+    flex-basis: 100%;
+    padding: 0;
+  }
+  #yume-photographer-dashboard .yd-header {
+    margin-bottom: 18px;
+  }
+  #yume-photographer-dashboard h1 {
+    font-size: 22px;
+  }
+  #yume-photographer-dashboard .yd-shoot-row {
+    grid-template-columns: 42px minmax(0, 1fr) 24px;
+    gap: 10px;
+  }
+  #yume-photographer-dashboard .yd-shoot-time {
+    grid-column: 2;
+    grid-row: 2;
+    text-align: left;
+    margin-top: -9px;
+    font-size: 11px;
+  }
+  #yume-photographer-dashboard .yd-shoot-time small {
+    display: inline;
+    margin-left: 8px;
+  }
+  #yume-photographer-dashboard .yd-shoot-row > .yd-icon-button {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  #yume-photographer-dashboard .yd-list .yd-shoot-row {
+    grid-template-columns: 42px minmax(0, 1fr) 24px;
+  }
+  #yume-photographer-dashboard .yd-record-grid {
+    grid-template-columns: 1fr;
+  }
+  #yume-photographer-dashboard .yd-panel-head {
+    padding: 15px 14px 0;
+  }
+  #yume-photographer-dashboard .yd-tasks {
+    padding-inline: 14px;
+  }
+}
+@media (pointer: coarse) {
+  #yume-photographer-dashboard select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  #yume-photographer-dashboard .yd-icon-button {
+    min-width: 40px;
+    min-height: 44px;
+  }
+  #yume-photographer-dashboard .yd-text-button,
+  #yume-photographer-dashboard .yd-task-title,
+  #yume-photographer-dashboard .yd-back {
+    min-height: 44px;
+  }
+}
+
+#yume-photographer-dashboard .yd-task-title {
+  color: var(--yd-ink);
+  text-decoration: none;
+}
+#yume-photographer-dashboard .yd-pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--yd-line);
+  padding: 14px 18px;
+  font-size: 12px;
+}
+#yume-photographer-dashboard .yd-pagination > span {
+  margin-right: auto;
+  color: var(--yd-muted);
+}
+#yume-photographer-dashboard .yd-error {
+  border: 1px solid var(--staff-danger-border);
+  color: var(--yd-danger);
+  background: var(--yd-danger-soft);
+  padding: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}

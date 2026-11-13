@@ -1,4 +1,4 @@
-import type { CostumeChoice, WardrobeMeasurement } from './conceptService';
+import type { ConceptOrder, CostumeChoice, WardrobeMeasurement } from './conceptService';
 
 export const CONCEPT_DRAFT_KEY = 'yume-concept-draft-v1';
 export const conceptScreens = ['date', 'photographer', 'costumes', 'review'] as const;
@@ -16,6 +16,7 @@ export interface ConceptDraft {
   referencesText: string;
   step: number;
   key: string;
+  restorationId?: string;
 }
 export const emptyConceptDraft = (ownerId: string | null): ConceptDraft => ({
   ownerId,
@@ -32,6 +33,23 @@ export const emptyConceptDraft = (ownerId: string | null): ConceptDraft => ({
   step: 1,
   key: crypto.randomUUID(),
 });
+export const conceptDraftFromOrder = (order: ConceptOrder, ownerId: string): ConceptDraft => {
+  const draft = emptyConceptDraft(ownerId);
+  return {
+    ...draft,
+    restorationId: draft.key,
+    packageId: order.package,
+    startAt: order.startAt,
+    photographerId: order.photographer,
+    wardrobeMeasurements: (order.wardrobeMeasurements || []).map((row) => ({ ...row })),
+    contactName: order.contactName,
+    phone: order.phone,
+    people: order.people,
+    brief: order.brief,
+    referencesText: order.references.join('\n'),
+    step: 5,
+  };
+};
 export function readConceptDraft(ownerId: string | null): ConceptDraft {
   try {
     const draft = JSON.parse(sessionStorage.getItem(CONCEPT_DRAFT_KEY) || 'null');

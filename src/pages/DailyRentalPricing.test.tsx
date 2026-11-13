@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CustomerAppearanceContext } from '../components/customer/CustomerAppearance';
-import { RENTAL_DRAFT_KEY } from '../services/rentalDraft';
+import { RENTAL_DRAFT_KEY, rentalDraftFromOrder } from '../services/rentalDraft';
 import type { RentalOrder } from '../services/rentalService';
 import NewRentalPage from './NewRentalPage';
 import RentalDetailPage from './RentalDetailPage';
@@ -63,10 +63,10 @@ function Location() {
   return <output data-testid="location">{location.pathname + location.search}</output>;
 }
 
-function renderNew(url = '/rental/start') {
+function renderNew(url = '/rental/start', state?: unknown) {
   return render(
     <CustomerAppearanceContext.Provider value={true}>
-      <MemoryRouter initialEntries={[url]}>
+      <MemoryRouter initialEntries={[state ? { pathname: url, state } : url]}>
         <Routes>
           <Route path="/rental/start" element={<NewRentalPage />} />
           <Route path="/costumes" element={<RentalCatalogPage />} />
@@ -164,6 +164,32 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe('date-first daily rental form', () => {
+  it('opens restored order data in review and preserves later edits through reload', async () => {
+    const order = { ...orderFixture(), phone: '0901234567', note: 'Ghi chú đơn cũ' };
+    const rentalDraft = rentalDraftFromOrder(order, 'customer-1');
+    let page = renderNew('/rental/start', { rentalDraft });
+    expect(
+      await screen.findByRole('heading', { name: 'Kiểm tra yêu cầu thuê' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Ghi chú đơn cũ')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Tôi đã đọc/ })).not.toBeChecked();
+    expect(mocks.create).not.toHaveBeenCalled();
+    const stored = JSON.parse(sessionStorage.getItem(RENTAL_DRAFT_KEY)!);
+    sessionStorage.setItem(
+      RENTAL_DRAFT_KEY,
+      JSON.stringify({
+        ...stored,
+        note: 'Đã sửa trước khi tải lại',
+        requestKey: 'new-retry-key',
+        signature: 'new-signature',
+      }),
+    );
+    page.unmount();
+    page = renderNew('/rental/start', { rentalDraft });
+    expect(await screen.findByText('Đã sửa trước khi tải lại')).toBeInTheDocument();
+    expect(JSON.parse(sessionStorage.getItem(RENTAL_DRAFT_KEY)!).requestKey).toBe('new-retry-key');
+    page.unmount();
+  });
   it('uses a 30% advance and permits checkout without the old per-item security deposit', async () => {
     mocks.catalog.mockResolvedValue([{ ...item, rentalSecurityDeposit: null }]);
     renderNew(path);

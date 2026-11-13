@@ -218,6 +218,7 @@ export interface ConceptAlbum {
   token?: string;
 }
 export interface Profile extends PhotographerContent {
+  revision?: number;
   _id: string;
   photographer: string;
   concepts: string[];

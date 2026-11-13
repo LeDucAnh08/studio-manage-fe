@@ -1,4 +1,7 @@
 import type { Column } from '@/components/ui';
+import { useAuth } from '../context/AuthContext';
+import PhotographerSchedulePage from './PhotographerSchedulePage';
+import { isPersonalPhotographer } from '../utils/staffRole';
 import {
   Badge,
   Button,
@@ -359,7 +362,7 @@ interface ScheduleFormValues {
   season?: string | null;
 }
 
-const SchedulesPage = () => {
+const StaffSchedulesPage = () => {
   const navigate = useNavigate();
   const [conceptHolds, setConceptHolds] = useState<CalendarScheduleItem[]>([]);
   useEffect(() => {
@@ -1528,6 +1531,12 @@ const SchedulesPage = () => {
       </Modal>
     </div>
   );
+};
+
+const SchedulesPage = () => {
+  const { user } = useAuth();
+  const personal = isPersonalPhotographer(user);
+  return personal ? <PhotographerSchedulePage /> : <StaffSchedulesPage />;
 };
 
 export default SchedulesPage;

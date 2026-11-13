@@ -16,6 +16,8 @@ import CategoriesPage from './CategoriesPage';
 import CostumeTypesPage from './CostumeTypesPage';
 
 const mocks = vi.hoisted(() => ({
+  user: { _id: 'staff-1', roles: [0], name: 'Nhân viên' },
+  personalCalendar: vi.fn(),
   schedules: vi.fn(),
   customers: vi.fn(),
   packages: vi.fn(),
@@ -28,8 +30,13 @@ const mocks = vi.hoisted(() => ({
   removeSchedule: vi.fn(),
   toast: vi.fn(),
 }));
+vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: mocks.user }) }));
 vi.mock('../services/scheduleService', () => ({
-  scheduleService: { getAll: mocks.schedules, remove: mocks.removeSchedule },
+  scheduleService: {
+    getAll: mocks.schedules,
+    remove: mocks.removeSchedule,
+    myCalendar: mocks.personalCalendar,
+  },
 }));
 vi.mock('../services/customerService', () => ({ customerService: { getAll: mocks.customers } }));
 vi.mock('../services/packageService', () => ({
@@ -120,6 +127,8 @@ beforeEach(() => {
     },
   );
   vi.resetAllMocks();
+  mocks.user = { _id: 'staff-1', roles: [0], name: 'Nhân viên' };
+  mocks.personalCalendar.mockResolvedValue([]);
   mocks.schedules.mockResolvedValue({ data: [item], total: 21 });
   mocks.customers.mockResolvedValue({ data: [item.customer], total: 1 });
   mocks.packages.mockResolvedValue([pkg]);
@@ -132,6 +141,19 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Schedule and inventory rollout', () => {
+  it.each([[3], [3, 5]])(
+    'uses the personal calendar for photographer roles %j without management catalog requests',
+    async (...roles) => {
+      mocks.user = { _id: 'photo-1', roles: roles as number[], name: 'Thợ chụp' };
+      renderPage(<SchedulesPage />);
+      await screen.findByText('0 lịch được phân công');
+      expect(screen.getByRole('heading', { name: 'Lịch chụp của tôi' })).toBeInTheDocument();
+      expect(mocks.schedules).not.toHaveBeenCalled();
+      expect(mocks.customers).not.toHaveBeenCalled();
+      expect(mocks.packages).not.toHaveBeenCalled();
+      expect(screen.queryByRole('button', { name: '+ Thêm lịch' })).not.toBeInTheDocument();
+    },
+  );
   it('retains applied date filters, pagination, reset and linked-schedule guards', async () => {
     renderPage(<SchedulesPage />);
     const table = await screen.findByRole('table', { name: 'Danh sách lịch chụp' });

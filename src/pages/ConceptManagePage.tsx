@@ -620,6 +620,10 @@ export default function ConceptManagePage() {
           }}
         >
           <h2>Portfolio và năng lực thợ</h2>
+          <p>
+            Bạn đang chỉnh bản nháp mới nhất. Khi bật công khai và lưu, nội dung sẽ hiển thị trên
+            website.
+          </p>
           <label>
             Thợ chụp
             <select

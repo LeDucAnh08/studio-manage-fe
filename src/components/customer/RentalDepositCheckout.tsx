@@ -1,6 +1,9 @@
 import type { RentalOrder } from '@/services/rentalService';
 import { rentalDate } from '@/services/rentalService';
 import { DepositCheckout } from './DepositCheckout';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { rentalDraftFromOrder, writeRentalDraft } from '../../services/rentalDraft';
 
 export function RentalDepositCheckout({
   order,
@@ -15,6 +18,8 @@ export function RentalDepositCheckout({
   loading: boolean;
   onReload: () => void;
 }) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const quote = order.quote;
   const advance = quote?.depositKind === 'advance';
   const lines = quote?.lines || order.requestedLines;
@@ -70,6 +75,15 @@ export function RentalDepositCheckout({
       profileLabel="Xem hồ sơ đơn thuê"
       profileState={{ ordersReturnTo: returnTo }}
       restartTo="/costumes"
+      onRestart={
+        user
+          ? () => {
+              const rentalDraft = rentalDraftFromOrder(order, user._id);
+              writeRentalDraft(rentalDraft);
+              navigate('/rental/start', { state: { rentalDraft } });
+            }
+          : undefined
+      }
       error={error}
       notice={order.reservationIssue}
       loading={loading}

@@ -1,11 +1,13 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { CONCEPT_DRAFT_KEY } from '../services/conceptDraft';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ConceptOrderPage from './ConceptOrderPage';
 import { conceptService, type ConceptOrder } from '../services/conceptService';
 
+const auth = vi.hoisted(() => ({ user: { _id: 'client', roles: [6] } }));
 vi.mock('../context/AuthContext', () => ({
-  useAuth: () => ({ user: { _id: 'client', roles: [6] } }),
+  useAuth: () => auth,
 }));
 vi.mock('./ConceptAlbumPanel', () => ({ default: () => null }));
 vi.mock('../services/conceptService', async (original) => ({
@@ -49,12 +51,16 @@ function fixture(kind: string): ConceptOrder {
     ],
   } as unknown as ConceptOrder;
 }
-async function open(order: ConceptOrder, search = '') {
+async function open(order: ConceptOrder, search = '', state?: Record<string, unknown>) {
   vi.mocked(conceptService.order).mockResolvedValue(order);
   render(
-    <MemoryRouter initialEntries={['/account/concept-orders/order-1' + search]}>
+    <MemoryRouter initialEntries={[{ pathname: '/account/concept-orders/order-1', search, state }]}>
       <Routes>
         <Route path="/account/concept-orders/:id" element={<ConceptOrderPage />} />
+        <Route
+          path="/concept-booking/packages/:packageId/book/review"
+          element={<p>Khôi phục buổi chụp</p>}
+        />
       </Routes>
     </MemoryRouter>,
   );
@@ -62,11 +68,58 @@ async function open(order: ConceptOrder, search = '') {
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  auth.user = { _id: 'client', roles: [6] };
   vi.useFakeTimers();
   vi.setSystemTime('2026-11-12T07:00:00Z');
 });
 afterEach(() => vi.useRealTimers());
 describe('concept payment countdowns', () => {
+  it.each([
+    [
+      '/?period=previous&service=concept&metric=editing',
+      '/?period=previous&service=concept&metric=editing',
+    ],
+    [
+      '/workflow-bookings?service=concept&view=editing&page=2',
+      '/workflow-bookings?service=concept&view=editing&page=2',
+    ],
+    ['https://example.com/other', '/workflow-bookings?service=concept'],
+  ])(
+    'returns photographer concept records to the unified filtered list: %s',
+    async (returnTo, expected) => {
+      auth.user = { _id: 'photographer', roles: [3] };
+      const order = fixture('balance');
+      order.isOwner = false;
+      await open(order, '', { bookingOrdersReturnTo: returnTo });
+      expect(screen.getByRole('link', { name: 'Quay lại danh sách' })).toHaveAttribute(
+        'href',
+        expected,
+      );
+    },
+  );
+  it('restores concept measurements, references and contact details after expiry', async () => {
+    const order = fixture('deposit');
+    order.status = 'expired';
+    order.photographer = 'photo-1';
+    order.brief = 'Chụp tự nhiên';
+    order.wardrobeMeasurements = [{ size: 'M', heightCm: 165, weightKg: 50 }];
+    order.references = ['https://example.com/reference'];
+    await open(order, '?payment=deposit');
+    fireEvent.click(screen.getByRole('button', { name: 'Đặt lại dịch vụ' }));
+    expect(screen.getByText('Khôi phục buổi chụp')).toBeInTheDocument();
+    expect(JSON.parse(sessionStorage.getItem(CONCEPT_DRAFT_KEY)!)).toMatchObject({
+      ownerId: 'client',
+      packageId: 'pkg-1',
+      startAt: order.startAt,
+      photographerId: 'photo-1',
+      wardrobeMeasurements: order.wardrobeMeasurements,
+      brief: order.brief,
+      referencesText: order.references[0],
+      contactName: order.contactName,
+      phone: order.phone,
+      step: 5,
+    });
+  });
   it.each(['deposit', 'balance', 'extra', 'revision'])(
     'expires %s QR locally without waiting for a server poll',
     async (kind) => {

@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import {
   Banknote,
+  Image,
   BarChart3,
   Calendar,
   ClipboardList,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 import type { UserRole } from '../types';
 import DashboardPage from '../pages/DashboardPage';
+import PhotographerPortfolioPage from '../pages/PhotographerPortfolioPage';
 import CustomersPage from '../pages/CustomersPage';
 import CustomerDetailPage from '../pages/CustomerDetailPage';
 import SchedulesPage from '../pages/SchedulesPage';
@@ -141,6 +143,17 @@ export const navItems: NavItem[] = [
     iconClassName: 'text-indigo-300',
     component: SchedulesPage,
   },
+  ...(conceptBookingEnabled
+    ? [
+        {
+          to: '/my-portfolio',
+          label: 'Portfolio của tôi',
+          icon: Image,
+          allowedRoles: [3] as UserRole[],
+          component: PhotographerPortfolioPage,
+        },
+      ]
+    : []),
 ];
 
 export const adminItems: NavItem[] = [

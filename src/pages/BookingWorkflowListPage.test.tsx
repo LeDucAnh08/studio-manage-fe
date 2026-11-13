@@ -3,9 +3,13 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BookingWorkflowListPage from './BookingWorkflowListPage';
 import { bookingWorkflowService, type WorkflowSummary } from '../services/bookingWorkflowService';
+import { photographerOrdersService } from '../services/photographerOrdersService';
 
 const { auth } = vi.hoisted(() => ({ auth: { user: { _id: 'admin', roles: [0] } } }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => auth }));
+vi.mock('../services/photographerOrdersService', () => ({
+  photographerOrdersService: { list: vi.fn() },
+}));
 vi.mock('../services/bookingWorkflowService', async () => ({
   ...(await vi.importActual('../services/bookingWorkflowService')),
   bookingWorkflowService: { list: vi.fn() },
@@ -61,6 +65,21 @@ describe('unified photography workspace', () => {
     vi.resetAllMocks();
     auth.user = { _id: 'admin', roles: [0] };
     vi.mocked(bookingWorkflowService.list).mockResolvedValue(response([booking]));
+    vi.mocked(photographerOrdersService.list).mockResolvedValue({
+      ...response([]),
+      data: [
+        {
+          _id: 'booking',
+          service: 'yearbook',
+          title: '12A1',
+          packageName: 'Gói lớp',
+          stage: 'confirmed',
+          role: 'lead',
+          shootDate: '2027-02-01',
+          updatedAt: '2026-10-29',
+        },
+      ],
+    });
   });
   it('shows new requests, progress and admin notifications in one workspace', async () => {
     vi.mocked(bookingWorkflowService.list).mockResolvedValue(
@@ -144,7 +163,7 @@ describe('unified photography workspace', () => {
     auth.user = { _id: 'photographer', roles: [3] };
     open();
     await screen.findByRole('link', { name: '12A1' });
-    expect(screen.getByText('Lịch bận của tôi')).toBeInTheDocument();
+    expect(screen.queryByText('Lịch bận của tôi')).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Thông báo yêu cầu' })).not.toBeInTheDocument();
     expect(screen.queryByText('Quản lý lịch bận')).not.toBeInTheDocument();
   });

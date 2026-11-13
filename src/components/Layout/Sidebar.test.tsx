@@ -9,6 +9,10 @@ const mocks = vi.hoisted(() => ({ dispatch: vi.fn(), roles: [0, 1], logout: vi.f
 vi.mock('../../context/AuthContext', () => ({
   useAuth: () => ({ user: { name: 'Quản trị viên', roles: mocks.roles }, logout: mocks.logout }),
 }));
+vi.mock('../../config/features', () => ({
+  conceptBookingEnabled: true,
+  clientPortalEnabled: true,
+}));
 
 vi.mock('../../context/ThemeContext', () => ({
   useTheme: () => ({
@@ -68,7 +72,50 @@ describe('Sidebar navigation', () => {
     expect(screen.getByRole('link', { name: 'Lịch chụp' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Quản lý' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Đơn thuê' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Chụp concept' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Yume Studio' })).not.toBeInTheDocument();
+  });
+  it.each([{ roles: [3, 5] }, { roles: [3] }])(
+    'hides the separate concept entry in the personal photographer workspace $roles',
+    ({ roles }) => {
+      mocks.roles = roles;
+      render(
+        <MemoryRouter>
+          <Sidebar isOpen={false} onClose={vi.fn()} />
+        </MemoryRouter>,
+      );
+      expect(screen.getByRole('link', { name: 'Đơn chụp ảnh' })).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Chụp concept' })).not.toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Portfolio của tôi' })).toHaveAttribute(
+        'href',
+        '/my-portfolio',
+      );
+    },
+  );
+  it('retains concept management navigation for administrators', () => {
+    render(
+      <MemoryRouter>
+        <Sidebar isOpen={false} onClose={vi.fn()} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: 'Chụp concept' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Portfolio của tôi' })).not.toBeInTheDocument();
+  });
+  it('keeps photography orders active when the photographer opens a concept record', () => {
+    mocks.roles = [3];
+    render(
+      <MemoryRouter initialEntries={['/concept-orders/concept-1']}>
+        <Sidebar isOpen={false} onClose={vi.fn()} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: 'Đơn chụp ảnh' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(screen.getByRole('link', { name: 'Đơn chụp ảnh' })).toHaveAttribute(
+      'href',
+      '/workflow-bookings',
+    );
   });
   it.each([{ roles: [0] }, { roles: [3] }, { roles: [5] }])(
     'shows one photography workspace for roles $roles',

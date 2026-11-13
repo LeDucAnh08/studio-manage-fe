@@ -1,0 +1,561 @@
+#yume-personal-calendar {
+  --pc-panel: hsl(var(--card));
+  --pc-ink: hsl(var(--foreground));
+  --pc-muted: hsl(var(--muted-foreground));
+  --pc-line: hsl(var(--border));
+  --pc-soft: hsl(var(--secondary));
+  --pc-accent: var(--staff-link);
+  --pc-selected: var(--staff-selection);
+  --pc-blue: light-dark(#2463a7, #9cc9ff);
+  --pc-blue-bg: light-dark(#edf5ff, #22364d);
+  --pc-green: var(--staff-success-ink);
+  --pc-green-bg: var(--staff-success-bg);
+  font:
+    14px/1.5 Inter,
+    system-ui,
+    sans-serif;
+  color: var(--pc-ink);
+  width: 100%;
+  min-width: 0;
+}
+#yume-personal-calendar * {
+  box-sizing: border-box;
+}
+#yume-personal-calendar button {
+  font: inherit;
+  color: inherit;
+  cursor: var(--cursor-interactive, pointer);
+}
+#yume-personal-calendar button:focus-visible,
+#yume-personal-calendar summary:focus-visible {
+  outline: 3px solid var(--pc-accent);
+  outline-offset: -3px;
+}
+#yume-personal-calendar button:disabled {
+  cursor: default;
+}
+#yume-personal-calendar h1,
+#yume-personal-calendar h2,
+#yume-personal-calendar h3,
+#yume-personal-calendar p {
+  margin: 0;
+}
+#yume-personal-calendar [hidden] {
+  display: none !important;
+}
+#yume-personal-calendar .pc-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+#yume-personal-calendar h1 {
+  font-size: 24px;
+  line-height: 1.3;
+  font-weight: 650;
+  letter-spacing: -0.7px;
+}
+#yume-personal-calendar .pc-subtitle {
+  font-size: 12px;
+  color: var(--pc-muted);
+  margin-top: 7px;
+}
+#yume-personal-calendar .pc-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid var(--pc-line);
+  border-radius: 7px;
+  background: var(--pc-panel);
+  font-size: 11px;
+  white-space: nowrap;
+}
+#yume-personal-calendar .pc-scope svg {
+  width: 15px;
+  height: 15px;
+  color: var(--pc-accent);
+}
+#yume-personal-calendar .pc-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 224px;
+  align-items: start;
+  gap: 16px;
+}
+#yume-personal-calendar .pc-calendar {
+  background: var(--pc-panel);
+  border: 1px solid var(--pc-line);
+  border-radius: 9px;
+  overflow: hidden;
+  min-width: 0;
+}
+#yume-personal-calendar .pc-toolbar {
+  padding: 15px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+#yume-personal-calendar .pc-month-info h2 {
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.3px;
+}
+#yume-personal-calendar .pc-month-info p {
+  font-size: 11px;
+  color: var(--pc-muted);
+  margin-top: 3px;
+}
+#yume-personal-calendar .pc-month-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#yume-personal-calendar .pc-control {
+  background: var(--pc-panel);
+  border: 1px solid var(--pc-line);
+  border-radius: 6px;
+  min-height: 32px;
+  padding: 5px 11px;
+  font-size: 12px;
+}
+#yume-personal-calendar .pc-control:hover {
+  background: var(--pc-soft);
+}
+#yume-personal-calendar .pc-icon-control {
+  width: 31px;
+  padding: 5px;
+  display: grid;
+  place-items: center;
+}
+#yume-personal-calendar .pc-icon-control svg {
+  width: 16px;
+  height: 16px;
+}
+#yume-personal-calendar .pc-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-block: 1px solid var(--pc-line);
+  background: var(--pc-soft);
+}
+#yume-personal-calendar .pc-weekdays > span {
+  padding: 9px 2px;
+  text-align: center;
+  color: var(--pc-muted);
+  font-size: 11px;
+  font-weight: 550;
+}
+#yume-personal-calendar .pc-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+#yume-personal-calendar .pc-day {
+  min-height: var(--pc-cell-height, 108px);
+  padding: 6px 4px;
+  border-right: 1px solid var(--pc-line);
+  border-bottom: 1px solid var(--pc-line);
+  min-width: 0;
+  position: relative;
+}
+#yume-personal-calendar .pc-day:nth-child(7n) {
+  border-right: 0;
+}
+#yume-personal-calendar .pc-week {
+  display: contents;
+}
+#yume-personal-calendar .pc-week:last-child > .pc-day {
+  border-bottom: 0;
+}
+#yume-personal-calendar .pc-day.pc-outside {
+  background: var(--pc-soft);
+}
+#yume-personal-calendar .pc-day.pc-outside .pc-day-number {
+  color: var(--pc-muted);
+  opacity: 0.6;
+}
+#yume-personal-calendar .pc-day.pc-selected {
+  background: var(--pc-selected);
+  box-shadow: inset 0 0 0 1.5px var(--pc-accent);
+}
+#yume-personal-calendar .pc-day-number {
+  border: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  min-width: 27px;
+  min-height: 27px;
+  border-radius: 50%;
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 550;
+}
+#yume-personal-calendar .pc-today .pc-day-number {
+  background: var(--pc-accent);
+  color: light-dark(#fff, #172044);
+}
+#yume-personal-calendar .pc-day-number:hover {
+  box-shadow: 0 0 0 1px var(--pc-accent);
+}
+#yume-personal-calendar .pc-cell-events {
+  display: grid;
+  gap: 3px;
+  margin-top: 4px;
+}
+#yume-personal-calendar .pc-event {
+  display: block;
+  min-width: 0;
+  width: 100%;
+  padding: 5px 4px;
+  text-align: left;
+  border: 0;
+  border-left: 2px solid var(--pc-accent);
+  border-radius: 3px;
+  background: var(--pc-selected);
+  color: var(--pc-ink);
+  font-size: 11px;
+  line-height: 1.35;
+}
+#yume-personal-calendar .pc-event[data-kind='yearbook'] {
+  background: var(--pc-blue-bg);
+  border-color: var(--pc-blue);
+}
+#yume-personal-calendar .pc-event[data-cancelled='true'] {
+  background: var(--pc-soft);
+  border-color: var(--pc-muted);
+  opacity: 0.7;
+}
+#yume-personal-calendar .pc-event[data-cancelled='true'] .pc-event-title {
+  text-decoration: line-through;
+}
+#yume-personal-calendar .pc-event-time {
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+#yume-personal-calendar .pc-event-title {
+  display: block;
+  font-size: 11px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+#yume-personal-calendar .pc-event-location {
+  display: block;
+  font-size: 10px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--pc-muted);
+  margin-top: 2px;
+}
+#yume-personal-calendar .pc-more {
+  display: block;
+  border: 0;
+  background: transparent;
+  color: var(--pc-accent);
+  padding: 2px 3px;
+  font-size: 11px;
+}
+#yume-personal-calendar .pc-mobile-count {
+  display: none;
+}
+#yume-personal-calendar .pc-legend {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 13px 2px;
+  color: var(--pc-muted);
+  font-size: 11px;
+}
+#yume-personal-calendar .pc-legend > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+#yume-personal-calendar .pc-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--pc-accent);
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+#yume-personal-calendar .pc-dot-yearbook {
+  background: var(--pc-blue);
+}
+#yume-personal-calendar .pc-dot-cancelled {
+  background: var(--pc-muted);
+}
+#yume-personal-calendar .pc-timezone {
+  margin-left: auto;
+}
+#yume-personal-calendar .pc-detail {
+  background: var(--pc-panel);
+  border: 1px solid var(--pc-line);
+  border-radius: 9px;
+  overflow: hidden;
+}
+#yume-personal-calendar .pc-detail-header {
+  padding: 17px 15px;
+  border-bottom: 1px solid var(--pc-line);
+}
+#yume-personal-calendar .pc-detail-header p {
+  font-size: 11px;
+  color: var(--pc-muted);
+  margin-bottom: 5px;
+}
+#yume-personal-calendar .pc-detail-header h2 {
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.4px;
+}
+#yume-personal-calendar .pc-detail-count {
+  font-size: 11px;
+  color: var(--pc-muted);
+  margin-top: 4px;
+}
+#yume-personal-calendar .pc-detail-body {
+  padding: 15px;
+}
+#yume-personal-calendar .pc-session {
+  padding: 0 0 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--pc-line);
+}
+#yume-personal-calendar .pc-session:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border: 0;
+}
+#yume-personal-calendar .pc-session-time {
+  font-size: 12px;
+  font-weight: 650;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 9px;
+  font-variant-numeric: tabular-nums;
+}
+#yume-personal-calendar .pc-session-time svg {
+  width: 14px;
+  height: 14px;
+  color: var(--pc-muted);
+}
+#yume-personal-calendar .pc-status {
+  display: inline-block;
+  padding: 3px 7px;
+  border-radius: 4px;
+  color: var(--pc-accent);
+  background: var(--pc-selected);
+  font-size: 10px;
+  margin-bottom: 7px;
+}
+#yume-personal-calendar .pc-status[data-status='completed'] {
+  color: var(--pc-green);
+  background: var(--pc-green-bg);
+}
+#yume-personal-calendar .pc-status[data-status='cancelled'] {
+  color: var(--pc-muted);
+  background: var(--pc-soft);
+}
+#yume-personal-calendar .pc-session h3 {
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+#yume-personal-calendar .pc-session-kind {
+  font-size: 11px;
+  color: var(--pc-muted);
+  margin-bottom: 12px;
+}
+#yume-personal-calendar .pc-session-fact {
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+  font-size: 11px;
+  color: var(--pc-muted);
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+#yume-personal-calendar .pc-session-fact svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+#yume-personal-calendar .pc-role {
+  font-size: 11px;
+  color: var(--pc-ink);
+  padding: 7px 9px;
+  background: var(--pc-soft);
+  border-radius: 5px;
+  margin-top: 12px;
+}
+#yume-personal-calendar .pc-session details {
+  margin-top: 12px;
+  font-size: 11px;
+}
+#yume-personal-calendar .pc-session summary {
+  color: var(--pc-accent);
+  cursor: var(--cursor-interactive, pointer);
+  padding: 4px 0;
+  font-weight: 550;
+}
+#yume-personal-calendar .pc-session details p {
+  margin-top: 8px;
+  color: var(--pc-muted);
+  line-height: 1.7;
+}
+#yume-personal-calendar .pc-selected-session {
+  border-left: 2px solid var(--pc-accent);
+  padding-left: 9px;
+}
+#yume-personal-calendar .pc-empty {
+  padding: 22px 2px;
+  text-align: center;
+  color: var(--pc-muted);
+  font-size: 12px;
+}
+#yume-personal-calendar .pc-empty svg {
+  width: 24px;
+  height: 24px;
+  margin-inline: auto;
+  margin-bottom: 10px;
+  color: var(--pc-muted);
+}
+#yume-personal-calendar .pc-empty p + p {
+  font-size: 11px;
+  margin-top: 7px;
+}
+@media (max-width: 1100px) {
+  #yume-personal-calendar .pc-workspace {
+    grid-template-columns: 1fr;
+  }
+  #yume-personal-calendar .pc-detail-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+  #yume-personal-calendar .pc-session {
+    margin: 0;
+    border: 0;
+    padding: 0;
+  }
+  #yume-personal-calendar .pc-empty {
+    grid-column: 1/-1;
+  }
+}
+@media (max-width: 520px) {
+  #yume-personal-calendar {
+    font-size: 13px;
+  }
+  #yume-personal-calendar h1 {
+    font-size: 22px;
+  }
+  #yume-personal-calendar .pc-page-heading {
+    display: block;
+    margin-bottom: 17px;
+  }
+  #yume-personal-calendar .pc-scope {
+    margin-top: 12px;
+  }
+  #yume-personal-calendar .pc-toolbar {
+    padding: 13px 10px;
+    gap: 12px;
+  }
+  #yume-personal-calendar .pc-month-info h2 {
+    font-size: 16px;
+  }
+  #yume-personal-calendar .pc-control {
+    padding: 6px 9px;
+    min-height: 36px;
+  }
+  #yume-personal-calendar .pc-icon-control {
+    width: 32px;
+    padding: 5px;
+  }
+  #yume-personal-calendar .pc-day {
+    min-height: 67px;
+    padding: 3px 1px;
+  }
+  #yume-personal-calendar .pc-day-number {
+    width: 100%;
+    min-height: 34px;
+    margin: 0;
+    font-size: 12px;
+    border-radius: 5px;
+  }
+  #yume-personal-calendar .pc-today .pc-day-number {
+    border-radius: 5px;
+  }
+  #yume-personal-calendar .pc-cell-events {
+    display: none;
+  }
+  #yume-personal-calendar .pc-mobile-count {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+    justify-content: center;
+    min-height: 21px;
+    border: 0;
+    background: transparent;
+    width: 100%;
+    font-size: 10px;
+    color: var(--pc-muted);
+    padding: 0;
+  }
+  #yume-personal-calendar .pc-mobile-count .pc-dot {
+    width: 5px;
+    height: 5px;
+  }
+  #yume-personal-calendar .pc-detail-body {
+    display: block;
+  }
+  #yume-personal-calendar .pc-session {
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--pc-line);
+  }
+  #yume-personal-calendar .pc-legend {
+    gap: 10px;
+    font-size: 10px;
+  }
+  #yume-personal-calendar .pc-timezone {
+    display: none;
+  }
+}
+@media (pointer: coarse) {
+  #yume-personal-calendar .pc-control {
+    min-height: 44px;
+  }
+  #yume-personal-calendar .pc-event {
+    min-height: 44px;
+  }
+  #yume-personal-calendar .pc-day-number {
+    min-height: 40px;
+  }
+}
+#yume-personal-calendar .pc-feedback {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 16px;
+  border: 1px solid var(--staff-danger-border);
+  border-radius: 7px;
+  color: var(--staff-danger-ink);
+  background: var(--staff-danger-bg);
+}
+#yume-personal-calendar .pc-session:focus-visible {
+  outline: 2px solid var(--pc-accent);
+  outline-offset: 4px;
+}
+#yume-personal-calendar .pc-notes {
+  white-space: pre-wrap;
+}

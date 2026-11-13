@@ -13,6 +13,8 @@ import { useCurrentTime } from '../components/customer/useCurrentTime';
 import { useShootWindowRefresh } from '../components/customer/useShootWindowRefresh';
 import { PhotographerUnavailability } from '../components/PhotographerUnavailability';
 import { BookingNotifications } from './BookingsPage';
+import PhotographerOrdersPage from './PhotographerOrdersPage';
+import { isPersonalPhotographer } from '../utils/staffRole';
 
 const money = (amount: number) => amount.toLocaleString('vi-VN') + ' đ';
 const progressLabels: Record<string, string> = {
@@ -27,7 +29,7 @@ const errorText = (error: unknown) =>
   (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
   'Không tải được danh sách đơn chụp ảnh. Vui lòng thử lại.';
 
-export default function BookingWorkflowListPage() {
+function StaffBookingWorkflowListPage() {
   const now = useCurrentTime();
   const { user } = useAuth();
   const [items, setItems] = useState<WorkflowSummary[]>([]);
@@ -224,9 +226,7 @@ export default function BookingWorkflowListPage() {
         }
       />
       {isAdmin && <BookingNotifications base="/workflow-bookings" />}
-      {(isAdmin || isPhotographer) && user && (
-        <PhotographerUnavailability userId={user._id} admin={isAdmin} />
-      )}
+      {isAdmin && user && <PhotographerUnavailability userId={user._id} admin />}
       <div className="staff-toolbar rounded-lg border bg-card p-4">
         <label className="flex flex-wrap items-center gap-3 text-sm font-medium">
           Trạng thái đơn
@@ -287,5 +287,14 @@ export default function BookingWorkflowListPage() {
         />
       )}
     </section>
+  );
+}
+
+export default function BookingWorkflowListPage() {
+  const { user } = useAuth();
+  return isPersonalPhotographer(user) ? (
+    <PhotographerOrdersPage />
+  ) : (
+    <StaffBookingWorkflowListPage />
   );
 }

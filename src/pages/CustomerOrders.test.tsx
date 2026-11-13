@@ -7,6 +7,7 @@ import { CustomerAppearanceContext } from '@/components/customer/CustomerAppeara
 import type { BookingWorkflowDto } from '../services/bookingWorkflowService';
 import type { RentalOrder } from '../services/rentalService';
 import { RENTAL_DRAFT_KEY } from '../services/rentalDraft';
+import { readBookingDraft } from '../services/bookingDraft';
 import BookingsPage from './BookingsPage';
 import BookingWorkflowDetailPage from './BookingWorkflowDetailPage';
 import RentalDetailPage from './RentalDetailPage';
@@ -234,6 +235,55 @@ const renderRental = (customer = true) =>
 const apiFailure = (message: string) => ({ response: { status: 409, data: { message } } });
 
 describe('Customer order presentation preserves workflow contracts', () => {
+  it('restores a cancelled yearbook order and its students from the deposit screen', async () => {
+    const record = bookingFixture();
+    record.booking.status = 'cancelled';
+    record.booking.packageId = 'package-1';
+    record.booking.contactName = 'Đại diện lớp';
+    record.booking.phone = '0901234567';
+    record.booking.note = 'Chụp cả lớp';
+    record.workflow.lifecycle = 'cancelled';
+    record.workflow.resources = null;
+    record.workflow.members = [
+      {
+        _id: 'member-1',
+        studentId: null,
+        name: 'Nguyễn An',
+        contact: '0912345678',
+        height: 165,
+        weight: 50,
+        pantsSize: '28',
+        shirtSize: 'M',
+        notes: 'Lưu ý',
+        costumeSizes: [],
+      },
+    ];
+    mocks.workflowGet.mockResolvedValue(record);
+    renderBooking(true, '?payment=deposit');
+    fireEvent.click(await screen.findByRole('button', { name: 'Đặt lại dịch vụ' }));
+    expect(screen.getByTestId('destination')).toHaveTextContent('/account/bookings/new');
+    expect(readBookingDraft()).toMatchObject({
+      ownerId: 'client-1',
+      step: 4,
+      packageId: 'package-1',
+      className: 'Lớp 12A',
+      contactName: 'Đại diện lớp',
+      phone: '0901234567',
+      note: 'Chụp cả lớp',
+      students: [
+        {
+          name: 'Nguyễn An',
+          phone: '0912345678',
+          height: '165',
+          weight: '50',
+          pantsSize: '28',
+          shirtSize: 'M',
+          notes: 'Lưu ý',
+        },
+      ],
+    });
+    expect(readBookingDraft()?.packageConsentKey).toBeUndefined();
+  });
   const packageAgreement = () => ({
     total: 1500000,
     depositRequired: 450000,

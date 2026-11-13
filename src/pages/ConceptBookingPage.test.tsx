@@ -8,6 +8,7 @@ import ConceptPhotographerPage from './ConceptPhotographerPage';
 import ConceptBookingPage, { CONCEPT_DRAFT_KEY } from './ConceptBookingPage';
 import ConceptOrderPage from './ConceptOrderPage';
 import { GuestConceptAlbumPage } from './ConceptAlbumPanel';
+import { conceptDraftFromOrder, writeConceptDraft } from '../services/conceptDraft';
 import {
   conceptService,
   type Catalog,
@@ -142,9 +143,9 @@ function PaymentDestination() {
   const location = useLocation();
   return <p>{location.search === '?payment=deposit' ? 'Thanh toán cọc mới' : 'Sai màn hình'}</p>;
 }
-const renderWizard = (url = '/concept-booking') =>
+const renderWizard = (url = '/concept-booking', state?: unknown) =>
   render(
-    <MemoryRouter initialEntries={[url]}>
+    <MemoryRouter initialEntries={[state ? { pathname: url, state } : url]}>
       <Routes>
         <Route path="/concept-booking" element={<ConceptCatalogPage />} />
         <Route path="/concept-booking/packages/:packageId" element={<ConceptPackageDetailPage />} />
@@ -179,16 +180,53 @@ async function fillWizard() {
   await screen.findByRole('heading', { name: 'Kiểm tra trước khi đặt cọc' });
 }
 describe('concept booking contract', () => {
+  it('restores a concept review, rechecks availability and keeps edits after reload', async () => {
+    const withWardrobe = structuredClone(catalog);
+    withWardrobe.packages[0].costumeCount = 1;
+    vi.mocked(conceptService.catalog).mockResolvedValue(withWardrobe);
+    const order = {
+      package: 'pkg-1',
+      startAt: '2026-11-14T10:00:00.000Z',
+      photographer: 'photo-1',
+      contactName: 'Khách An',
+      phone: '0901234567',
+      people: 1,
+      brief: 'Ý tưởng từ đơn cũ',
+      wardrobeMeasurements: [{ size: 'M', heightCm: 165, weightKg: 50 }],
+      references: ['https://example.com/reference'],
+    } as unknown as ConceptOrder;
+    const conceptDraft = conceptDraftFromOrder(order, 'client-1');
+    let page = renderWizard('/concept-booking/packages/pkg-1/book/review', { conceptDraft });
+    expect(await screen.findByText('Ý tưởng từ đơn cũ')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Thợ An')).toBeInTheDocument());
+    expect(screen.getByText(/Người 1.*Size M.*165 cm.*50 kg/)).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Tôi đồng ý giá gói/ })).not.toBeChecked();
+    expect(conceptService.checkout).not.toHaveBeenCalled();
+    const saved = JSON.parse(sessionStorage.getItem(CONCEPT_DRAFT_KEY)!);
+    writeConceptDraft({ ...saved, brief: 'Đã sửa ý tưởng', key: 'fresh-retry-key' });
+    page.unmount();
+    page = renderWizard('/concept-booking/packages/pkg-1/book/review', { conceptDraft });
+    expect(await screen.findByText('Đã sửa ý tưởng')).toBeInTheDocument();
+    expect(JSON.parse(sessionStorage.getItem(CONCEPT_DRAFT_KEY)!).key).toBe('fresh-retry-key');
+    page.unmount();
+    vi.mocked(conceptService.availability).mockResolvedValue({
+      day: '2026-11-14',
+      available: true,
+      slots: [],
+    });
+    page = renderWizard('/concept-booking/packages/pkg-1/book/review', { conceptDraft });
+    expect(
+      await screen.findByRole('link', { name: 'Chọn lại thời gian hoặc thợ' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: /Tôi đồng ý giá gói/ }));
+    expect(screen.getByRole('button', { name: 'Tiếp theo' })).toBeDisabled();
+    expect(conceptService.checkout).not.toHaveBeenCalled();
+    page.unmount();
+  });
   it.each([
-    ['awaiting_deposit', 'pending', '2026-11-12T07:00:00Z', 'Quét mã để đặt cọc', true],
+    ['awaiting_deposit', 'pending', '2026-11-12T07:00:00Z', 'Quét mã để thanh toán', true],
     ['confirmed', 'paid', '2026-11-12T07:00:00Z', 'Đã nhận tiền cọc', false],
-    [
-      'awaiting_deposit',
-      'pending',
-      '2026-11-11T06:00:00Z',
-      'Đã kết thúc thời gian thanh toán',
-      false,
-    ],
+    ['awaiting_deposit', 'pending', '2026-11-11T06:00:00Z', 'Phiên thanh toán đã hết hạn', false],
   ])(
     'shows the dedicated deposit screen for %s / %s',
     async (status, paymentStatus, expiresAt, heading, showQr) => {
@@ -235,7 +273,16 @@ describe('concept booking contract', () => {
         </MemoryRouter>,
       );
       expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: 'Thanh toán cọc' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', {
+          name:
+            paymentStatus === 'paid'
+              ? 'Đã nhận tiền cọc'
+              : showQr
+                ? 'Thanh toán tiền cọc'
+                : 'Phiên thanh toán đã hết hạn',
+        }),
+      ).toBeInTheDocument();
       expect(!!screen.queryByRole('img', { name: /QR thanh toán/ })).toBe(showQr);
       expect(screen.getByRole('link', { name: 'Quay lại kiểm tra thông tin' })).toHaveAttribute(
         'href',

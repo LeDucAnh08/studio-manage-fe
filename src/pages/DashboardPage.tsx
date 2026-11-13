@@ -35,8 +35,10 @@ import {
 } from '@/components/ui';
 import type { Column } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import PhotographerDashboardPage from './PhotographerDashboardPage';
+import { isPersonalPhotographer } from '../utils/staffRole';
 
-const DashboardPage = () => {
+const StaffDashboardPage = () => {
   const { user } = useAuth();
   const isAdmin = user?.roles.some((r) => r === 0 || r === 1) ?? false;
   const showTotalCustomers = user?.roles.some((r) => r === 0 || r === 1 || r === 2) ?? false;
@@ -546,4 +548,8 @@ const DashboardPage = () => {
   );
 };
 
+const DashboardPage = () => {
+  const { user } = useAuth();
+  return isPersonalPhotographer(user) ? <PhotographerDashboardPage /> : <StaffDashboardPage />;
+};
 export default DashboardPage;

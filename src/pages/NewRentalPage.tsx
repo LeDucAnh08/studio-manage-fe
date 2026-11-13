@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CalendarDays, CirclePlus, Minus, Plus, Trash2 } from 'lucide-react';
 import {
   OrderButton as Button,
@@ -20,18 +20,16 @@ import {
   type RentalRequest,
   type RentalPolicy,
 } from '../services/rentalService';
-import { RENTAL_DRAFT_KEY, clearRentalDraft } from '../services/rentalDraft';
+import {
+  RENTAL_DRAFT_KEY,
+  clearRentalDraft,
+  writeRentalDraft,
+  type RentalDraft as Draft,
+} from '../services/rentalDraft';
 import { createWorkflowRequestId } from '../services/bookingWorkflowService';
 import type { RentalCatalogItem } from '../types';
 import { rentalDayCount, validateRentalPeriod, vietnamToday } from '../utils/rentalPeriod';
 
-type Draft = Omit<RentalRequest, 'lines'> & {
-  lines: Array<{ costumeId: string; size: string; quantity: string }>;
-  preview: boolean;
-  ownerId: string | null;
-  requestKey?: string;
-  signature?: string;
-};
 const empty = (ownerId: string | null): Draft => ({
   ownerId,
   contactName: '',
@@ -50,15 +48,24 @@ export default function NewRentalPage() {
   const ContentTag = customer ? 'section' : 'main';
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [params, setParams] = useSearchParams();
   const appliedCatalogItem = useRef('');
   const [draft, setDraft] = useState<Draft>(() => {
+    const restored = location.state?.rentalDraft as Draft | undefined;
     const incomingPeriod = {
       receiveDate: params.get('receiveDate') ?? '',
       returnDate: params.get('returnDate') ?? '',
     };
     try {
       const saved = JSON.parse(sessionStorage.getItem(RENTAL_DRAFT_KEY) || 'null') as Draft | null;
+      if (user && restored?.ownerId === user._id && Array.isArray(restored.lines)) {
+        return saved?.ownerId === user._id &&
+          saved.restorationId &&
+          saved.restorationId === restored.restorationId
+          ? saved
+          : restored;
+      }
       if (saved && (!saved.ownerId || saved.ownerId === user?._id) && Array.isArray(saved.lines)) {
         const period =
           params.has('receiveDate') || params.has('returnDate') ? incomingPeriod : saved;
@@ -75,6 +82,7 @@ export default function NewRentalPage() {
     } catch {
       clearRentalDraft();
     }
+    if (user && restored?.ownerId === user._id && Array.isArray(restored.lines)) return restored;
     return {
       ...empty(user?._id ?? null),
       ...incomingPeriod,
@@ -143,10 +151,7 @@ export default function NewRentalPage() {
     };
   }, [draft.receiveDate, draft.returnDate, periodError, range, retry]);
   useEffect(() => {
-    sessionStorage.setItem(
-      RENTAL_DRAFT_KEY,
-      JSON.stringify({ ...draft, ownerId: user?._id ?? draft.ownerId }),
-    );
+    writeRentalDraft({ ...draft, ownerId: user?._id ?? draft.ownerId });
   }, [draft, user?._id]);
   useEffect(() => {
     const item = params.get('item');

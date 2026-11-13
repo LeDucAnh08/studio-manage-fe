@@ -18,6 +18,7 @@ import ReportsPage from './ReportsPage';
 const mocks = vi.hoisted(() => ({
   roles: [0],
   stats: vi.fn(),
+  photographerStats: vi.fn(),
   chart: vi.fn(),
   transactions: vi.fn(),
   summary: vi.fn(),
@@ -29,6 +30,10 @@ vi.mock('../context/AuthContext', () => ({
   useAuth: () => ({ user: { _id: 'staff-1', name: 'Nhân viên mẫu', roles: mocks.roles } }),
 }));
 vi.mock('../services/dashboardService', () => ({ dashboardService: { getStats: mocks.stats } }));
+vi.mock('../services/photographerDashboardService', async (original) => ({
+  ...(await original<typeof import('../services/photographerDashboardService')>()),
+  photographerDashboardService: { get: mocks.photographerStats },
+}));
 vi.mock('../services/transactionService', () => ({
   transactionService: {
     getAll: mocks.transactions,
@@ -191,6 +196,16 @@ beforeEach(() => {
   vi.resetAllMocks();
   mocks.roles = [0];
   mocks.stats.mockResolvedValue(stats);
+  mocks.photographerStats.mockResolvedValue({
+    from: '2026-11-01',
+    to: '2026-11-30',
+    now: '2026-11-13T02:00:00Z',
+    nextRefreshAt: '2099-01-01',
+    counts: { shoots: 9, upcoming: 3, editing: 2, review: 1, completed: 4, overdue: 0 },
+    breakdown: { concept: 4, yearbook: 5 },
+    chart: [],
+    priority: [],
+  });
   mocks.transactions.mockResolvedValue({
     data: [
       {
@@ -259,8 +274,9 @@ describe('Dashboard, finance and reports rollout', () => {
   it('does not expose finance or admin filters to a photographer', async () => {
     mocks.roles = [3];
     renderPage(<DashboardPage />);
-    await screen.findByRole('heading', { level: 1 });
-    expect(screen.getByRole('link', { name: /Lịch chụp 9/ })).toBeInTheDocument();
+    await screen.findByRole('button', { name: /Buổi chụp trong kỳ/ });
+    expect(screen.getByRole('heading', { name: 'Thống kê của tôi' })).toBeInTheDocument();
+    expect(mocks.stats).not.toHaveBeenCalled();
     expect(screen.queryByRole('link', { name: /Tổng thu/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: 'Xem theo người' })).not.toBeInTheDocument();
     expect(screen.queryByTestId('series-Thu')).not.toBeInTheDocument();

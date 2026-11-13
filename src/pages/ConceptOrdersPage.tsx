@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
+import { isPersonalPhotographer } from '../utils/staffRole';
 import { useAuth } from '../context/AuthContext';
 import {
   ConceptOrder,
@@ -11,7 +12,7 @@ import {
 } from '../services/conceptService';
 import '../styles/concept.css';
 
-export default function ConceptOrdersPage() {
+function StaffConceptOrdersPage() {
   const { user } = useAuth();
   const client = user?.roles.includes(6);
   const [rows, setRows] = useState<ConceptOrder[]>([]),
@@ -114,5 +115,14 @@ export default function ConceptOrdersPage() {
         </button>
       </footer>
     </div>
+  );
+}
+
+export default function ConceptOrdersPage() {
+  const { user } = useAuth();
+  return isPersonalPhotographer(user) ? (
+    <Navigate to="/workflow-bookings?service=concept" replace />
+  ) : (
+    <StaffConceptOrdersPage />
   );
 }

@@ -47,6 +47,7 @@ import ConceptBookingPage from './pages/ConceptBookingPage';
 import ConceptCatalogPage from './pages/ConceptCatalogPage';
 import ConceptPackageDetailPage from './pages/ConceptPackageDetailPage';
 import ConceptPhotographerPage from './pages/ConceptPhotographerPage';
+import PhotographerPublicPage from './pages/PhotographerPublicPage';
 import ConceptOrderPage from './pages/ConceptOrderPage';
 import { GuestConceptAlbumPage } from './pages/ConceptAlbumPanel';
 
@@ -296,6 +297,12 @@ function App() {
                   </Route>
                 )}
                 <Route path="/portfolio" element={<PortfolioEntry />} />
+                {conceptBookingEnabled && (
+                  <Route
+                    path="/photographers/:photographerId"
+                    element={<PhotographerPublicPage />}
+                  />
+                )}
                 <Route path="/costumes" element={<RentalCatalogPage />} />
                 {clientPortalEnabled && (
                   <Route

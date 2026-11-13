@@ -7,6 +7,124 @@
   font-size: 16px;
   line-height: 1.55;
 }
+.photographer-profile-cover {
+  margin-bottom: 28px;
+  border-radius: 10px;
+  aspect-ratio: 24/7;
+}
+.photographer-profile-cover img {
+  object-fit: cover;
+}
+.photographer-work-grid figcaption {
+  font-size: 13px;
+  margin-top: 8px;
+}
+.photographer-public-cta {
+  display: inline-flex;
+  margin-top: 30px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  background: var(--customer-primary, #ff385c);
+  color: white;
+}
+.photographer-profile--compact .photographer-hero {
+  display: block;
+}
+.photographer-profile--compact .photographer-hero > .customer-image {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  margin: -56px 18px 18px;
+  border: 3px solid var(--pp-panel, white);
+}
+.photographer-profile--compact .photographer-profile-cover {
+  aspect-ratio: 2.2;
+  margin-bottom: 20px;
+}
+.photographer-profile--compact .photographer-name {
+  font-size: 28px;
+  font-weight: 650;
+  margin-bottom: 6px;
+}
+.photographer-profile--compact .photographer-role {
+  padding: 0;
+  background: none;
+  color: inherit;
+  margin-bottom: 10px;
+}
+.photographer-profile--compact .photographer-eyebrow {
+  display: none;
+}
+.photographer-profile--compact .photographer-facts > div {
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+.photographer-profile--compact .photographer-facts,
+.photographer-profile--compact .photographer-section:not(.photographer-gallery) {
+  display: none;
+}
+.photographer-profile--compact .photographer-prose p:first-child {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.photographer-profile--compact .photographer-prose p:not(:first-child) {
+  display: none;
+}
+.photographer-intro {
+  margin: 0 0 16px;
+  white-space: pre-line;
+}
+.photographer-profile--compact .photographer-intro {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.photographer-profile--compact
+  .photographer-identity:has(.photographer-intro)
+  > .photographer-prose {
+  display: none;
+}
+.photographer-profile--compact .photographer-working,
+.photographer-profile--compact .photographer-audience {
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+.photographer-profile--compact .photographer-working > div + div,
+.photographer-profile--compact .photographer-audience article + article {
+  padding-left: 0;
+  border: 0;
+}
+#photographer-portfolio-editor .photographer-profile--compact {
+  font-size: 14px;
+}
+#photographer-portfolio-editor
+  .photographer-profile--compact
+  :is(.photographer-facts > div, .photographer-section) {
+  border-color: var(--pp-line);
+}
+#photographer-portfolio-editor
+  .photographer-profile--compact
+  :is(.photographer-eyebrow, .photographer-section-intro) {
+  color: var(--pp-muted);
+}
+#photographer-portfolio-editor .photographer-profile--compact h2 {
+  font-size: 18px;
+  margin: 16px 0 12px;
+}
+#photographer-portfolio-editor .photographer-profile--compact .photographer-name {
+  font-size: 28px;
+  margin: 0 0 6px;
+}
+#photographer-portfolio-editor .photographer-profile--compact .photographer-prose p {
+  margin-bottom: 12px;
+}
+#photographer-portfolio-editor .photographer-profile--compact .photographer-section {
+  margin-top: 22px;
+  padding-top: 16px;
+}
 .photographer-back {
   display: inline-flex;
   gap: 10px;

@@ -49,15 +49,23 @@ export default function ConceptBookingPage() {
   const step = screenIndex < 0 ? 2 : screenIndex + 2;
   const [draft, setDraft] = useState<Draft>(() => {
     const passed = location.state?.conceptDraft as Draft | undefined;
+    const saved = readDraft(user?._id || null);
+    if (
+      passed &&
+      passed.ownerId === user?._id &&
+      passed.restorationId &&
+      saved.restorationId === passed.restorationId
+    )
+      return saved;
     return passed?.ownerId === (user?._id || null)
       ? {
-          ...readDraft(user?._id || null),
+          ...saved,
           ...passed,
           wardrobeMeasurements: Array.isArray(passed.wardrobeMeasurements)
             ? passed.wardrobeMeasurements
             : [],
         }
-      : readDraft(user?._id || null);
+      : saved;
   });
   const [catalog, setCatalog] = useState<Catalog | null>(null),
     [error, setError] = useState(''),
@@ -91,6 +99,9 @@ export default function ConceptBookingPage() {
     draft.people <= (pkg?.maxPeople || 1);
   const availabilityDay =
     step === 2 || !Number.isFinite(Date.parse(draft.startAt)) ? '' : studioDay(draft.startAt);
+  const checkingReviewAvailability =
+    loadingDays ||
+    (!Object.prototype.hasOwnProperty.call(days, availabilityDay) && !availabilityError);
   const update = (patch: Partial<Draft>) => {
     setDraft((d) => ({ ...d, ...patch, key: crypto.randomUUID() }));
     setAccepted(false);
@@ -214,6 +225,17 @@ export default function ConceptBookingPage() {
       return;
     }
     if (!user.emailVerifiedAt || !pkg || !accepted) return;
+    if (
+      checkingReviewAvailability ||
+      availabilityError ||
+      !photographer ||
+      Date.parse(draft.startAt) <= Date.now()
+    ) {
+      setError(
+        'Khung giờ hoặc thợ chụp không còn khả dụng. Vui lòng chọn lại thời gian hoặc thợ; các thông tin đã nhập vẫn được giữ.',
+      );
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -767,6 +789,22 @@ export default function ConceptBookingPage() {
                     </p>
                   ) : (
                     <>
+                      {(checkingReviewAvailability || availabilityError || !photographer) && (
+                        <p role={checkingReviewAvailability ? 'status' : 'alert'}>
+                          {checkingReviewAvailability
+                            ? 'Đang kiểm tra lại lịch trống…'
+                            : availabilityError ||
+                              'Khung giờ hoặc thợ chụp đã chọn không còn khả dụng.'}
+                          {!checkingReviewAvailability && (
+                            <>
+                              {' '}
+                              <Link to={conceptBookingPath(draft.packageId)}>
+                                Chọn lại thời gian hoặc thợ
+                              </Link>
+                            </>
+                          )}
+                        </p>
+                      )}
                       <label className="concept-check">
                         <input
                           type="checkbox"
@@ -777,7 +815,13 @@ export default function ConceptBookingPage() {
                       </label>
                       <button
                         className="concept-checkout-next"
-                        disabled={!accepted || busy}
+                        disabled={
+                          !accepted ||
+                          busy ||
+                          checkingReviewAvailability ||
+                          !!availabilityError ||
+                          !photographer
+                        }
                         onClick={() => void submit()}
                       >
                         {busy ? 'Đang chuyển đến thanh toán…' : 'Tiếp theo'}

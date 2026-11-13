@@ -1,0 +1,420 @@
+#photographer-portfolio-editor {
+  color: hsl(var(--foreground));
+  font-size: 14px;
+  line-height: 1.5;
+  --pp-line: hsl(var(--border));
+  --pp-muted: hsl(var(--muted-foreground));
+  --pp-panel: hsl(var(--card));
+  --pp-accent: var(--staff-link);
+}
+#photographer-portfolio-editor * {
+  box-sizing: border-box;
+}
+#photographer-portfolio-editor :is(h1, h2, h3, p) {
+  margin: 0;
+}
+#photographer-portfolio-editor h1 {
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.7px;
+}
+#photographer-portfolio-editor h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+#photographer-portfolio-editor h3 {
+  font-size: 15px;
+  font-weight: 600;
+}
+#photographer-portfolio-editor button,
+.pp-upload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid var(--pp-line);
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: var(--pp-panel);
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+#photographer-portfolio-editor button:hover,
+.pp-upload:hover {
+  border-color: var(--pp-accent);
+}
+#photographer-portfolio-editor :is(button, input, textarea, select):focus-visible,
+.pp-upload:focus-within {
+  outline: 2px solid var(--pp-accent);
+  outline-offset: 3px;
+}
+#photographer-portfolio-editor button:disabled,
+.pp-upload:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+#photographer-portfolio-editor .pp-primary {
+  background: light-dark(#6554c0, #a396ff);
+  color: light-dark(#fff, #17141f);
+  border-color: transparent;
+  font-weight: 600;
+}
+.pp-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.pp-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.pp-header p {
+  color: var(--pp-muted);
+  padding-top: 5px;
+}
+.pp-status {
+  color: var(--staff-warning-ink);
+  background: var(--staff-warning-bg);
+  padding: 4px 9px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+.pp-status-live {
+  color: var(--staff-success-ink);
+  background: var(--staff-success-bg);
+}
+.pp-actions {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.pp-tabs {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--pp-line);
+  margin-bottom: 28px;
+}
+#photographer-portfolio-editor .pp-tabs button {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 10px 8px 14px;
+  border-bottom: 3px solid transparent;
+}
+#photographer-portfolio-editor .pp-tabs [aria-selected='true'] {
+  color: var(--pp-accent);
+  border-bottom-color: var(--pp-accent);
+  font-weight: 600;
+}
+.pp-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 28px;
+}
+.pp-columns > * {
+  min-width: 0;
+}
+.pp-form-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.pp-cover {
+  position: relative;
+  margin-top: 14px;
+}
+.pp-cover .customer-image {
+  aspect-ratio: 2.9;
+  border-radius: 8px;
+}
+.pp-cover .customer-image img {
+  object-fit: cover;
+}
+.pp-cover .pp-upload {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+}
+.pp-upload {
+  position: relative;
+  overflow: hidden;
+  font-size: 13px;
+}
+.pp-upload input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.pp-empty {
+  min-height: 150px;
+  border: 1px dashed var(--pp-line);
+  border-radius: 8px;
+  color: var(--pp-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 24px;
+  gap: 10px;
+  text-align: center;
+}
+.pp-identity {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin: 24px 0;
+  flex-wrap: wrap;
+}
+.pp-avatar {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--pp-panel);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--pp-line);
+}
+.pp-avatar .customer-image {
+  width: 100%;
+  height: 100%;
+}
+.pp-identity p {
+  color: var(--pp-muted);
+  font-size: 12px;
+  padding-bottom: 8px;
+}
+.pp-account {
+  border-left: 1px solid var(--pp-line);
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  flex: 1;
+  min-width: 130px;
+}
+.pp-account span {
+  color: var(--pp-muted);
+  font-size: 12px;
+}
+.pp-account strong {
+  font-size: 20px;
+}
+.pp-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.pp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 16px;
+  min-width: 0;
+  font-weight: 550;
+}
+.pp-fields .pp-field {
+  margin: 0;
+}
+.pp-fields > .pp-field:nth-child(-n + 2),
+.pp-field-wide {
+  grid-column: 1 / -1;
+}
+.pp-field input,
+.pp-field textarea,
+.pp-field select {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 11px;
+  color: inherit;
+  border: 1px solid var(--pp-line);
+  background: var(--pp-panel);
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 400;
+}
+.pp-field textarea {
+  resize: vertical;
+  min-height: 78px;
+}
+.pp-assignment {
+  border-top: 1px solid var(--pp-line);
+  margin-top: 28px;
+  padding-top: 20px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 12px;
+}
+.pp-chip {
+  background: hsl(var(--secondary));
+  border-radius: 5px;
+  padding: 4px 8px;
+}
+#photographer-portfolio-editor .pp-hint {
+  color: var(--pp-muted);
+  font-size: 12px;
+  margin: 12px 0;
+}
+.pp-preview {
+  border-left: 1px solid var(--pp-line);
+  padding-left: 26px;
+}
+.pp-preview > h2 {
+  margin-bottom: 16px !important;
+}
+.pp-section {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--pp-line);
+}
+.pp-section-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+.pp-section-row + .pp-section-row {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--pp-line);
+}
+.pp-section-row > button {
+  margin-top: 10px;
+}
+.pp-gallery {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px 16px;
+}
+.pp-gallery article {
+  min-width: 0;
+}
+.pp-gallery .customer-image {
+  aspect-ratio: 4/3;
+  border-radius: 7px;
+}
+.pp-photo-controls {
+  display: flex;
+  gap: 6px;
+  padding-top: 8px;
+}
+.pp-photo-controls button:last-child {
+  margin-left: auto;
+}
+.pp-consent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  margin-top: 12px;
+  min-height: 32px;
+}
+.pp-consent input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--pp-accent);
+}
+#photographer-portfolio-editor .pp-text-button {
+  border: 0;
+  background: transparent;
+  color: var(--pp-muted);
+  font-size: 12px;
+  min-height: 32px;
+}
+.pp-error,
+.pp-success {
+  padding: 12px 14px;
+  margin: 12px 0;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  border-radius: 6px;
+}
+.pp-error {
+  color: var(--staff-danger-ink);
+  background: var(--staff-danger-bg);
+}
+.pp-success {
+  color: var(--staff-success-ink);
+  background: var(--staff-success-bg);
+}
+.portfolio-full-preview {
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  overflow: auto;
+  background: var(--customer-canvas, white);
+}
+.portfolio-preview-notice {
+  margin-bottom: 24px;
+  color: #666;
+  font-size: 14px;
+}
+.portfolio-image-status {
+  min-height: 90px;
+  display: grid;
+  place-items: center;
+  color: inherit;
+}
+
+@media (max-width: 1050px) {
+  .pp-columns {
+    grid-template-columns: 1fr;
+  }
+  .pp-preview {
+    border-left: 0;
+    border-top: 1px solid var(--pp-line);
+    padding: 24px 0 0;
+  }
+}
+@media (max-width: 600px) {
+  .pp-tabs {
+    gap: 8px;
+    justify-content: space-between;
+  }
+  #photographer-portfolio-editor h1 {
+    font-size: 24px;
+  }
+  .pp-actions {
+    width: 100%;
+    gap: 7px;
+  }
+  .pp-actions button {
+    flex: 1;
+    font-size: 12px !important;
+    padding: 8px !important;
+  }
+  .pp-fields,
+  .pp-gallery {
+    grid-template-columns: 1fr;
+  }
+  .pp-account {
+    border: 0;
+    padding: 0;
+    min-width: 100%;
+  }
+  .pp-cover .customer-image {
+    aspect-ratio: 2;
+  }
+}

@@ -8,7 +8,27 @@ import type {
   ScheduleResponse,
 } from '../types';
 
+export interface PersonalSchedule {
+  _id: string;
+  shootDate: string;
+  startTime?: string;
+  endTime?: string;
+  location: string;
+  status: Schedule['status'];
+  notes: string;
+  service: 'concept' | 'yearbook';
+  title: string;
+  role: 'lead' | 'support';
+}
+
 export const scheduleService = {
+  myCalendar: (from: string, to: string, signal?: AbortSignal) =>
+    api
+      .get<ApiResponse<PersonalSchedule[]>>('/schedules/mine/calendar', {
+        params: { from, to },
+        signal,
+      })
+      .then((r) => r.data.data),
   getAll: (params?: Record<string, string | number>) =>
     api
       .get<PaginatedApiResponse<ScheduleResponse>>('/schedules', { params })

@@ -166,6 +166,7 @@ export interface BookingWorkflowDto {
     cancelledAt?: string;
     cancellationReason?: string;
     packageName: string;
+    packageId?: string;
     pricePerMember?: number;
     members: number;
     className?: string;
