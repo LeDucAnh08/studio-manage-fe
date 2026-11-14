@@ -51,10 +51,10 @@
 }
 #yume-photographer-dashboard select {
   min-width: 0;
-  background: var(--yd-panel);
+  background-color: var(--yd-panel);
   border: 1px solid var(--yd-line);
   border-radius: 6px;
-  padding: 8px 9px;
+  padding: 8px 2.5rem 8px 9px;
   font-size: 12px;
   max-width: 100%;
 }

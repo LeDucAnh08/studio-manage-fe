@@ -92,13 +92,15 @@ describe('Sidebar navigation', () => {
       );
     },
   );
-  it('retains concept management navigation for administrators', () => {
+  it('groups photography orders while retaining concept catalog settings for administrators', () => {
     render(
       <MemoryRouter>
         <Sidebar isOpen={false} onClose={vi.fn()} />
       </MemoryRouter>,
     );
-    expect(screen.getByRole('link', { name: 'Chụp concept' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Chụp concept' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Quản lý concept' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Đơn chụp ảnh' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Portfolio của tôi' })).not.toBeInTheDocument();
   });
   it('keeps photography orders active when the photographer opens a concept record', () => {

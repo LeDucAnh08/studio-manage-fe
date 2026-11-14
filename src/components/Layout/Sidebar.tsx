@@ -6,7 +6,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme, type ThemeMode } from '../../context/ThemeContext';
 import { ROLE_LABELS } from '../../types';
 import { navItems, adminItems, type NavItem } from '../../config/navItems';
-import { isPersonalPhotographer } from '../../utils/staffRole';
 import { getNavigationGroupForPath } from '../../config/navigation';
 import { Logo } from '../atoms';
 import {
@@ -93,7 +92,6 @@ const Sidebar = ({ isOpen, onClose, triggerRef }: SidebarProps) => {
     !item.allowedRoles || user?.roles?.some((r) => item.allowedRoles!.includes(r));
 
   const renderNavItem = (item: NavItem) => {
-    if (item.to === '/concept-orders' && isPersonalPhotographer(user)) return null;
     if (item.hidden || !isAllowed(item)) return null;
     const ItemIcon = item.icon;
     if (item.children) {
@@ -149,11 +147,7 @@ const Sidebar = ({ isOpen, onClose, triggerRef }: SidebarProps) => {
         </div>
       );
     }
-    if (
-      item.to === '/workflow-bookings' &&
-      isPersonalPhotographer(user) &&
-      location.pathname.startsWith('/concept-orders/')
-    ) {
+    if (item.to === '/workflow-bookings' && location.pathname.startsWith('/concept-orders/')) {
       return (
         <Link
           key={item.to}

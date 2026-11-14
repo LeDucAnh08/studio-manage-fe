@@ -239,10 +239,13 @@
   padding: 9px 11px;
   color: inherit;
   border: 1px solid var(--pp-line);
-  background: var(--pp-panel);
+  background-color: var(--pp-panel);
   border-radius: 6px;
   font: inherit;
   font-weight: 400;
+}
+.pp-field select {
+  padding-right: 2.5rem;
 }
 .pp-field textarea {
   resize: vertical;

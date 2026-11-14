@@ -38,7 +38,6 @@ import {
 } from '../components/customer/CustomerOrderControls';
 import '../styles/customer-orders.css';
 import '../styles/concept-order-detail.css';
-import { isPersonalPhotographer } from '../utils/staffRole';
 
 export default function ConceptOrderPage() {
   const customer = useCustomerAppearance();
@@ -362,13 +361,7 @@ export default function ConceptOrderPage() {
               ? 'app-back-link customer-back-link inline-flex items-center gap-2'
               : 'app-back-link'
           }
-          to={
-            order.isOwner
-              ? ordersPath
-              : isPersonalPhotographer(user)
-                ? staffOrdersPath
-                : '/concept-orders'
-          }
+          to={order.isOwner ? ordersPath : staffOrdersPath}
         >
           <ArrowLeft size={18} aria-hidden="true" /> Quay lại danh sách
         </Link>

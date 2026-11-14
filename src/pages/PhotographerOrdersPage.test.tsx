@@ -93,7 +93,7 @@ describe('photographer photography orders', () => {
         expect.any(AbortSignal),
       ),
     );
-    expect(screen.getByRole('combobox', { name: 'Loại dịch vụ' })).toHaveValue('concept');
+    expect(screen.getByRole('combobox', { name: 'Loại đơn chụp' })).toHaveValue('concept');
     fireEvent.click(await screen.findByRole('link', { name: 'Áo dài' }));
     expect(screen.getByText('Hồ sơ concept')).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent(
@@ -103,7 +103,7 @@ describe('photographer photography orders', () => {
   it('resets only the page when changing service and retains both filters when paging', async () => {
     open('/workflow-bookings?view=editing&page=2');
     await screen.findByRole('link', { name: '12A1' });
-    fireEvent.change(screen.getByRole('combobox', { name: 'Loại dịch vụ' }), {
+    fireEvent.change(screen.getByRole('combobox', { name: 'Loại đơn chụp' }), {
       target: { value: 'yearbook' },
     });
     await waitFor(() =>
@@ -136,7 +136,7 @@ describe('photographer photography orders', () => {
       .mockRejectedValueOnce(new Error('offline'))
       .mockResolvedValueOnce(response([concept]));
     open();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Loại dịch vụ' }), {
+    fireEvent.change(screen.getByRole('combobox', { name: 'Loại đơn chụp' }), {
       target: { value: 'concept' },
     });
     await screen.findByRole('alert');
@@ -150,6 +150,6 @@ describe('photographer photography orders', () => {
     open('/concept-orders');
     await screen.findByRole('link', { name: 'Áo dài' });
     expect(screen.getByTestId('location')).toHaveTextContent('/workflow-bookings?service=concept');
-    expect(screen.getByRole('combobox', { name: 'Loại dịch vụ' })).toHaveValue('concept');
+    expect(screen.getByRole('combobox', { name: 'Loại đơn chụp' })).toHaveValue('concept');
   });
 });

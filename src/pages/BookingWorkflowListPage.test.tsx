@@ -2,7 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BookingWorkflowListPage from './BookingWorkflowListPage';
-import { bookingWorkflowService, type WorkflowSummary } from '../services/bookingWorkflowService';
+import { shootOrdersService, type ShootOrderSummary } from '../services/shootOrdersService';
+import ConceptOrdersPage from './ConceptOrdersPage';
 import { photographerOrdersService } from '../services/photographerOrdersService';
 
 const { auth } = vi.hoisted(() => ({ auth: { user: { _id: 'admin', roles: [0] } } }));
@@ -10,21 +11,14 @@ vi.mock('../context/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../services/photographerOrdersService', () => ({
   photographerOrdersService: { list: vi.fn() },
 }));
-vi.mock('../services/bookingWorkflowService', async () => ({
-  ...(await vi.importActual('../services/bookingWorkflowService')),
-  bookingWorkflowService: { list: vi.fn() },
-}));
+vi.mock('../services/shootOrdersService', () => ({ shootOrdersService: { list: vi.fn() } }));
 vi.mock('./BookingsPage', () => ({
   BookingNotifications: ({ base }: { base: string }) => (
     <a href={`${base}/notice`}>Thông báo yêu cầu</a>
   ),
 }));
-vi.mock('../components/PhotographerUnavailability', () => ({
-  PhotographerUnavailability: ({ admin }: { admin: boolean }) => (
-    <p>{admin ? 'Quản lý lịch bận' : 'Lịch bận của tôi'}</p>
-  ),
-}));
-const booking: WorkflowSummary = {
+const booking: ShootOrderSummary = {
+  service: 'yearbook',
   bookingId: 'booking',
   version: 0,
   lifecycle: 'intake',
@@ -34,7 +28,7 @@ const booking: WorkflowSummary = {
   updatedAt: '2026-10-29',
   bookingStatus: 'pending',
 };
-const response = (data: WorkflowSummary[], total = data.length) => ({
+const response = (data: ShootOrderSummary[], total = data.length) => ({
   success: true,
   message: 'OK',
   data,
@@ -55,6 +49,8 @@ function open(path = '/workflow-bookings') {
       <Routes>
         <Route path="/workflow-bookings" element={<BookingWorkflowListPage />} />
         <Route path="/workflow-bookings/:id" element={<p>Chi tiết đơn</p>} />
+        <Route path="/concept-orders/:id" element={<p>Chi tiết concept</p>} />
+        <Route path="/concept-orders" element={<ConceptOrdersPage />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -64,7 +60,7 @@ describe('unified photography workspace', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     auth.user = { _id: 'admin', roles: [0] };
-    vi.mocked(bookingWorkflowService.list).mockResolvedValue(response([booking]));
+    vi.mocked(shootOrdersService.list).mockResolvedValue(response([booking]));
     vi.mocked(photographerOrdersService.list).mockResolvedValue({
       ...response([]),
       data: [
@@ -82,7 +78,7 @@ describe('unified photography workspace', () => {
     });
   });
   it('shows new requests, progress and admin notifications in one workspace', async () => {
-    vi.mocked(bookingWorkflowService.list).mockResolvedValue(
+    vi.mocked(shootOrdersService.list).mockResolvedValue(
       response([
         booking,
         {
@@ -103,15 +99,60 @@ describe('unified photography workspace', () => {
       'href',
       '/workflow-bookings/notice',
     );
-    expect(screen.getByText('Quản lý lịch bận')).toBeInTheDocument();
+    expect(screen.queryByText('Quản lý lịch bận của thợ')).not.toBeInTheDocument();
+  });
+  it('combines both services and preserves service/status context when opening concept records', async () => {
+    const concept = {
+      ...booking,
+      service: 'concept' as const,
+      bookingId: 'concept-1',
+      className: 'Khách concept',
+      conceptName: 'Chân dung',
+      packageName: 'Gói concept',
+      bookingStatus: 'approved' as const,
+      lifecycle: 'editing' as const,
+      orderStage: 'editing' as const,
+    };
+    vi.mocked(shootOrdersService.list).mockResolvedValue(response([booking, concept]));
+    open('/workflow-bookings?view=editing&page=2');
+    await screen.findByRole('link', { name: 'Khách concept' });
+    expect(screen.getByRole('link', { name: '12A1' })).toHaveAttribute(
+      'href',
+      '/workflow-bookings/booking',
+    );
+    fireEvent.change(screen.getByRole('combobox', { name: 'Loại đơn chụp' }), {
+      target: { value: 'concept' },
+    });
+    await waitFor(() =>
+      expect(shootOrdersService.list).toHaveBeenLastCalledWith(1, 20, 'editing', 'concept'),
+    );
+    fireEvent.click(await screen.findByRole('link', { name: 'Khách concept' }));
+    expect(screen.getByText('Chi tiết concept')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/workflow-bookings?view=editing&service=concept',
+    );
+    expect(screen.getByTestId('location')).not.toHaveTextContent('page=2');
+  });
+  it('redirects the old concept list to the combined service filter', async () => {
+    open('/concept-orders?page=2');
+    await screen.findByRole('link', { name: '12A1' });
+    expect(screen.getByRole('combobox', { name: 'Loại đơn chụp' })).toHaveValue('concept');
+    expect(shootOrdersService.list).toHaveBeenLastCalledWith(2, 20, '', 'concept');
+  });
+  it('keeps sales limited to concept orders without offering the yearbook filter', async () => {
+    auth.user = { _id: 'sales', roles: [2] };
+    open();
+    await screen.findByRole('link', { name: '12A1' });
+    expect(screen.queryByRole('option', { name: 'Kỉ yếu' })).not.toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Concept' })).toBeInTheDocument();
   });
   it('restores filters and pagination from the URL and retains them when opening a record', async () => {
-    vi.mocked(bookingWorkflowService.list).mockResolvedValue(
+    vi.mocked(shootOrdersService.list).mockResolvedValue(
       response([{ ...booking, lifecycle: 'completed', bookingStatus: 'approved' }], 45),
     );
     open('/workflow-bookings?view=completed&page=2');
     await waitFor(() =>
-      expect(bookingWorkflowService.list).toHaveBeenLastCalledWith(2, 20, 'completed'),
+      expect(shootOrdersService.list).toHaveBeenLastCalledWith(2, 20, 'completed', ''),
     );
     expect(screen.getByRole('combobox', { name: 'Trạng thái đơn' })).toHaveValue('completed');
     fireEvent.click(await screen.findByRole('link', { name: /12A1/ }));
@@ -122,19 +163,19 @@ describe('unified photography workspace', () => {
   it('filters new requests separately from accepted work without client-side pagination filtering', async () => {
     open('/workflow-bookings?view=pending&page=2');
     await waitFor(() =>
-      expect(bookingWorkflowService.list).toHaveBeenLastCalledWith(2, 20, 'pending'),
+      expect(shootOrdersService.list).toHaveBeenLastCalledWith(2, 20, 'pending', ''),
     );
     expect(screen.getByRole('combobox', { name: 'Trạng thái đơn' })).toHaveValue('pending');
     fireEvent.change(screen.getByRole('combobox', { name: 'Trạng thái đơn' }), {
       target: { value: 'active' },
     });
     await waitFor(() =>
-      expect(bookingWorkflowService.list).toHaveBeenLastCalledWith(1, 20, 'active'),
+      expect(shootOrdersService.list).toHaveBeenLastCalledWith(1, 20, 'active', ''),
     );
   });
   it('resets the page on a filter change and ignores stale list responses', async () => {
     let resolveOld!: (value: ReturnType<typeof response>) => void;
-    vi.mocked(bookingWorkflowService.list)
+    vi.mocked(shootOrdersService.list)
       .mockImplementationOnce(
         () =>
           new Promise((resolve) => {
@@ -150,7 +191,7 @@ describe('unified photography workspace', () => {
     });
     expect(await screen.findByRole('link', { name: 'Đơn từ chối' })).toBeInTheDocument();
     await waitFor(() =>
-      expect(bookingWorkflowService.list).toHaveBeenLastCalledWith(1, 20, 'rejected'),
+      expect(shootOrdersService.list).toHaveBeenLastCalledWith(1, 20, 'rejected', ''),
     );
     resolveOld(response([booking]));
     await waitFor(() =>
@@ -165,10 +206,10 @@ describe('unified photography workspace', () => {
     await screen.findByRole('link', { name: '12A1' });
     expect(screen.queryByText('Lịch bận của tôi')).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Thông báo yêu cầu' })).not.toBeInTheDocument();
-    expect(screen.queryByText('Quản lý lịch bận')).not.toBeInTheDocument();
+    expect(screen.queryByText('Quản lý lịch bận của thợ')).not.toBeInTheDocument();
   });
   it('labels automatically cancelled intake as cancelled rather than waiting for review', async () => {
-    vi.mocked(bookingWorkflowService.list).mockResolvedValue(
+    vi.mocked(shootOrdersService.list).mockResolvedValue(
       response([{ ...booking, bookingStatus: 'cancelled', className: 'Đơn quá hạn' }]),
     );
     open('/workflow-bookings?view=cancelled');
@@ -176,7 +217,7 @@ describe('unified photography workspace', () => {
     expect(link.closest('tr')).toHaveTextContent('Đã hủy');
   });
   it('uses the same stage names for filters and order badges', async () => {
-    vi.mocked(bookingWorkflowService.list).mockResolvedValue(
+    vi.mocked(shootOrdersService.list).mockResolvedValue(
       response([
         {
           ...booking,
@@ -205,8 +246,8 @@ describe('unified photography workspace', () => {
     expect(screen.getByRole('combobox', { name: 'Trạng thái đơn' })).toHaveValue(
       'awaiting_confirmation',
     );
-    expect(screen.getAllByRole('option')).toHaveLength(10);
+    expect(screen.getAllByRole('option')).toHaveLength(13);
     expect(screen.queryByRole('option', { name: 'Đang xử lý' })).not.toBeInTheDocument();
-    expect(bookingWorkflowService.list).toHaveBeenLastCalledWith(1, 20, 'awaiting_confirmation');
+    expect(shootOrdersService.list).toHaveBeenLastCalledWith(1, 20, 'awaiting_confirmation', '');
   });
 });

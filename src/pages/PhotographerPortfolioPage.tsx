@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import {
   ArrowDown,
   ArrowLeft,
@@ -604,11 +604,6 @@ export default function PhotographerPortfolioPage() {
           <p className="pp-hint">
             Lưu nháp để tiếp tục chỉnh sửa. Nội dung chỉ lên website khi bạn công khai.
           </p>
-          {state.published && (
-            <Link to={`/photographers/${state.photographer}`} target="_blank" rel="noreferrer">
-              Mở portfolio đang hiển thị trên website
-            </Link>
-          )}
         </section>
         <aside className="pp-preview" aria-label="Xem trước trang công khai">
           <h2>Xem trước trang công khai</h2>

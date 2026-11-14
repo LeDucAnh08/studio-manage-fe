@@ -2,19 +2,18 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Badge, Button, DataTable, PageHeader, type Column } from '@/components/ui';
 import {
-  bookingWorkflowService,
   bookingOrderStageLabels,
   bookingOrderStatusLabel,
   type BookingOrderStage,
-  type WorkflowSummary,
 } from '../services/bookingWorkflowService';
 import { useAuth } from '../context/AuthContext';
 import { useCurrentTime } from '../components/customer/useCurrentTime';
 import { useShootWindowRefresh } from '../components/customer/useShootWindowRefresh';
-import { PhotographerUnavailability } from '../components/PhotographerUnavailability';
 import { BookingNotifications } from './BookingsPage';
 import PhotographerOrdersPage from './PhotographerOrdersPage';
 import { isPersonalPhotographer } from '../utils/staffRole';
+import { conceptBookingEnabled } from '../config/features';
+import { shootOrdersService, type ShootOrderSummary } from '../services/shootOrdersService';
 
 const money = (amount: number) => amount.toLocaleString('vi-VN') + ' đ';
 const progressLabels: Record<string, string> = {
@@ -32,8 +31,14 @@ const errorText = (error: unknown) =>
 function StaffBookingWorkflowListPage() {
   const now = useCurrentTime();
   const { user } = useAuth();
-  const [items, setItems] = useState<WorkflowSummary[]>([]);
+  const [items, setItems] = useState<ShootOrderSummary[]>([]);
   const [params, setParams] = useSearchParams();
+  const requestedService = params.get('service') || '';
+  const service =
+    requestedService === 'yearbook' || (requestedService === 'concept' && conceptBookingEnabled)
+      ? requestedService
+      : '';
+  const canSeeYearbook = !!user?.roles.some((role) => [0, 1, 3, 5].includes(role));
   const requestedStage = params.get('view') || '';
   const filter: BookingOrderStage | '' = Object.keys(bookingOrderStageLabels).includes(
     requestedStage,
@@ -61,8 +66,8 @@ function StaffBookingWorkflowListPage() {
     let active = true;
     setLoading(true);
     setError('');
-    bookingWorkflowService
-      .list(page, 20, filter)
+    shootOrdersService
+      .list(page, 20, filter, service)
       .then((response) => {
         if (active) {
           setItems(response.data);
@@ -78,16 +83,18 @@ function StaffBookingWorkflowListPage() {
     return () => {
       active = false;
     };
-  }, [page, filter, reloadKey]);
+  }, [page, filter, service, reloadKey, user?._id]);
 
   const isAccountant = !!user?.roles.includes(5);
   const isPhotographer = !!user?.roles.includes(3);
   const isAdmin = !!user?.roles.some((role) => role === 0 || role === 1);
 
-  const recordLink = (item: WorkflowSummary) => (
+  const recordLink = (item: ShootOrderSummary) => (
     <Link
       className="font-medium text-primary hover:underline"
-      to={'/workflow-bookings/' + item.bookingId}
+      to={
+        (item.service === 'concept' ? '/concept-orders/' : '/workflow-bookings/') + item.bookingId
+      }
       state={{
         bookingOrdersReturnTo:
           '/workflow-bookings' + (params.toString() ? '?' + params.toString() : ''),
@@ -96,7 +103,7 @@ function StaffBookingWorkflowListPage() {
       {item.className || item.packageName}
     </Link>
   );
-  const columns: Column<WorkflowSummary>[] = [
+  const columns: Column<ShootOrderSummary>[] = [
     {
       key: 'booking',
       header: 'Đơn chụp',
@@ -105,7 +112,18 @@ function StaffBookingWorkflowListPage() {
         <div>
           {recordLink(item)}
           <p className="mt-1 text-xs text-muted-foreground">#{item.bookingId.slice(-6)}</p>
+          {item.conceptName && (
+            <p className="mt-1 text-xs text-muted-foreground">{item.conceptName}</p>
+          )}
         </div>
+      ),
+    },
+    {
+      key: 'service',
+      header: 'Loại đơn chụp',
+      className: 'min-w-[120px] whitespace-nowrap',
+      render: (item) => (
+        <Badge variant="secondary">{item.service === 'concept' ? 'Concept' : 'Kỉ yếu'}</Badge>
       ),
     },
     {
@@ -169,13 +187,20 @@ function StaffBookingWorkflowListPage() {
             header: 'Thanh toán',
             align: 'right' as const,
             className: 'min-w-[160px]',
-            render: (item: WorkflowSummary) =>
+            render: (item: ShootOrderSummary) =>
               item.payment ? (
                 <div>
                   <p>Đã nhận {money(item.payment.netReceived)}</p>
                   <p>Còn thu {money(item.payment.totalDue)}</p>
                   {!!item.payment.refundDue && (
                     <p className="text-destructive">Cần hoàn {money(item.payment.refundDue)}</p>
+                  )}
+                </div>
+              ) : item.conceptNetReceived !== undefined ? (
+                <div>
+                  <p>Đã nhận {money(item.conceptNetReceived)}</p>
+                  {!!item.refundDue && (
+                    <p className="text-destructive">Cần hoàn {money(item.refundDue)}</p>
                   )}
                 </div>
               ) : (
@@ -189,7 +214,7 @@ function StaffBookingWorkflowListPage() {
           {
             key: 'progress',
             header: 'Tiến độ',
-            render: (item: WorkflowSummary) =>
+            render: (item: ShootOrderSummary) =>
               item.progressStatus
                 ? (progressLabels[item.progressStatus] ?? item.progressStatus)
                 : 'Chưa bắt đầu',
@@ -226,8 +251,27 @@ function StaffBookingWorkflowListPage() {
         }
       />
       {isAdmin && <BookingNotifications base="/workflow-bookings" />}
-      {isAdmin && user && <PhotographerUnavailability userId={user._id} admin />}
-      <div className="staff-toolbar rounded-lg border bg-card p-4">
+      <div className="staff-toolbar flex flex-wrap gap-4 rounded-lg border bg-card p-4">
+        <label className="flex flex-wrap items-center gap-3 text-sm font-medium">
+          Loại đơn chụp
+          <select
+            className="h-9 rounded-md border bg-background px-3"
+            value={service}
+            onChange={(event) =>
+              setParams((previous) => {
+                const updated = new URLSearchParams(previous);
+                if (event.target.value) updated.set('service', event.target.value);
+                else updated.delete('service');
+                updated.delete('page');
+                return updated;
+              })
+            }
+          >
+            <option value="">Tất cả</option>
+            {conceptBookingEnabled && <option value="concept">Concept</option>}
+            {canSeeYearbook && <option value="yearbook">Kỉ yếu</option>}
+          </select>
+        </label>
         <label className="flex flex-wrap items-center gap-3 text-sm font-medium">
           Trạng thái đơn
           <select
@@ -268,12 +312,12 @@ function StaffBookingWorkflowListPage() {
           aria-label="Đơn chụp ảnh"
           columns={columns}
           data={items}
-          keyExtractor={(item) => item.bookingId}
+          keyExtractor={(item) => `${item.service}:${item.bookingId}`}
           loading={loading}
           emptyTitle="Chưa có đơn chụp ảnh phù hợp"
           emptyDescription={
             isAdmin || isAccountant
-              ? 'Bạn có thể đổi bộ lọc trạng thái để xem các đơn khác.'
+              ? 'Bạn có thể đổi loại đơn chụp hoặc trạng thái để xem các đơn khác.'
               : 'Đơn được phân công cho bạn sẽ xuất hiện tại đây.'
           }
           pagination={{

@@ -59,6 +59,7 @@ export const navItems: NavItem[] = [
     ? [
         {
           to: '/concept-orders',
+          hidden: true,
           label: 'Chụp concept',
           icon: ClipboardList,
           allowedRoles: [0, 1, 2, 3, 5] as UserRole[],
@@ -90,7 +91,7 @@ export const navItems: NavItem[] = [
           to: '/workflow-bookings',
           label: 'Đơn chụp ảnh',
           icon: ClipboardList,
-          allowedRoles: [0, 1, 3, 5] as UserRole[],
+          allowedRoles: [0, 1, 2, 3, 5] as UserRole[],
           component: BookingWorkflowListPage,
         },
       ]

@@ -100,7 +100,7 @@ export default function PhotographerOrdersPage() {
     },
     {
       key: 'service',
-      header: 'Loại dịch vụ',
+      header: 'Loại đơn chụp',
       render: (item) => (
         <Badge variant="secondary">{item.service === 'concept' ? 'Concept' : 'Kỉ yếu'}</Badge>
       ),
@@ -164,7 +164,7 @@ export default function PhotographerOrdersPage() {
       />
       <div className="staff-toolbar flex flex-wrap gap-4 rounded-lg border bg-card p-4">
         <label className="flex flex-wrap items-center gap-3 text-sm font-medium">
-          Loại dịch vụ
+          Loại đơn chụp
           <select
             className="h-9 rounded-md border bg-background px-3"
             value={service}
