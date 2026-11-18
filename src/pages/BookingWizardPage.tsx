@@ -28,6 +28,7 @@ import {
   type BookingDraft,
   type BookingStudentDraft,
 } from '../services/bookingDraft';
+import { validateText, validateCustomerContainer } from '@/utils/customerValidation';
 import { useAuth } from '../context/AuthContext';
 import { safeBookingReturnTo } from '../utils/returnTo';
 import type { Package } from '../types';
@@ -90,6 +91,7 @@ type WizardErrors = Partial<
   Record<
     | 'packageId'
     | 'className'
+    | 'school'
     | 'contactName'
     | 'phone'
     | 'members'
@@ -153,7 +155,11 @@ function validatePhone(value: string): string | undefined {
 function validateStepTwo(draft: BookingDraft, automaticEnd = false): WizardErrors {
   const errors: WizardErrors = {};
   if (!draft.className.trim()) errors.className = 'Nhập tên lớp hoặc nhóm.';
+  else if (draft.className.length > 120) errors.className = 'Tên lớp / nhóm tối đa 120 ký tự.';
+  if (draft.school.length > 160) errors.school = 'Tên trường tối đa 160 ký tự.';
   if (!draft.contactName.trim()) errors.contactName = 'Nhập tên người liên hệ.';
+  else if (draft.contactName.length > 100)
+    errors.contactName = 'Họ tên người liên hệ tối đa 100 ký tự.';
   const phoneError = validatePhone(draft.phone);
   if (phoneError) errors.phone = phoneError;
   const members = Number(draft.members);
@@ -177,7 +183,8 @@ function validateStepTwo(draft: BookingDraft, automaticEnd = false): WizardError
   } else if (draft.startAt.slice(0, 10) !== draft.endAt.slice(0, 10)) {
     errors.endAt = 'Buổi chụp theo gói cần bắt đầu và kết thúc trong cùng ngày.';
   }
-  if (!draft.location.trim()) errors.location = 'Nhập địa điểm mong muốn.';
+  const locationError = validateText(draft.location, 'Địa điểm mong muốn', 300);
+  if (locationError) errors.location = locationError;
   if (draft.note.length > 2000) errors.note = 'Ghi chú tối đa 2.000 ký tự.';
   return errors;
 }
@@ -323,6 +330,7 @@ function Field({
 
 export default function BookingWizardPage() {
   const { user } = useAuth();
+  const wizardContainer = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const [params] = useSearchParams();
@@ -483,7 +491,8 @@ export default function BookingWizardPage() {
           ? validateStepTwo(draft, !!shootingHours)
           : validateStudents(draft);
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length) {
+    const nativeValid = validateCustomerContainer(wizardContainer.current);
+    if (Object.keys(nextErrors).length || !nativeValid) {
       document.getElementById(Object.keys(nextErrors)[0])?.focus();
       return;
     }
@@ -592,7 +601,10 @@ export default function BookingWizardPage() {
   ].filter(Boolean);
 
   return (
-    <div className={`customer-wizard${isPublic ? '' : ' customer-wizard--account'}`}>
+    <div
+      ref={wizardContainer}
+      className={`customer-wizard${isPublic ? '' : ' customer-wizard--account'}`}
+    >
       <aside className="customer-wizard__story" aria-label="Hành trình chụp kỉ yếu">
         <div className="customer-wizard__story-inner">
           <Link to={accountPath} className="customer-wizard__brand" aria-label="Yume Studio">
@@ -914,6 +926,7 @@ export default function BookingWizardPage() {
               <Field id="className" label="Tên lớp / nhóm" error={errors.className}>
                 <Input
                   id="className"
+                  required
                   autoComplete="organization"
                   maxLength={120}
                   placeholder="Ví dụ: 12A1"
@@ -922,7 +935,7 @@ export default function BookingWizardPage() {
                   onChange={(event) => updateDraft({ className: event.target.value })}
                 />
               </Field>
-              <Field id="school" label="Trường">
+              <Field id="school" label="Trường" error={errors.school}>
                 <Input
                   id="school"
                   autoComplete="organization-title"
@@ -935,6 +948,7 @@ export default function BookingWizardPage() {
               <Field id="contactName" label="Họ tên người liên hệ" error={errors.contactName}>
                 <Input
                   id="contactName"
+                  required
                   autoComplete="name"
                   maxLength={100}
                   value={draft.contactName}
@@ -945,6 +959,7 @@ export default function BookingWizardPage() {
               <Field id="phone" label="Số điện thoại" error={errors.phone}>
                 <Input
                   id="phone"
+                  required
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
@@ -967,6 +982,7 @@ export default function BookingWizardPage() {
               <Field id="members" label="Số thành viên dự kiến" error={errors.members}>
                 <Input
                   id="members"
+                  required
                   type="text"
                   inputMode="numeric"
                   placeholder="Ví dụ: 40"
@@ -978,6 +994,7 @@ export default function BookingWizardPage() {
               <Field id="location" label="Địa điểm mong muốn" error={errors.location}>
                 <Input
                   id="location"
+                  required
                   autoComplete="street-address"
                   maxLength={300}
                   placeholder="Trường, studio hoặc địa điểm dự kiến"
@@ -993,6 +1010,7 @@ export default function BookingWizardPage() {
               >
                 <Input
                   id="startAt"
+                  required
                   type={shootingHours ? 'date' : 'datetime-local'}
                   min={shootingHours ? minimumShootDay : minimumTime}
                   value={shootingHours ? draft.startAt.slice(0, 10) : draft.startAt}
@@ -1009,6 +1027,7 @@ export default function BookingWizardPage() {
               <Field id="endAt" label="Ngày và giờ kết thúc mong muốn" error={errors.endAt}>
                 <Input
                   id="endAt"
+                  required
                   type="datetime-local"
                   min={draft.startAt || minimumTime}
                   value={draft.endAt}

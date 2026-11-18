@@ -13,6 +13,18 @@ export interface UpcomingSchedule {
 }
 
 export interface DashboardStats {
+  users?: {
+    asOf: string;
+    total: number;
+    current: number;
+    previous: number;
+    difference: number;
+    percent: number | null;
+    currentFrom: string;
+    previousFrom: string;
+    previousTo: string;
+    monthly: Array<{ label: string; count: number }>;
+  };
   totals: { income: number; expense: number; profit: number };
   daily: Array<{ label: string; income: number; expense: number }>;
   customerCount: number;

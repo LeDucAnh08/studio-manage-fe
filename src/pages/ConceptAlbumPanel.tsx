@@ -280,6 +280,32 @@ export default function ConceptAlbumPanel({
     };
   }, [id, order.version]);
   const command = async (operation: string, body: Record<string, unknown> = {}) => {
+    if (
+      operation === 'finalize' &&
+      (!consent || !album?.photos.some((photo) => photo.version === 0 && photo.selected))
+    ) {
+      setError('Chọn ít nhất một ảnh và đồng ý danh sách cùng phí ảnh thêm trước khi chốt.');
+      return false;
+    }
+    if (
+      (operation === 'feedback' || operation === 'request-extra') &&
+      (!Array.isArray(body.items) ||
+        !body.items.length ||
+        body.items.some(
+          (item) => typeof item.note !== 'string' || !item.note.trim() || item.note.length > 2000,
+        ))
+    ) {
+      setError('Nhập góp ý cho ít nhất một ảnh; mỗi góp ý tối đa 2.000 ký tự.');
+      return false;
+    }
+    if (
+      operation === 'photo' &&
+      body.note !== undefined &&
+      (typeof body.note !== 'string' || body.note.length > 2000)
+    ) {
+      setError('Ghi chú ảnh tối đa 2.000 ký tự.');
+      return false;
+    }
     setBusy(true);
     setError('');
     const payload = { ...body, expectedVersion: album?.version || 0 };
@@ -440,10 +466,7 @@ export default function ConceptAlbumPanel({
                 />
                 Tôi chốt danh sách và đồng ý phí ảnh thêm {money(extra)}.
               </label>
-              <Button
-                disabled={busy || !selected.length || !consent}
-                onClick={() => void command('finalize', { accepted: true })}
-              >
+              <Button disabled={busy} onClick={() => void command('finalize', { accepted: true })}>
                 Chốt ảnh retouch
               </Button>
             </div>
@@ -516,7 +539,7 @@ export default function ConceptAlbumPanel({
                   </label>
                 ))}
               <Button
-                disabled={busy || !feedbackItems.length}
+                disabled={busy}
                 onClick={() =>
                   void command(
                     album.freeRoundsUsed < 2 && album.status === 'delivered'

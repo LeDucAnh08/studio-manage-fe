@@ -1,4 +1,3 @@
-import axios from 'axios';
 import api from './api';
 
 export interface Concept {
@@ -243,7 +242,8 @@ async function imageRequest(work: () => Promise<Blob>) {
     imageWaiters.shift()?.();
   }
 }
-const guestApi = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api' });
+// Shared links still require an account session, as well as their album token.
+const guestApi = api;
 export const conceptError = (error: unknown) =>
   (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
   'Không thể xử lý. Vui lòng thử lại.';

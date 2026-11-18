@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { validateEmail, validatePassword, validateText } from '@/utils/customerValidation';
 import { CustomerButton } from '@/components/customer/CustomerButton';
 import { CustomerFormField, CustomerInput } from '@/components/customer/CustomerFields';
 import { CustomerAuthLayout } from '@/components/customer/CustomerAuthLayout';
@@ -32,6 +33,8 @@ export default function ClientRegisterPage() {
   return (
     <CustomerAuthLayout titleId="register-title" title="Tạo tài khoản khách hàng">
       <form
+        noValidate
+        data-validated-by="react-hook-form"
         className="customer-register__form"
         onSubmit={handleSubmit(async ({ name, username, password, email }) => {
           setError('');
@@ -56,7 +59,12 @@ export default function ClientRegisterPage() {
           <CustomerInput
             id="name"
             autoComplete="name"
-            {...register('name', { required: 'Nhập họ tên', maxLength: 100 })}
+            required
+            maxLength={100}
+            {...register('name', {
+              required: 'Nhập họ tên',
+              validate: (value) => validateText(value, 'Họ tên', 100) || true,
+            })}
           />
         </CustomerFormField>
         <CustomerFormField
@@ -67,6 +75,11 @@ export default function ClientRegisterPage() {
           <CustomerInput
             id="username"
             autoComplete="username"
+            required
+            minLength={3}
+            maxLength={40}
+            pattern="[a-zA-Z0-9._\-]{3,40}"
+            title="Tên đăng nhập gồm 3–40 chữ, số hoặc ._-; không có khoảng trắng."
             {...register('username', {
               required: 'Nhập tên đăng nhập',
               pattern: { value: /^[a-zA-Z0-9._-]{3,40}$/, message: 'Dùng 3–40 chữ, số hoặc ._-' },
@@ -77,13 +90,14 @@ export default function ClientRegisterPage() {
           label="Email nhận thông báo (không bắt buộc)"
           htmlFor="email"
           hint="Sau khi đăng nhập, xác minh email trong hồ sơ để nhận thông báo duyệt đơn."
+          error={errors.email?.message}
         >
           <CustomerInput
             id="email"
             type="email"
             autoComplete="email"
             maxLength={254}
-            {...register('email')}
+            {...register('email', { validate: (value) => validateEmail(value) || true })}
           />
         </CustomerFormField>
         <CustomerFormField label="Mật khẩu" htmlFor="password" error={errors.password?.message}>
@@ -91,11 +105,12 @@ export default function ClientRegisterPage() {
             id="password"
             type="password"
             autoComplete="new-password"
+            required
+            minLength={8}
             {...register('password', {
               required: 'Nhập mật khẩu',
               minLength: { value: 8, message: 'Ít nhất 8 ký tự' },
-              validate: (value) =>
-                new TextEncoder().encode(value).length <= 72 || 'Mật khẩu quá dài',
+              validate: (value) => validatePassword(value) || true,
             })}
           />
         </CustomerFormField>
@@ -106,9 +121,14 @@ export default function ClientRegisterPage() {
         >
           <CustomerInput
             id="confirm"
+            validation={(value) =>
+              value === watch('password') ? undefined : 'Mật khẩu không khớp'
+            }
             type="password"
             autoComplete="new-password"
+            required
             {...register('confirm', {
+              required: 'Vui lòng nhập lại mật khẩu.',
               validate: (value) => value === watch('password') || 'Mật khẩu không khớp',
             })}
           />

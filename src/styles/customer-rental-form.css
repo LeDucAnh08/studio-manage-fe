@@ -483,3 +483,16 @@
     justify-self: start;
   }
 }
+
+.customer-rental-form__quantity > div > input {
+  grid-row: 1;
+  grid-column: 2;
+}
+.customer-rental-form__quantity > div > button:first-of-type {
+  grid-row: 1;
+  grid-column: 1;
+}
+.customer-rental-form__quantity > div > button:last-of-type {
+  grid-row: 1;
+  grid-column: 3;
+}

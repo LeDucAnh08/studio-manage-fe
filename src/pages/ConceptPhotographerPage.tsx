@@ -103,11 +103,11 @@ export default function ConceptPhotographerPage() {
       writeConceptDraft({
         ...draft,
         photographerId,
-        step: 4,
+        step: 3,
         key: crypto.randomUUID(),
         ...(draft.photographerId !== photographerId ? { costumes: [] } : {}),
       });
-      navigate(conceptBookingPath(packageId, 'costumes'));
+      navigate(conceptBookingPath(packageId, 'photographer'));
     } catch (e) {
       if (!abort.signal.aborted) setChoiceError(conceptError(e));
     } finally {

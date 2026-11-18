@@ -37,6 +37,7 @@ import type { Column } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import PhotographerDashboardPage from './PhotographerDashboardPage';
 import { isPersonalPhotographer } from '../utils/staffRole';
+import AdminDashboardPage from './AdminDashboardPage';
 
 const StaffDashboardPage = () => {
   const { user } = useAuth();
@@ -550,6 +551,12 @@ const StaffDashboardPage = () => {
 
 const DashboardPage = () => {
   const { user } = useAuth();
-  return isPersonalPhotographer(user) ? <PhotographerDashboardPage /> : <StaffDashboardPage />;
+  return user?.roles.some((role) => role === 0 || role === 1) ? (
+    <AdminDashboardPage />
+  ) : isPersonalPhotographer(user) ? (
+    <PhotographerDashboardPage />
+  ) : (
+    <StaffDashboardPage />
+  );
 };
 export default DashboardPage;

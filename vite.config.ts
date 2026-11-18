@@ -34,6 +34,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      allowedHosts: ['sliding-pseudoapoplectically-vesta.ngrok-free.dev'],
       fs: {
         deny: [
           '**/.env',

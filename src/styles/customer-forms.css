@@ -360,3 +360,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Validation text can sit beside controls in quantity grids. */
+.customer-ui .customer-field__error {
+  min-width: 0;
+  grid-column: 1 / -1;
+  overflow-wrap: anywhere;
+}

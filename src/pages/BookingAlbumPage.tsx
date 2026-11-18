@@ -1,3 +1,4 @@
+import { CustomerTextarea } from '@/components/customer/CustomerFields';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import {
@@ -241,6 +242,14 @@ export default function BookingAlbumPage({
   };
   const command = async (operation: string, data: Record<string, unknown> = {}) => {
     if (inflight.current) return;
+    if (
+      operation === 'photo' &&
+      data.note !== undefined &&
+      (typeof data.note !== 'string' || data.note.length > 2000)
+    ) {
+      setError('Ghi chú cho studio tối đa 2.000 ký tự.');
+      return;
+    }
     inflight.current = true;
     setBusy(true);
     setError('');
@@ -943,7 +952,7 @@ export default function BookingAlbumPage({
                       )}
                       <label>
                         Ghi chú cho studio
-                        <textarea
+                        <CustomerTextarea
                           aria-label="Ghi chú cho studio"
                           rows={5}
                           maxLength={2000}

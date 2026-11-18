@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { validateText } from '@/utils/customerValidation';
 import dayjs from 'dayjs';
 import { AlertCircle, CalendarCheck, CheckCircle2, Gift, Mars, School, Venus } from 'lucide-react';
 import { studentService } from '../services/studentService';
@@ -35,6 +36,7 @@ const StudentFormPage = () => {
   const [schedule, setSchedule] = useState<PublicScheduleResponse | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<Status>('idle');
+  const [submitError, setSubmitError] = useState('');
 
   const {
     register,
@@ -92,7 +94,11 @@ const StudentFormPage = () => {
       });
       setSubmitStatus('success');
       reset();
-    } catch {
+    } catch (error) {
+      setSubmitError(
+        (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
+          'Chưa gửi được thông tin. Vui lòng kiểm tra kết nối và thử lại.',
+      );
       setSubmitStatus('error');
     }
   };
@@ -161,6 +167,8 @@ const StudentFormPage = () => {
         </header>
 
         <form
+          noValidate
+          data-validated-by="react-hook-form"
           onSubmit={handleSubmit(onSubmit)}
           className="customer-form-stack customer-form-divider"
         >
@@ -168,7 +176,12 @@ const StudentFormPage = () => {
             <CustomerInput
               id="name"
               placeholder="Nguyễn Văn A"
-              {...register('name', { required: 'Vui lòng nhập họ tên' })}
+              required
+              maxLength={100}
+              {...register('name', {
+                required: 'Vui lòng nhập họ tên',
+                validate: (value) => validateText(value, 'Họ tên', 100) || true,
+              })}
             />
           </CustomerFormField>
 
@@ -210,14 +223,20 @@ const StudentFormPage = () => {
             >
               <CustomerInput
                 id="height"
+                required
                 type="number"
-                step="0.1"
+                step="any"
                 min="50"
                 max="250"
                 placeholder="165"
                 {...register('height', {
                   required: 'Vui lòng nhập chiều cao',
-                  validate: (v) => (v !== '' && Number(v) > 0) || 'Chiều cao không hợp lệ',
+                  validate: (v) =>
+                    (v !== '' &&
+                      Number.isFinite(Number(v)) &&
+                      Number(v) >= 50 &&
+                      Number(v) <= 250) ||
+                    'Chiều cao phải từ 50 đến 250 cm.',
                 })}
               />
             </CustomerFormField>
@@ -229,14 +248,20 @@ const StudentFormPage = () => {
             >
               <CustomerInput
                 id="weight"
+                required
                 type="number"
-                step="0.1"
+                step="any"
                 min="10"
                 max="200"
                 placeholder="55"
                 {...register('weight', {
                   required: 'Vui lòng nhập cân nặng',
-                  validate: (v) => (v !== '' && Number(v) > 0) || 'Cân nặng không hợp lệ',
+                  validate: (v) =>
+                    (v !== '' &&
+                      Number.isFinite(Number(v)) &&
+                      Number(v) >= 10 &&
+                      Number(v) <= 200) ||
+                    'Cân nặng phải từ 10 đến 200 kg.',
                 })}
               />
             </CustomerFormField>
@@ -257,13 +282,21 @@ const StudentFormPage = () => {
             </p>
           </fieldset>
 
-          <CustomerFormField label="Ghi chú" htmlFor="notes">
-            <CustomerTextarea id="notes" rows={2} placeholder="Tuỳ chọn…" {...register('notes')} />
+          <CustomerFormField label="Ghi chú" htmlFor="notes" error={errors.notes?.message}>
+            <CustomerTextarea
+              id="notes"
+              maxLength={2000}
+              rows={2}
+              placeholder="Tuỳ chọn…"
+              {...register('notes', {
+                maxLength: { value: 2000, message: 'Ghi chú tối đa 2.000 ký tự.' },
+              })}
+            />
           </CustomerFormField>
 
           {submitStatus === 'error' && (
             <p className="customer-form-error" role="alert">
-              Có lỗi xảy ra, vui lòng thử lại.
+              {submitError}
             </p>
           )}
 

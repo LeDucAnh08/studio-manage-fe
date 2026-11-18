@@ -269,7 +269,10 @@ describe('date-first daily rental form', () => {
       const send = screen.getByRole('button', {
         name: authenticated ? 'Đặt thuê và thanh toán cọc' : 'Đăng nhập để đặt thuê',
       });
-      expect(send).toBeDisabled();
+      expect(send).toBeEnabled();
+      fireEvent.click(send);
+      expect(await screen.findByText('Vui lòng đồng ý điều khoản thuê.')).toBeInTheDocument();
+      expect(mocks.create).not.toHaveBeenCalled();
       fireEvent.click(await screen.findByRole('checkbox', { name: /Tôi đã đọc/ }));
       expect(send).toBeEnabled();
       fireEvent.click(send);

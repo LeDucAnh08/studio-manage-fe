@@ -2,6 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, CalendarDays, Clock3, Coins, UserRound } from 'lucide-react';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import PublicSiteLayout from '../components/Layout/PublicSiteLayout';
+import {
+  CustomerInput,
+  CustomerTextarea,
+  CustomerSelect,
+} from '../components/customer/CustomerFields';
+import {
+  normalizePhone,
+  validatePhone,
+  validateText,
+  validateReferences,
+  validateCustomerContainer,
+} from '../utils/customerValidation';
 import { useAuth } from '../context/AuthContext';
 import {
   Catalog,
@@ -13,6 +25,7 @@ import {
 } from '../services/conceptService';
 import '../styles/concept.css';
 import ConceptTimePicker from './ConceptTimePicker';
+import ConceptPhotographerSelection from './ConceptPhotographerSelection';
 import { CustomerImage } from '../components/customer/CustomerImage';
 import '../styles/concept-photographer.css';
 import '../styles/concept-preparation.css';
@@ -29,7 +42,6 @@ import {
 import {
   CONCEPT_DRAFT_KEY,
   conceptBookingPath,
-  conceptPhotographerPath,
   conceptScreens,
   readConceptDraft as readDraft,
   writeConceptDraft,
@@ -82,6 +94,7 @@ export default function ConceptBookingPage() {
     [loadingDays, setLoadingDays] = useState(false),
     [availabilityError, setAvailabilityError] = useState(''),
     [availabilityRetry, setAvailabilityRetry] = useState(0);
+  const preparationRef = useRef<HTMLFormElement>(null);
   const [accepted, setAccepted] = useState(false);
   const loadedMonths = useRef<Record<string, number>>({});
   const pkg = catalog?.packages.find((p) => p._id === draft.packageId);
@@ -92,8 +105,8 @@ export default function ConceptBookingPage() {
   const packageImage =
     pkg?.imageUrl || catalog?.concepts.find((c) => c._id === pkg?.concept)?.coverUrl;
   const validContact =
-    !!draft.contactName.trim() &&
-    /^(?:0\d{9}|\+84\d{9})$/.test(draft.phone) &&
+    !validateText(draft.contactName, 'Họ tên liên hệ', 100) &&
+    !validatePhone(draft.phone) &&
     Number.isInteger(draft.people) &&
     draft.people >= 1 &&
     draft.people <= (pkg?.maxPeople || 1);
@@ -189,7 +202,7 @@ export default function ConceptBookingPage() {
     return () => abort.abort();
   }, [pkg, month, step, availabilityDay, availabilityRetry, catalog?.settings.horizonDays]);
   const next = () => {
-    if (step === 2 && draft.startAt && Date.parse(draft.startAt) <= Date.now()) {
+    if (step <= 3 && draft.startAt && Date.parse(draft.startAt) <= Date.now()) {
       setError('Khung giờ đã qua. Vui lòng chọn khung giờ khác.');
       loadedMonths.current = {};
       setAvailabilityRetry((value) => value + 1);
@@ -198,11 +211,12 @@ export default function ConceptBookingPage() {
     if (
       !pkg ||
       (step === 2 && (!slot || loadingDays || !!availabilityError)) ||
-      (step === 3 && !slot?.photographers.some((p) => p._id === draft.photographerId))
+      (step === 3 && (loadingDays || !!availabilityError || !photographer))
     ) {
       setError('Hoàn tất lựa chọn trước khi tiếp tục.');
       return;
     }
+    const preparationValid = step !== 4 || validateCustomerContainer(preparationRef.current);
     if (
       step === 4 &&
       pkg.costumeCount > 0 &&
@@ -215,6 +229,10 @@ export default function ConceptBookingPage() {
       setError('Kiểm tra họ tên, số điện thoại và số người.');
       return;
     }
+    if (!preparationValid) {
+      setError('Vui lòng kiểm tra các trường được đánh dấu trước khi tiếp tục.');
+      return;
+    }
     const nextStep = Math.min(5, step + 1);
     update({ step: nextStep });
     navigate(conceptBookingPath(draft.packageId, conceptScreens[nextStep - 2]));
@@ -224,7 +242,11 @@ export default function ConceptBookingPage() {
       navigate('/login', { state: { from: location.pathname } });
       return;
     }
-    if (!user.emailVerifiedAt || !pkg || !accepted) return;
+    if (!user.emailVerifiedAt || !pkg) return;
+    if (!accepted) {
+      setError('Vui lòng xác nhận đồng ý điều khoản đặt chụp trước khi gửi.');
+      return;
+    }
     if (
       checkingReviewAvailability ||
       availabilityError ||
@@ -248,7 +270,7 @@ export default function ConceptBookingPage() {
           costumes: [],
           wardrobeMeasurements: pkg.costumeCount > 0 ? draft.wardrobeMeasurements : [],
           contactName: draft.contactName,
-          phone: draft.phone,
+          phone: normalizePhone(draft.phone),
           people: draft.people,
           brief: draft.brief,
           references: draft.referencesText
@@ -286,6 +308,8 @@ export default function ConceptBookingPage() {
     pkg &&
     step > 4 &&
     (!validContact ||
+      !!validateReferences(draft.referencesText) ||
+      draft.brief.length > 4000 ||
       (pkg.costumeCount > 0 &&
         !validWardrobeMeasurements(draft.wardrobeMeasurements, draft.people)))
   )
@@ -296,10 +320,12 @@ export default function ConceptBookingPage() {
         className={
           step === 2
             ? 'concept-time-page'
-            : `concept-workspace concept-booking-flow${step === 4 ? ' concept-preparation-page' : ''}${step === 5 ? ' concept-review-page' : ''}`
+            : step === 3
+              ? 'concept-photographer-selection-page'
+              : `concept-workspace concept-booking-flow${step === 4 ? ' concept-preparation-page' : ''}${step === 5 ? ' concept-review-page' : ''}`
         }
       >
-        {step !== 2 && (
+        {step > 3 && (
           <header>
             <Link
               className="app-back-link concept-wizard-back"
@@ -309,30 +335,17 @@ export default function ConceptBookingPage() {
               {
                 (
                   {
-                    3: 'Quay lại chọn thời gian',
                     4: 'Quay lại chọn thợ',
                     5: 'Quay lại thông tin buổi chụp',
                   } as Record<number, string>
                 )[step]
               }
             </Link>
-            <h1>
-              {step === 3
-                ? 'Chọn thợ chụp'
-                : step === 4
-                  ? 'Thông tin buổi chụp'
-                  : 'Kiểm tra trước khi đặt cọc'}
-            </h1>
+            <h1>{step === 4 ? 'Thông tin buổi chụp' : 'Kiểm tra trước khi đặt cọc'}</h1>
             {step === 5 ? (
               <p>Xem lại thông tin buổi chụp trước khi chuyển sang thanh toán cọc.</p>
-            ) : step === 4 ? (
-              <p>Một vài thông tin để studio chuẩn bị buổi chụp phù hợp với bạn.</p>
             ) : (
-              pkg && (
-                <p>
-                  {pkg.name} · {pkg.durationMinutes} phút
-                </p>
-              )
+              <p>Một vài thông tin để studio chuẩn bị buổi chụp phù hợp với bạn.</p>
             )}
           </header>
         )}
@@ -369,61 +382,21 @@ export default function ConceptBookingPage() {
             onNext={next}
           />
         )}
-        {step === 3 && (
-          <section className="photographer-selection">
-            <p>Xem hồ sơ và phong cách riêng để chọn người đồng hành cùng bạn.</p>
-            {draft.startAt && <p>{vnTime(draft.startAt)}</p>}
-            {loadingDays && <p role="status">Đang tìm thợ có thể nhận lịch…</p>}
-            {availabilityError && <p role="alert">{availabilityError}</p>}
-            {!loadingDays && !slot && (
-              <p>Khung giờ này không còn trống. Bạn vui lòng quay lại chọn thời gian.</p>
-            )}
-            <div className="photographer-selection-grid">
-              {slot?.photographers.map((p) => (
-                <article
-                  className="photographer-selection-card"
-                  key={p._id}
-                  data-selected={draft.photographerId === p._id}
-                >
-                  <div className="photographer-card-identity">
-                    {p.portraitUrl && (
-                      <CustomerImage
-                        src={p.portraitUrl}
-                        alt={`Chân dung ${p.name}`}
-                        width={108}
-                        height={135}
-                      />
-                    )}
-                    <div>
-                      <h3>{p.name}</h3>
-                      {p.title && <p className="photographer-card-title">{p.title}</p>}
-                      <p>{p.tagline || p.bio}</p>
-                    </div>
-                  </div>
-                  {p.coverUrl && (
-                    <CustomerImage
-                      className="photographer-card-cover"
-                      src={p.coverUrl}
-                      alt={`Phong cách ảnh của ${p.name}`}
-                      width={560}
-                      height={160}
-                    />
-                  )}
-                  <div className="photographer-card-actions">
-                    <Link to={conceptPhotographerPath(draft.packageId, p._id)}>
-                      Xem hồ sơ {p.name}
-                    </Link>
-                    {draft.photographerId === p._id && (
-                      <span className="photographer-card-selected">Đã chọn</span>
-                    )}
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
+        {step === 3 && pkg && (
+          <ConceptPhotographerSelection
+            pkg={pkg}
+            startAt={draft.startAt}
+            slot={slot}
+            selectedId={draft.photographerId}
+            loading={loadingDays}
+            error={availabilityError}
+            onRetry={() => setAvailabilityRetry((value) => value + 1)}
+            onNext={next}
+          />
         )}
         {step === 4 && pkg && (
           <form
+            ref={preparationRef}
             className="concept-preparation"
             noValidate
             onSubmit={(event) => {
@@ -438,7 +411,8 @@ export default function ConceptBookingPage() {
                   <div className="concept-preparation-contact">
                     <label>
                       Họ tên liên hệ
-                      <input
+                      <CustomerInput
+                        required
                         autoComplete="name"
                         maxLength={100}
                         value={draft.contactName}
@@ -447,8 +421,10 @@ export default function ConceptBookingPage() {
                     </label>
                     <label>
                       Số điện thoại
-                      <input
+                      <CustomerInput
+                        required
                         type="tel"
+                        maxLength={25}
                         autoComplete="tel"
                         value={draft.phone}
                         onChange={(e) => update({ phone: e.target.value })}
@@ -470,7 +446,7 @@ export default function ConceptBookingPage() {
                   ) : (
                     <label className="concept-preparation-people">
                       Số người tham gia
-                      <select
+                      <CustomerSelect
                         value={draft.people}
                         onChange={(e) => {
                           const people = Number(e.target.value);
@@ -493,7 +469,7 @@ export default function ConceptBookingPage() {
                             {i + 1} người
                           </option>
                         ))}
-                      </select>
+                      </CustomerSelect>
                     </label>
                   )}
                   {pkg.costumeCount > 0 &&
@@ -520,7 +496,8 @@ export default function ConceptBookingPage() {
                           <div className="concept-preparation-measurements">
                             <label>
                               Size thường mặc
-                              <input
+                              <CustomerInput
+                                required
                                 aria-label={`Size người ${index + 1}`}
                                 maxLength={12}
                                 placeholder="Ví dụ: M, L, XL"
@@ -530,7 +507,8 @@ export default function ConceptBookingPage() {
                             </label>
                             <label>
                               Chiều cao (cm)
-                              <input
+                              <CustomerInput
+                                required
                                 aria-label={`Chiều cao người ${index + 1}`}
                                 type="number"
                                 min={30}
@@ -544,7 +522,8 @@ export default function ConceptBookingPage() {
                             </label>
                             <label>
                               Cân nặng (kg)
-                              <input
+                              <CustomerInput
+                                required
                                 aria-label={`Cân nặng người ${index + 1}`}
                                 type="number"
                                 min={1}
@@ -565,7 +544,7 @@ export default function ConceptBookingPage() {
                   <h2 id="preparation-ideas">Mong muốn cho buổi chụp</h2>
                   <label>
                     Ý tưởng và yêu cầu
-                    <textarea
+                    <CustomerTextarea
                       maxLength={4000}
                       placeholder="Chia sẻ phong cách, cảm xúc hoặc điều bạn muốn lưu lại trong bộ ảnh..."
                       value={draft.brief}
@@ -575,8 +554,10 @@ export default function ConceptBookingPage() {
                   <label>
                     Link ảnh mẫu
                     <span className="concept-preparation-hint">Mỗi dòng một link HTTPS.</span>
-                    <textarea
+                    <CustomerTextarea
                       className="concept-preparation-references"
+                      data-validation="https-lines"
+                      maxLength={10009}
                       rows={1}
                       placeholder="Ví dụ: https://..."
                       value={draft.referencesText}
@@ -816,11 +797,7 @@ export default function ConceptBookingPage() {
                       <button
                         className="concept-checkout-next"
                         disabled={
-                          !accepted ||
-                          busy ||
-                          checkingReviewAvailability ||
-                          !!availabilityError ||
-                          !photographer
+                          busy || checkingReviewAvailability || !!availabilityError || !photographer
                         }
                         onClick={() => void submit()}
                       >
@@ -834,16 +811,6 @@ export default function ConceptBookingPage() {
               </aside>
             </div>
           </section>
-        )}
-        {step === 3 && (
-          <footer className="concept-actions">
-            <button
-              disabled={!slot?.photographers.some((p) => p._id === draft.photographerId)}
-              onClick={next}
-            >
-              Tiếp tục
-            </button>
-          </footer>
         )}
       </div>
     </PublicSiteLayout>

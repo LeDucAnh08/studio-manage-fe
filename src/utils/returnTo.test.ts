@@ -9,6 +9,13 @@ describe('safe client return paths', () => {
       '/concept-booking/packages/abc123/book/review',
       '/concept-booking/packages/abc123/photographers/photo123',
       '/account/bookings/123',
+      '/services#process',
+      '/pricing/package-1',
+      '/costumes?type=ao-dai',
+      '/form/class-1?access=token',
+      '/albums/public-id#access=shared-token',
+      '/concept-albums/public-id#access=shared-token',
+      '/member-intake/intake-token',
     ])
       expect(safeBookingReturnTo(target)).toBe(target);
   });
@@ -20,6 +27,8 @@ describe('safe client return paths', () => {
       '/manage/finance',
       '/concept-booking/packages/abc/book/external',
       '/account-other',
+      '/login?returnTo=/account/orders',
+      '/albums/id/unknown',
       null,
     ])
       expect(safeBookingReturnTo(target)).toBeUndefined();

@@ -53,12 +53,12 @@ export default function PortfolioPage() {
   useEffect(() => {
     let active = true;
     customerService
-      .listPublic()
-      .then((list) => {
+      .portfolioStats()
+      .then((stats) => {
         if (active)
           setCounts({
-            classes: `${list.length}+`,
-            schools: `${new Set(list.map((c) => c.school?.trim()).filter(Boolean)).size}+`,
+            classes: `${stats.classes}+`,
+            schools: `${stats.schools}+`,
           });
       })
       .catch(() => {

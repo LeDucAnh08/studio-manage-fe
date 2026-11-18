@@ -21,6 +21,7 @@ import { useCustomerAppearance } from '../components/customer/CustomerAppearance
 import { CustomerPrice } from '../components/customer/CustomerPrice';
 import { CustomerPriceBreakdown } from '../components/customer/CustomerPriceBreakdown';
 import '../styles/customer-orders.css';
+import { validateText } from '@/utils/customerValidation';
 import { useAuth } from '../context/AuthContext';
 import {
   rentalService,
@@ -186,6 +187,22 @@ export default function RentalDetailPage() {
   }, [order]);
   const act = async (action: string, data: Record<string, unknown> = {}) => {
     if (!order) return false;
+    if (action === 'change.request') {
+      const message = validateText(String(data.note || ''), 'Lý do thay đổi đơn thuê', 1000);
+      if (message) {
+        setError(message);
+        return false;
+      }
+      if (
+        data.kind === 'extend' &&
+        (typeof data.returnDate !== 'string' ||
+          data.returnDate <=
+            vietnamCalendarDate(order.quote?.returnDate ?? order.requestedReturnDate))
+      ) {
+        setError('Ngày trả gia hạn phải sau ngày trả hiện tại.');
+        return false;
+      }
+    }
     setBusy(true);
     setError('');
     const signature = `${id}:${action}:${JSON.stringify(data)}`;
@@ -1265,6 +1282,7 @@ export default function RentalDetailPage() {
                 <Input
                   required
                   type="date"
+                  min={vietnamCalendarDate(order.quote?.returnDate ?? order.requestedReturnDate)}
                   value={changeDate}
                   onChange={(event) => setChangeDate(event.target.value)}
                 />

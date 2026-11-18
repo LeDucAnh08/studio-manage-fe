@@ -1,3 +1,4 @@
+import { studioDay } from '../services/conceptCalendar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -136,6 +137,16 @@ export default function ConceptOrderPage() {
   }, [day, packageId, photographerId]);
   const command = async (op: string, body: Record<string, unknown> = {}) => {
     if (!order) return;
+    if (
+      op === 'reschedule' &&
+      (typeof body.startAt !== 'string' ||
+        !Number.isFinite(Date.parse(body.startAt)) ||
+        Date.parse(body.startAt) <= Date.now() ||
+        !slots.some((slot) => slot.startAt === body.startAt))
+    ) {
+      setError('Vui lòng chọn ngày và khung giờ mới còn trống trong tương lai.');
+      return;
+    }
     setBusy(true);
     setError('');
     const payload = { ...body, expectedVersion: order.version };
@@ -591,7 +602,16 @@ export default function ConceptOrderPage() {
           </p>
           <label>
             Ngày mới
-            <Input type="date" value={day} onChange={(e) => setDay(e.target.value)} />
+            <Input
+              type="date"
+              required
+              min={studioDay()}
+              value={day}
+              onChange={(e) => {
+                setDay(e.target.value);
+                setNewTime('');
+              }}
+            />
           </label>
           <label>
             Khung giờ mới
@@ -604,10 +624,7 @@ export default function ConceptOrderPage() {
               ))}
             </Select>
           </label>
-          <Button
-            disabled={!newTime || busy}
-            onClick={() => void command('reschedule', { startAt: newTime })}
-          >
+          <Button disabled={busy} onClick={() => void command('reschedule', { startAt: newTime })}>
             Xác nhận đổi lịch
           </Button>
         </section>

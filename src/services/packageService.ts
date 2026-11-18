@@ -7,7 +7,7 @@ type PackagePayload = Omit<Partial<Package>, 'costumes'> & { costumes?: string[]
 export const packageService = {
   getAll: () => api.get<ApiResponse<Package[]>>('/packages').then((r) => r.data.data),
   getOne: (id: string) => api.get<ApiResponse<Package>>(`/packages/${id}`).then((r) => r.data.data),
-  /** Public (no-auth) endpoint — used by the portfolio pricing section */
+  /** Customer-facing catalog; requires an active account session. */
   listPublic: () => api.get<ApiResponse<Package[]>>('/public/packages').then((r) => r.data.data),
   getPublic: (id: string) =>
     api

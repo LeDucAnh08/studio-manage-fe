@@ -86,6 +86,22 @@ const stats = {
   scheduleCount: 9,
   showSchedules: true,
   upcomingSchedules: [],
+  users: {
+    total: 1248,
+    current: 80,
+    previous: 64,
+    difference: 16,
+    percent: 25,
+    asOf: '2026-11-14T03:30:00Z',
+    currentFrom: '2026-10-31T17:00:00Z',
+    previousFrom: '2026-09-30T17:00:00Z',
+    previousTo: '2026-10-14T03:30:00Z',
+    monthly: [
+      { label: '2026-09', count: 64 },
+      { label: '2026-10', count: 70 },
+      { label: '2026-11', count: 80 },
+    ],
+  },
 };
 const finance: ReportResponse<FinanceReport> = {
   pagination: { page: 1, limit: 20, total: 21 },
@@ -236,7 +252,7 @@ beforeEach(() => {
 });
 
 describe('Dashboard, finance and reports rollout', () => {
-  it('keeps admin KPIs, month aggregation and cumulative values while respecting reduced motion', async () => {
+  it('shows the approved receipts-only admin dashboard and same-period user growth', async () => {
     const media = vi.spyOn(window, 'matchMedia').mockReturnValue({
       matches: true,
       addEventListener: vi.fn(),
@@ -244,32 +260,45 @@ describe('Dashboard, finance and reports rollout', () => {
     } as unknown as MediaQueryList);
     try {
       renderPage(<DashboardPage />);
-      await screen.findByRole('heading', { level: 1, name: 'Xin chào, Nhân viên mẫu!' });
-      expect(screen.getByRole('link', { name: /Tổng thu/ })).toHaveTextContent('1.400.000');
-      expect(screen.getByRole('link', { name: /Chênh lệch thu–chi/ })).toHaveTextContent(
-        '1.000.000',
-      );
-      expect(mocks.chart).toHaveBeenLastCalledWith([
-        {
-          name: '09/26',
-          Thu: 1000000,
-          Chi: 200000,
-          'Chênh lệch thu–chi': 800000,
-          'Chênh lệch lũy kế': 800000,
-        },
-        {
-          name: '10/26',
-          Thu: 400000,
-          Chi: 200000,
-          'Chênh lệch thu–chi': 200000,
-          'Chênh lệch lũy kế': 1000000,
-        },
+      await screen.findByRole('heading', { level: 1, name: 'Tổng quan studio' });
+      expect(screen.getByRole('link', { name: /Tiền đã thu/ })).toHaveTextContent('1.400.000');
+      expect(screen.queryByText('Tổng chi')).not.toBeInTheDocument();
+      expect(screen.queryByText('Chênh lệch thu–chi')).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Xem lịch chụp' })).not.toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /Tổng tài khoản/ })).toHaveTextContent('1.248');
+      expect(screen.getByText('+16 user (+25%)')).toBeInTheDocument();
+      expect(screen.getByText(/So với 01\/10 – 14\/10/)).toBeInTheDocument();
+      expect(mocks.chart).toHaveBeenCalledWith([
+        { name: '09/26', Thu: 1000000 },
+        { name: '10/26', Thu: 400000 },
+      ]);
+      expect(mocks.chart).toHaveBeenCalledWith([
+        { name: '09/26', User: 64 },
+        { name: '10/26', User: 70 },
+        { name: '11/26', User: 80 },
       ]);
       expect(screen.getByTestId('series-Thu')).toHaveAttribute('data-animated', 'false');
       expect(screen.getByRole('combobox', { name: 'Xem theo người' })).toBeInTheDocument();
     } finally {
       media.mockRestore();
     }
+  });
+  it('handles a zero comparison without inventing a percentage and retains daily receipt drilldown', async () => {
+    mocks.stats.mockResolvedValue({
+      ...stats,
+      users: { ...stats.users, current: 2, previous: 0, difference: 2, percent: null },
+    });
+    renderPage(<DashboardPage />);
+    await screen.findByRole('heading', { name: 'Tổng quan studio' });
+    expect(screen.getByText('+2 user')).toBeInTheDocument();
+    expect(screen.getByText(/Kỳ trước chưa có user mới/)).toBeInTheDocument();
+    expect(screen.queryByText(/Infinity|NaN/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Ngày' }));
+    expect(mocks.chart).toHaveBeenCalledWith([
+      { name: '01/09', Thu: 600000 },
+      { name: '10/09', Thu: 400000 },
+      { name: '01/10', Thu: 400000 },
+    ]);
   });
   it('does not expose finance or admin filters to a photographer', async () => {
     mocks.roles = [3];

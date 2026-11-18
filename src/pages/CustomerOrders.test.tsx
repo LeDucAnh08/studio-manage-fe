@@ -961,13 +961,14 @@ describe('Customer order presentation preserves workflow contracts', () => {
 
   it('submits an extension with its native date and suppresses repeated clicks while pending', async () => {
     const order = rentalFixture('checked_out');
+    const extensionDate = new Date(Date.now() + 31 * 86400000).toISOString().slice(0, 10);
     mocks.rentalGet.mockResolvedValue(order);
     const pending = deferred<RentalOrder>();
     mocks.rentalAct.mockReturnValue(pending.promise);
     renderRental();
     await screen.findByRole('heading', { name: 'Khách thuê thử' });
     fireEvent.change(screen.getByLabelText('Ngày trả gia hạn'), {
-      target: { value: futureDate() },
+      target: { value: extensionDate },
     });
     fireEvent.change(screen.getByLabelText('Lý do thay đổi đơn thuê'), {
       target: { value: '  Thêm buổi diễn  ' },
@@ -981,7 +982,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
       'rental-1',
       6,
       'change.request',
-      { kind: 'extend', note: 'Thêm buổi diễn', returnDate: futureDate() },
+      { kind: 'extend', note: 'Thêm buổi diễn', returnDate: extensionDate },
       'action-1',
     );
     order.change = {
@@ -990,7 +991,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
       status: 'requested',
       note: 'Thêm buổi diễn',
       terms: [],
-      returnDate: futureDate(),
+      returnDate: extensionDate,
     };
     await act(async () => pending.resolve({ ...order }));
     expect(

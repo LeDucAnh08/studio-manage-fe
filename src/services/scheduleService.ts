@@ -39,7 +39,7 @@ export const scheduleService = {
     api
       .get<ApiResponse<ScheduleResponse | null>>(`/schedules/customer/${customer}`)
       .then((r) => r.data.data),
-  /** Public (no-auth) endpoint — used by the student self-entry form */
+  /** Self-entry requires both an account session and the class access token. */
   getPublicByCustomer: (customer: string, access: string) =>
     api
       .get<

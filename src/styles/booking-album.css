@@ -461,3 +461,11 @@
     padding: 18px;
   }
 }
+
+.album-page .customer-field__error {
+  color: #b42318;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-top: 0.375rem;
+  overflow-wrap: anywhere;
+}

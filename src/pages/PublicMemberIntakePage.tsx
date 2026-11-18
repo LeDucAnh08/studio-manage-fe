@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  validateText,
+  validatePhone,
+  normalizePhone,
+  validateCustomerContainer,
+} from '@/utils/customerValidation';
 import { useParams } from 'react-router-dom';
 import { CustomerButton } from '@/components/customer/CustomerButton';
 import {
@@ -66,6 +72,7 @@ function readIntakeState(key: string): IntakeDraftState {
 }
 
 export default function PublicMemberIntakePage() {
+  const formContainer = useRef<HTMLElement>(null);
   const { token = '' } = useParams();
   const storageKey = useMemo(() => sessionKey(token), [token]);
   const [intake, setIntake] = useState<PublicMemberIntakeDto | null>(null);
@@ -88,11 +95,19 @@ export default function PublicMemberIntakePage() {
       .finally(() => setLoading(false));
   }, [token]);
 
-  const update = (patch: Partial<MemberForm>) => setForm((current) => ({ ...current, ...patch }));
+  const update = (patch: Partial<MemberForm>) => {
+    setForm((current) => ({ ...current, ...patch }));
+    setFieldErrors((current) =>
+      Object.fromEntries(Object.entries(current).filter(([key]) => !(key in patch))),
+    );
+  };
 
   const submit = async () => {
     const errors: Record<string, string> = {};
-    if (!form.name.trim()) errors.name = 'Nhập họ tên thành viên.';
+    const nameError = validateText(form.name, 'Họ tên thành viên', 100);
+    if (nameError) errors.name = nameError;
+    const contactError = validatePhone(form.contact, false);
+    if (contactError) errors.contact = contactError;
     if (
       form.height &&
       (!Number.isFinite(Number(form.height)) ||
@@ -116,7 +131,8 @@ export default function PublicMemberIntakePage() {
       }
     });
     setFieldErrors(errors);
-    if (Object.keys(errors).length) {
+    const nativeValid = validateCustomerContainer(formContainer.current);
+    if (Object.keys(errors).length || !nativeValid) {
       document.getElementById(Object.keys(errors)[0])?.focus();
       return;
     }
@@ -127,7 +143,7 @@ export default function PublicMemberIntakePage() {
       ...(form.gender ? { gender: form.gender } : {}),
       ...(form.height ? { height: Number(form.height) } : {}),
       ...(form.weight ? { weight: Number(form.weight) } : {}),
-      ...(form.contact.trim() ? { contact: form.contact.trim() } : {}),
+      ...(form.contact.trim() ? { contact: normalizePhone(form.contact) } : {}),
       costumeSizes: intake.allowedCostumes
         .filter((costume) => !!form.costumeSizes[costume.costumeId])
         .map((costume) => ({
@@ -172,14 +188,14 @@ export default function PublicMemberIntakePage() {
 
   if (loading) {
     return (
-      <main className="customer-member-form customer-form-copy" role="status">
+      <main ref={formContainer} className="customer-member-form customer-form-copy" role="status">
         Đang mở biểu mẫu…
       </main>
     );
   }
   if (loadError || !intake) {
     return (
-      <main className="customer-member-form">
+      <main ref={formContainer} className="customer-member-form">
         <CustomerSurface className="customer-form-stack" role="alert">
           <h1 className="customer-page-title">Không mở được biểu mẫu</h1>
           <p className="customer-form-copy">
@@ -194,7 +210,7 @@ export default function PublicMemberIntakePage() {
   }
 
   return (
-    <main className="customer-member-form customer-form-stack">
+    <main ref={formContainer} className="customer-member-form customer-form-stack">
       <header className="customer-form-header">
         <p className="customer-form-kicker">Yume Studio · Thông tin thành viên</p>
         <h1 className="customer-page-title">{intake.bookingTitle}</h1>
@@ -232,6 +248,7 @@ export default function PublicMemberIntakePage() {
             >
               <CustomerInput
                 id="member-name"
+                required
                 autoComplete="name"
                 maxLength={100}
                 value={form.name}
@@ -251,7 +268,11 @@ export default function PublicMemberIntakePage() {
                 <option value="other">Khác</option>
               </CustomerSelect>
             </CustomerFormField>
-            <CustomerFormField label="Số liên hệ (tuỳ chọn)" htmlFor="member-contact">
+            <CustomerFormField
+              label="Số liên hệ (tuỳ chọn)"
+              htmlFor="member-contact"
+              error={fieldErrors.contact}
+            >
               <CustomerInput
                 id="member-contact"
                 type="tel"
@@ -270,6 +291,7 @@ export default function PublicMemberIntakePage() {
                 id="member-height"
                 type="number"
                 inputMode="decimal"
+                step="any"
                 min={80}
                 max={230}
                 value={form.height}

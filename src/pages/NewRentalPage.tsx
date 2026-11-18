@@ -11,6 +11,12 @@ import { useCustomerAppearance } from '../components/customer/CustomerAppearance
 import { CustomerPrice } from '../components/customer/CustomerPrice';
 import '../styles/customer-orders.css';
 import '../styles/customer-rental-form.css';
+import {
+  validateText,
+  validatePhone,
+  normalizePhone,
+  validateCustomerContainer,
+} from '@/utils/customerValidation';
 import { useAuth } from '../context/AuthContext';
 import { costumeService } from '../services/costumeService';
 import {
@@ -303,7 +309,7 @@ export default function NewRentalPage() {
     termsAccepted,
     policyVersion: policy?.version,
     contactName: draft.contactName.trim(),
-    phone: draft.phone.trim(),
+    phone: normalizePhone(draft.phone),
     note: draft.note.trim(),
     receiveDate: draft.receiveDate,
     returnDate: draft.returnDate,
@@ -314,6 +320,15 @@ export default function NewRentalPage() {
     })),
   });
   const submit = async () => {
+    const contactError =
+      validateText(draft.contactName, 'Người liên hệ', 120) ||
+      validatePhone(draft.phone) ||
+      validateText(draft.note, 'Ghi chú', 2000, false);
+    if (contactError) {
+      setError(contactError);
+      patch({ preview: false });
+      return;
+    }
     if (checkoutError || !termsAccepted) {
       setError(checkoutError || 'Vui lòng đồng ý điều khoản thuê.');
       return;
@@ -402,6 +417,7 @@ export default function NewRentalPage() {
                 Ngày nhận
                 <Input
                   id="rental-receive-date"
+                  required
                   type="date"
                   min={vietnamToday()}
                   value={draft.receiveDate}
@@ -413,6 +429,7 @@ export default function NewRentalPage() {
                 Ngày trả
                 <Input
                   id="rental-return-date"
+                  required
                   type="date"
                   min={draft.receiveDate || vietnamToday()}
                   value={draft.returnDate}
@@ -569,10 +586,7 @@ export default function NewRentalPage() {
                 <Button variant="outline" disabled={busy} onClick={() => patch({ preview: false })}>
                   Chỉnh sửa yêu cầu
                 </Button>
-                <Button
-                  disabled={busy || !!checkoutError || !termsAccepted}
-                  onClick={() => void submit()}
-                >
+                <Button disabled={busy || !!checkoutError} onClick={() => void submit()}>
                   {busy
                     ? 'Đang đặt…'
                     : user
@@ -587,6 +601,10 @@ export default function NewRentalPage() {
               className={customer ? 'customer-rental-form__body' : 'space-y-6'}
               onSubmit={(event) => {
                 event.preventDefault();
+                if (!validateCustomerContainer(event.currentTarget)) {
+                  setError('Vui lòng kiểm tra các trường được đánh dấu.');
+                  return;
+                }
                 if (selectionError) {
                   setError(selectionError);
                   return;
@@ -903,9 +921,7 @@ export default function NewRentalPage() {
                     </p>
                   </div>
                   <div className={customer ? 'customer-rental-form__footer-action' : undefined}>
-                    <Button type="submit" disabled={!!selectionError}>
-                      Xem lại yêu cầu thuê
-                    </Button>
+                    <Button type="submit">Xem lại yêu cầu thuê</Button>
                     <p>Sau khi đặt, vui lòng thanh toán cọc trong hạn để xác nhận giữ hàng.</p>
                   </div>
                 </div>

@@ -394,7 +394,7 @@ export default function BookingDeliveryPage() {
                       <Button
                         type="submit"
                         className="delivery-page__submit"
-                        disabled={busy || !draft.note.trim() || staleDraft}
+                        disabled={busy || staleDraft}
                       >
                         <Send size={18} aria-hidden="true" /> Gửi phản hồi
                       </Button>

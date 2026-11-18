@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
@@ -10,6 +10,7 @@ import {
   School,
 } from 'lucide-react';
 import { useParams, useSearchParams } from 'react-router-dom';
+import { validatePhone, normalizePhone, validateText } from '@/utils/customerValidation';
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
 import Logo from '../components/atoms/Logo';
@@ -54,6 +55,7 @@ const FeedbackFormPage = () => {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<Status>('idle');
+  const [submitError, setSubmitError] = useState('');
   const submitBarRef = useRef<HTMLDivElement>(null);
   const [submitBarHeight, setSubmitBarHeight] = useState(0);
 
@@ -114,7 +116,7 @@ const FeedbackFormPage = () => {
       await api.post('/public/feedback', {
         customer: data.customer || undefined,
         access: data.customer ? access : undefined,
-        phone: data.phone || undefined,
+        phone: normalizePhone(data.phone) || undefined,
         crewFeedback: {
           rating: Number(data.crewRating),
           description: data.crewDescription.trim(),
@@ -137,20 +139,14 @@ const FeedbackFormPage = () => {
         content: '',
         suggestion: '',
       });
-    } catch {
+    } catch (error) {
+      setSubmitError(
+        (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
+          'Chưa gửi được phản hồi. Vui lòng kiểm tra kết nối và thử lại.',
+      );
       setSubmitStatus('error');
     }
   };
-
-  const canSubmit = useMemo(
-    () =>
-      crewRating > 0 &&
-      albumRating > 0 &&
-      crewDescription.trim().length > 0 &&
-      albumDescription.trim().length > 0 &&
-      !isSubmitting,
-    [crewRating, albumRating, crewDescription, albumDescription, isSubmitting],
-  );
 
   useEffect(() => {
     const bar = submitBarRef.current;
@@ -263,8 +259,26 @@ const FeedbackFormPage = () => {
         </div>
 
         <form
+          noValidate
+          data-validated-by="react-hook-form"
           id="customer-feedback-form"
-          onSubmit={handleSubmit(onSubmit)}
+          onSubmit={handleSubmit(onSubmit, (fieldErrors) => {
+            const target = fieldErrors.crewRating
+              ? document.querySelector<HTMLInputElement>('#feedback-crew-rating input')
+              : fieldErrors.crewDescription
+                ? document.getElementById('crew-description')
+                : fieldErrors.albumRating
+                  ? document.querySelector<HTMLInputElement>('#feedback-album-rating input')
+                  : fieldErrors.albumDescription
+                    ? document.getElementById('album-description')
+                    : fieldErrors.phone
+                      ? document.getElementById('feedback-phone')
+                      : fieldErrors.content
+                        ? document.getElementById('feedback-content')
+                        : document.getElementById('feedback-suggestion');
+            target?.focus();
+            target?.scrollIntoView?.({ block: 'center' });
+          })}
           className="customer-form-stack"
         >
           {fixedClass && <input type="hidden" {...register('customer')} />}
@@ -276,26 +290,35 @@ const FeedbackFormPage = () => {
             description="Thái độ, sự chuyên nghiệp và kỹ năng"
             required
           >
-            <input type="hidden" {...register('crewRating', { required: true, min: 1 })} />
+            <input
+              type="hidden"
+              {...register('crewRating', {
+                min: { value: 1, message: 'Vui lòng chọn từ 1 đến 5 sao cho ekip.' },
+                max: { value: 5, message: 'Đánh giá tối đa 5 sao.' },
+              })}
+            />
             <CustomerRatingInput
+              id="feedback-crew-rating"
               aria-label="Đánh giá ekip chụp ảnh"
               required
               value={crewRating}
+              error={errors.crewRating?.message}
               onChange={(v) => setValue('crewRating', v, { shouldValidate: true })}
             />
             <CustomerFormField
               label="Nhận xét về ekip"
               htmlFor="crew-description"
-              error={errors.crewDescription ? 'Vui lòng chia sẻ thêm về ekip' : undefined}
+              error={errors.crewDescription?.message}
               required
             >
               <CustomerTextarea
                 id="crew-description"
+                required
+                maxLength={2000}
                 rows={2}
                 placeholder="Chia sẻ thêm về ekip…"
                 {...register('crewDescription', {
-                  required: true,
-                  validate: (v) => v.trim().length > 0,
+                  validate: (value) => validateText(value, 'Nhận xét về ekip', 2000) || true,
                 })}
               />
             </CustomerFormField>
@@ -308,26 +331,35 @@ const FeedbackFormPage = () => {
             description="Chất lượng, bố cục và màu sắc"
             required
           >
-            <input type="hidden" {...register('albumRating', { required: true, min: 1 })} />
+            <input
+              type="hidden"
+              {...register('albumRating', {
+                min: { value: 1, message: 'Vui lòng chọn từ 1 đến 5 sao cho album.' },
+                max: { value: 5, message: 'Đánh giá tối đa 5 sao.' },
+              })}
+            />
             <CustomerRatingInput
+              id="feedback-album-rating"
               aria-label="Đánh giá album ảnh"
               required
               value={albumRating}
+              error={errors.albumRating?.message}
               onChange={(v) => setValue('albumRating', v, { shouldValidate: true })}
             />
             <CustomerFormField
               label="Nhận xét về album"
               htmlFor="album-description"
-              error={errors.albumDescription ? 'Vui lòng chia sẻ thêm về album' : undefined}
+              error={errors.albumDescription?.message}
               required
             >
               <CustomerTextarea
                 id="album-description"
+                required
+                maxLength={2000}
                 rows={2}
                 placeholder="Chia sẻ thêm về album…"
                 {...register('albumDescription', {
-                  required: true,
-                  validate: (v) => v.trim().length > 0,
+                  validate: (value) => validateText(value, 'Nhận xét về album', 2000) || true,
                 })}
               />
             </CustomerFormField>
@@ -339,12 +371,19 @@ const FeedbackFormPage = () => {
             title="Cảm nhận chung"
             description="Trải nghiệm tổng thể của bạn"
           >
-            <CustomerFormField label="Cảm nhận của bạn" htmlFor="feedback-content">
+            <CustomerFormField
+              label="Cảm nhận của bạn"
+              htmlFor="feedback-content"
+              error={errors.content?.message}
+            >
               <CustomerTextarea
                 id="feedback-content"
                 rows={3}
                 placeholder="Hãy chia sẻ cảm nhận của bạn…"
-                {...register('content')}
+                maxLength={4000}
+                {...register('content', {
+                  maxLength: { value: 4000, message: 'Cảm nhận tối đa 4.000 ký tự.' },
+                })}
               />
             </CustomerFormField>
           </CustomerFeedbackSection>
@@ -355,12 +394,19 @@ const FeedbackFormPage = () => {
             title="Đề xuất cải thiện"
             description="Studio có thể làm gì tốt hơn?"
           >
-            <CustomerFormField label="Đề xuất của bạn" htmlFor="feedback-suggestion">
+            <CustomerFormField
+              label="Đề xuất của bạn"
+              htmlFor="feedback-suggestion"
+              error={errors.suggestion?.message}
+            >
               <CustomerTextarea
                 id="feedback-suggestion"
                 rows={3}
                 placeholder="Góp ý để studio phục vụ bạn tốt hơn…"
-                {...register('suggestion')}
+                maxLength={4000}
+                {...register('suggestion', {
+                  maxLength: { value: 4000, message: 'Đề xuất tối đa 4.000 ký tự.' },
+                })}
               />
             </CustomerFormField>
           </CustomerFeedbackSection>
@@ -370,13 +416,15 @@ const FeedbackFormPage = () => {
             <CustomerFormField
               label="Số điện thoại liên hệ"
               htmlFor="feedback-phone"
+              error={errors.phone?.message}
               hint="Phản hồi hoàn toàn ẩn danh trừ khi bạn để lại SĐT"
             >
               <CustomerInput
                 id="feedback-phone"
                 type="tel"
                 placeholder="Để chúng tôi có thể liên hệ lại nếu cần"
-                {...register('phone')}
+                maxLength={25}
+                {...register('phone', { validate: (value) => validatePhone(value, false) || true })}
               />
             </CustomerFormField>
           </CustomerFeedbackSection>
@@ -384,7 +432,7 @@ const FeedbackFormPage = () => {
           {submitStatus === 'error' && (
             <div className="customer-form-error customer-form-meta" role="alert">
               <AlertCircle aria-hidden="true" />
-              <span>Có lỗi xảy ra, vui lòng thử lại.</span>
+              <span>{submitError}</span>
             </div>
           )}
         </form>
@@ -405,7 +453,7 @@ const FeedbackFormPage = () => {
               )}
             </p>
           </div>
-          <CustomerButton type="submit" form="customer-feedback-form" disabled={!canSubmit}>
+          <CustomerButton type="submit" form="customer-feedback-form" disabled={isSubmitting}>
             {isSubmitting ? 'Đang gửi…' : 'Gửi phản hồi'}
           </CustomerButton>
         </div>

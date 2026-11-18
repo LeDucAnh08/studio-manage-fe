@@ -1,108 +1,85 @@
-import { AxiosError } from 'axios';
+import { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import api from './api';
+import { SESSION_ENDED } from './authSession';
 
 const originalAdapter = api.defaults.adapter;
-let previousToken: string | null;
-let previousUser: string | null;
-
-function observeLocation(path: string) {
-  const url = new URL(path, 'https://studio.example');
-  const navigate = vi.fn();
-  vi.stubGlobal('window', {
-    location: {
-      pathname: url.pathname,
-      search: url.search,
-      hash: url.hash,
-      get href() {
-        return url.href;
-      },
-      set href(value: string) {
-        navigate(value);
-      },
-    },
+const token = (exp = Date.now() / 1000 + 3600) =>
+  `header.${btoa(JSON.stringify({ exp }))}.signature`;
+const unauthorized = (config: InternalAxiosRequestConfig) =>
+  new AxiosError('Unauthorized', AxiosError.ERR_BAD_REQUEST, config, undefined, {
+    data: {},
+    status: 401,
+    statusText: 'Unauthorized',
+    headers: {},
+    config,
   });
-  return navigate;
-}
 
-describe('API authentication failure redirects', () => {
+describe('API session boundary', () => {
+  const ended = vi.fn();
   beforeEach(() => {
-    previousToken = localStorage.getItem('token');
-    previousUser = localStorage.getItem('user');
-    localStorage.setItem('token', 'test-token');
-    localStorage.setItem('user', JSON.stringify({ username: 'test-user', roles: [6] }));
+    localStorage.clear();
+    localStorage.setItem('token', token());
+    localStorage.setItem('user', JSON.stringify({ roles: [6] }));
+    window.addEventListener(SESSION_ENDED, ended);
     api.defaults.adapter = async (config) => {
-      throw new AxiosError('Unauthorized', AxiosError.ERR_BAD_REQUEST, config, undefined, {
-        data: { message: 'Unauthorized' },
-        status: 401,
-        statusText: 'Unauthorized',
-        headers: {},
-        config,
-      });
+      throw unauthorized(config);
     };
   });
-
   afterEach(() => {
     api.defaults.adapter = originalAdapter;
-    vi.unstubAllGlobals();
-    if (previousToken === null) localStorage.removeItem('token');
-    else localStorage.setItem('token', previousToken);
-    if (previousUser === null) localStorage.removeItem('user');
-    else localStorage.setItem('user', previousUser);
+    window.removeEventListener(SESSION_ENDED, ended);
+    localStorage.clear();
   });
-
-  it('keeps a login 401 on the form without clearing credentials or navigating', async () => {
-    const navigate = observeLocation('/login?returnTo=%2Faccount%2Fbookings');
-    await expect(
-      api.post('/auth/login', { username: 'test-user', password: 'wrong-password' }),
-    ).rejects.toBeInstanceOf(AxiosError);
-    expect(localStorage.getItem('token')).toBe('test-token');
-    expect(JSON.parse(localStorage.getItem('user') || 'null')).toEqual({
-      username: 'test-user',
-      roles: [6],
-    });
-    expect(navigate).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    '/account/bookings/booking-1?source=portfolio#payment',
-    '/booking/start?package=package-1&source=pricing#review',
-    '/rental/start?item=costume-1#review',
-  ])(
-    'clears expired credentials and preserves the complete customer return path %s',
-    async (path) => {
-      const navigate = observeLocation(path);
-      await expect(api.get('/auth/me')).rejects.toBeInstanceOf(AxiosError);
-      expect(navigate).toHaveBeenCalledTimes(1);
-      expect(navigate).toHaveBeenCalledWith('/login?returnTo=' + encodeURIComponent(path));
-      expect(localStorage.getItem('token')).toBeNull();
-      expect(localStorage.getItem('user')).toBeNull();
-    },
-  );
-
-  it('sends an expired staff session to the shared login', async () => {
-    const navigate = observeLocation('/profile?tab=password#change');
-    await expect(api.get('/auth/me')).rejects.toBeInstanceOf(AxiosError);
-    expect(navigate).toHaveBeenCalledTimes(1);
-    expect(navigate).toHaveBeenCalledWith('/login');
+  it('clears rejected sessions and immediately notifies mounted guards', async () => {
+    await expect(api.get('/public/packages')).rejects.toBeInstanceOf(AxiosError);
     expect(localStorage.getItem('token')).toBeNull();
     expect(localStorage.getItem('user')).toBeNull();
+    expect(ended).toHaveBeenCalledOnce();
   });
-  it('keeps a public album open when account bootstrap finds an expired session', async () => {
-    const navigate = observeLocation('/albums/public-album#access=guest-token');
-    await expect(api.post('/auth/refresh')).rejects.toBeInstanceOf(AxiosError);
-    expect(navigate).not.toHaveBeenCalled();
+  it('leaves a failed login on its form without terminating another session', async () => {
+    await expect(api.post('/auth/login', {})).rejects.toBeInstanceOf(AxiosError);
+    expect(localStorage.getItem('token')).not.toBeNull();
+    expect(ended).not.toHaveBeenCalled();
   });
-
-  it.each(['/register?returnTo=%2Fbooking%2Fstart', '/portfolio#contact'])(
-    'keeps the customer login entry without a return parameter for public path %s',
-    async (path) => {
-      const navigate = observeLocation(path);
-      await expect(api.get('/auth/me')).rejects.toBeInstanceOf(AxiosError);
-      expect(navigate).toHaveBeenCalledTimes(1);
-      expect(navigate).toHaveBeenCalledWith('/login');
-      expect(localStorage.getItem('token')).toBeNull();
-      expect(localStorage.getItem('user')).toBeNull();
+  it.each([token(1), 'malformed', `header.${btoa('{}')}.signature`])(
+    'cancels expired or malformed credentials before any protected request: %s',
+    async (credential) => {
+      localStorage.setItem('token', credential);
+      const adapter = vi.fn();
+      api.defaults.adapter = adapter;
+      await expect(api.post('/concept-orders', {})).rejects.toMatchObject({ code: 'ERR_CANCELED' });
+      expect(adapter).not.toHaveBeenCalled();
+      expect(ended).toHaveBeenCalledOnce();
     },
   );
+  it('allows anonymous portfolio statistics after clearing an expired token', async () => {
+    localStorage.setItem('token', token(1));
+    api.defaults.adapter = async (config) => {
+      expect(config.headers.Authorization).toBeUndefined();
+      return {
+        data: { classes: 4, schools: 2 },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+      };
+    };
+    expect((await api.get('/public/portfolio-stats')).status).toBe(200);
+    expect(ended).toHaveBeenCalledOnce();
+  });
+  it('does not let an old 401 terminate a newer login', async () => {
+    let reject!: () => void;
+    api.defaults.adapter = (config) =>
+      new Promise((_resolve, fail) => {
+        reject = () => fail(unauthorized(config));
+      });
+    const request = api.get('/auth/me');
+    await vi.waitFor(() => expect(reject).toBeTypeOf('function'));
+    localStorage.setItem('token', token(Date.now() / 1000 + 7200));
+    reject();
+    await expect(request).rejects.toBeInstanceOf(AxiosError);
+    expect(localStorage.getItem('token')).not.toBeNull();
+    expect(ended).not.toHaveBeenCalled();
+  });
 });

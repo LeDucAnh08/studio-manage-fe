@@ -1,4 +1,3 @@
-import axios from 'axios';
 import api from './api';
 import type { ApiResponse } from '../types';
 
@@ -41,14 +40,12 @@ export interface BookingAlbum {
     count: number;
   }>;
 }
-// Guest failures must never pass through the account client's login/logout interceptor.
-const guestApi = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api' });
 export const albumError = (error: unknown) =>
   (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
   'Chưa thể xử lý album. Kiểm tra mạng rồi thử lại.';
 export function albumClient(staff: boolean, id: string, token = '', account = false) {
   const authenticated = staff || account;
-  const client = authenticated ? api : guestApi;
+  const client = api;
   const base = authenticated ? `/bookings/${id}/album` : `/public/albums/${id}`;
   const headers = authenticated ? {} : { 'X-Album-Token': token };
   return {

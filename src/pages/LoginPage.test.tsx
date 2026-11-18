@@ -65,6 +65,14 @@ describe('Login appearance preserves authentication and return contracts', () =>
     loginMock.mockReset();
     loginMock.mockResolvedValue({ roles: [6] });
   });
+  it('explains the guard and resumes a shared link after signing in', async () => {
+    const target = '/albums/shared-album#access=shared-token';
+    renderLogin({ state: { from: target } });
+    expect(screen.getByRole('status')).toHaveTextContent('Vui lòng đăng nhập để tiếp tục.');
+    fillCredentials();
+    submitLogin();
+    expect(await screen.findByTestId('destination')).toHaveTextContent(target);
+  });
 
   it.each([true, false])(
     'uses the shared customer login form with customer appearance %s',

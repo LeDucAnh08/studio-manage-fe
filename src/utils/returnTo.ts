@@ -1,4 +1,4 @@
-/** Only allow return paths owned by the client portal or public booking wizard. */
+/** Only allow known customer screens; never external URLs or staff destinations. */
 export const safeBookingReturnTo = (candidate: unknown): string | undefined => {
   if (typeof candidate !== 'string' || !candidate.startsWith('/') || candidate.startsWith('//')) {
     return undefined;
@@ -18,7 +18,21 @@ export const safeBookingReturnTo = (candidate: unknown): string | undefined => {
         url.pathname,
       ) ||
       url.pathname === '/concepts';
-    return isClientPath || isBookingWizard ? `${url.pathname}${url.search}${url.hash}` : undefined;
+    const isCustomerScreen =
+      [
+        '/services',
+        '/pricing',
+        '/costumes',
+        '/rental-catalog',
+        '/feedback',
+        '/consultation',
+      ].includes(url.pathname) ||
+      /^\/(?:pricing|photographers|form|feedback|member-intake|albums|concept-albums)\/[A-Za-z0-9_-]+$/.test(
+        url.pathname,
+      );
+    return isClientPath || isBookingWizard || isCustomerScreen
+      ? `${url.pathname}${url.search}${url.hash}`
+      : undefined;
   } catch {
     return undefined;
   }

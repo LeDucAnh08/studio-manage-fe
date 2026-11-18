@@ -112,4 +112,25 @@ describe('ClientRegisterPage', () => {
 
     expect(await screen.findByTestId('destination')).toHaveTextContent(returnTo);
   });
+
+  it('reports invalid email and whitespace-only names without creating an account', async () => {
+    render(
+      <MemoryRouter>
+        <ClientRegisterPage />
+      </MemoryRouter>,
+    );
+    fireEvent.change(screen.getByLabelText(/Họ tên/), { target: { value: '   ' } });
+    fireEvent.change(screen.getByLabelText(/Tên đăng nhập/), {
+      target: { value: 'customer.test' },
+    });
+    fireEvent.change(screen.getByLabelText(/Email nhận/), { target: { value: 'bad@localhost' } });
+    fireEvent.change(screen.getByLabelText(/^Mật khẩu$/), { target: { value: 'test-pass-123' } });
+    fireEvent.change(screen.getByLabelText(/Nhập lại mật khẩu/), {
+      target: { value: 'test-pass-123' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng ký' }));
+    expect(await screen.findByText('Vui lòng nhập họ tên.')).toBeInTheDocument();
+    expect(screen.getByText(/Nhập địa chỉ email hợp lệ/)).toBeInTheDocument();
+    expect(api.post).not.toHaveBeenCalled();
+  });
 });

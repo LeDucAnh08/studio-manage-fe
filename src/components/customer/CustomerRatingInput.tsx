@@ -21,6 +21,7 @@ interface CustomerRatingInputProps {
   id?: string;
   required?: boolean;
   disabled?: boolean;
+  error?: string;
 }
 
 export function CustomerRatingInput({
@@ -32,6 +33,7 @@ export function CustomerRatingInput({
   id,
   required,
   disabled,
+  error,
 }: CustomerRatingInputProps) {
   const instanceId = useId();
   const [hovered, setHovered] = useState(0);
@@ -54,7 +56,8 @@ export function CustomerRatingInput({
           role="radiogroup"
           aria-label={ariaLabel || label || 'Đánh giá'}
           aria-required={required || undefined}
-          aria-describedby={instanceId + '-description'}
+          aria-invalid={!!error}
+          aria-describedby={instanceId + (error ? '-error' : '-description')}
         >
           {[1, 2, 3, 4, 5].map((rating) => (
             <label
@@ -80,6 +83,11 @@ export function CustomerRatingInput({
           {ratingLabels[active] || ratingLabels[0]}
         </span>
       </div>
+      {error && (
+        <p id={instanceId + '-error'} className="customer-field__error" role="alert">
+          {error}
+        </p>
+      )}
     </fieldset>
   );
 }

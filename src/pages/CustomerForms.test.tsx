@@ -189,7 +189,17 @@ describe('Customer form presentation keeps submission contracts', () => {
     renderPage(<FeedbackFormPage />, '/feedback/class-1?access=access-1', '/feedback/:customer');
     await screen.findByRole('heading', { name: 'Lớp 12A' });
     const submit = screen.getByRole('button', { name: 'Gửi phản hồi' });
-    expect(submit).toBeDisabled();
+    expect(submit).toBeEnabled();
+    fireEvent.click(submit);
+    expect(await screen.findByText('Vui lòng chọn từ 1 đến 5 sao cho ekip.')).toBeInTheDocument();
+    expect(screen.getByText('Vui lòng chọn từ 1 đến 5 sao cho album.')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('radiogroup', { name: 'Đánh giá ekip chụp ảnh' })).getByRole(
+        'radio',
+        { name: '1 sao' },
+      ),
+    ).toHaveFocus();
+    expect(mocks.feedbackPost).not.toHaveBeenCalled();
     fireEvent.click(
       within(screen.getByRole('radiogroup', { name: 'Đánh giá ekip chụp ảnh' })).getByRole(
         'radio',
@@ -226,7 +236,7 @@ describe('Customer form presentation keeps submission contracts', () => {
     await act(async () => resolvePost?.());
     await screen.findByRole('heading', { name: 'Cảm ơn bạn rất nhiều!' });
     fireEvent.click(screen.getByRole('button', { name: 'Gửi phản hồi khác' }));
-    expect(screen.getByRole('button', { name: 'Gửi phản hồi' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Gửi phản hồi' })).toBeEnabled();
     expect(screen.getByLabelText(/Nhận xét về ekip/)).toHaveValue('');
   });
 
@@ -321,5 +331,36 @@ describe('Customer form presentation keeps submission contracts', () => {
     renderPage(<ProfilePage />, '/account/profile', '/account/profile', true);
     await screen.findByRole('button', { name: 'Liên kết Telegram' });
     expect(mocks.telegramStatus).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects whitespace names, invalid email and oversized UTF-8 passwords in the customer profile', async () => {
+    renderPage(<ProfilePage />, '/account/profile', '/account/profile');
+    fireEvent.change(screen.getByLabelText('Họ tên hiển thị'), { target: { value: ' ' } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'bad@localhost' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }));
+    expect(await screen.findByText('Vui lòng nhập họ tên.')).toBeInTheDocument();
+    expect(screen.getByText(/Nhập địa chỉ email hợp lệ/)).toBeInTheDocument();
+    expect(mocks.updateProfile).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('Mật khẩu hiện tại'), {
+      target: { value: 'old-pass-123' },
+    });
+    fireEvent.change(screen.getByLabelText('Mật khẩu mới'), { target: { value: 'á'.repeat(37) } });
+    fireEvent.change(screen.getByLabelText('Xác nhận mật khẩu mới'), {
+      target: { value: 'á'.repeat(37) },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Đổi mật khẩu' }));
+    expect(await screen.findByText(/Mật khẩu tối đa 72 byte/)).toBeInTheDocument();
+    expect(mocks.changePassword).not.toHaveBeenCalled();
+  });
+  it('reports public student measurement limits before writing a submission', async () => {
+    renderPage(<StudentFormPage />, '/form/class-1?access=access-1', '/form/:customer');
+    await screen.findByRole('heading', { name: 'Lớp 12A' });
+    fireEvent.change(screen.getByLabelText(/Họ và tên/), { target: { value: 'Lan' } });
+    fireEvent.change(screen.getByLabelText(/Chiều cao/), { target: { value: '300' } });
+    fireEvent.change(screen.getByLabelText(/Cân nặng/), { target: { value: '1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi thông tin' }));
+    expect(await screen.findByText('Chiều cao phải từ 50 đến 250 cm.')).toBeInTheDocument();
+    expect(screen.getByText('Cân nặng phải từ 10 đến 200 kg.')).toBeInTheDocument();
+    expect(mocks.submitStudent).not.toHaveBeenCalled();
   });
 });

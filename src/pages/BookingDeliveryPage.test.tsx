@@ -123,7 +123,9 @@ describe('Private delivery album and customer feedback', () => {
       'href',
       '/account/bookings/booking',
     );
-    expect(screen.getByRole('button', { name: 'Gửi phản hồi' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Gửi phản hồi' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi phản hồi' }));
+    expect(await screen.findByText('Vui lòng nhập nội dung phản hồi.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Xác nhận ảnh đã đạt yêu cầu' })).toBeEnabled();
   });
   it('binds feedback to the current version and retries an uncertain response with the same key', async () => {

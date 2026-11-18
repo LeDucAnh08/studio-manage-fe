@@ -1,8 +1,17 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  type ReactNode,
+} from 'react';
 import type { User } from '../types';
 import { authService } from '../services/authService';
 import { clearBookingDraft, reconcileBookingDraftAccount } from '../services/bookingDraft';
 import { clearRentalDraft, reconcileRentalDraft } from '../services/rentalDraft';
+import { endSession, SESSION_ENDED, tokenExpiresAt } from '../services/authSession';
 
 interface AuthContextValue {
   user: User | null;
@@ -17,71 +26,110 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const stored = localStorage.getItem('user');
-    if (!stored || stored === 'undefined' || stored === 'null') return null;
-    try {
-      return JSON.parse(stored) as User;
-    } catch {
-      return null;
-    }
-  });
+  const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
   const [isBootstrapping, setIsBootstrapping] = useState<boolean>(
     () => !!localStorage.getItem('token'),
   );
 
-  // On mount: if a token exists, call /auth/refresh to validate it and get a
-  // fresh token + up-to-date user data (e.g. role changes since last login).
-  useEffect(() => {
-    if (!localStorage.getItem('token')) return;
-
-    authService
-      .refresh()
-      .then((res) => {
-        reconcileBookingDraftAccount(res.user, user);
-        reconcileRentalDraft(res.user);
-        localStorage.setItem('token', res.token);
-        localStorage.setItem('user', JSON.stringify(res.user));
-        setToken(res.token);
-        setUser(res.user);
-      })
-      .catch(() => {
-        // Token is invalid/expired — clear everything; axios interceptor will
-        // redirect to /login, but we also clean up state here defensively.
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setToken(null);
-        setUser(null);
-      })
-      .finally(() => {
-        setIsBootstrapping(false);
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const generation = useRef(0);
+  const invalidatePending = useCallback(() => {
+    generation.current++;
   }, []);
+  const clearState = useCallback(() => {
+    invalidatePending();
+    setToken(null);
+    setUser(null);
+    setIsBootstrapping(false);
+  }, [invalidatePending]);
+  const saveSession = useCallback((res: { token: string; user: User }) => {
+    reconcileBookingDraftAccount(res.user);
+    reconcileRentalDraft(res.user);
+    localStorage.setItem('token', res.token);
+    localStorage.setItem('user', JSON.stringify(res.user));
+    setToken(res.token);
+    setUser(res.user);
+    setIsBootstrapping(false);
+  }, []);
+  const bootstrap = useCallback(
+    async (renew = true) => {
+      const storedToken = localStorage.getItem('token');
+      if (!storedToken || tokenExpiresAt(storedToken) <= Date.now()) {
+        endSession(storedToken || undefined);
+        return;
+      }
+      const request = ++generation.current;
+      setIsBootstrapping(true);
+      try {
+        const res = renew
+          ? await authService.refresh()
+          : { token: storedToken, user: await authService.getMe() };
+        if (request === generation.current && localStorage.getItem('token') === storedToken)
+          saveSession(res);
+      } catch {
+        if (request === generation.current) endSession(storedToken);
+      }
+    },
+    [saveSession],
+  );
+
+  useEffect(() => {
+    const storage = (event: StorageEvent) => {
+      if (event.key === 'token' || event.key === null) void bootstrap(false);
+    };
+    window.addEventListener(SESSION_ENDED, clearState);
+    window.addEventListener('storage', storage);
+    void bootstrap();
+    return () => {
+      invalidatePending();
+      window.removeEventListener(SESSION_ENDED, clearState);
+      window.removeEventListener('storage', storage);
+    };
+  }, [bootstrap, clearState, invalidatePending]);
+
+  useEffect(() => {
+    if (!token) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const check = () => {
+      if (localStorage.getItem('token') !== token) {
+        void bootstrap(false);
+        return;
+      }
+      const remaining = tokenExpiresAt(token) - Date.now();
+      if (remaining <= 0) endSession(token);
+      else {
+        clearTimeout(timer);
+        timer = setTimeout(check, Math.min(remaining, 2_147_483_647));
+      }
+    };
+    check();
+    window.addEventListener('focus', check);
+    document.addEventListener('visibilitychange', check);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('focus', check);
+      document.removeEventListener('visibilitychange', check);
+    };
+  }, [token, bootstrap]);
 
   const login = useCallback(
     async (username: string, password: string) => {
+      const request = ++generation.current;
+      setIsBootstrapping(false);
       const res = await authService.login(username, password);
+      if (request !== generation.current) throw new Error('Phiên đăng nhập đã thay đổi.');
       reconcileBookingDraftAccount(res.user, user);
-      reconcileRentalDraft(res.user);
-      localStorage.setItem('token', res.token);
-      localStorage.setItem('user', JSON.stringify(res.user));
-      setToken(res.token);
-      setUser(res.user);
+      saveSession(res);
       return res.user;
     },
-    [user],
+    [user, saveSession],
   );
 
   const logout = useCallback(() => {
     sessionStorage.removeItem('yume-concept-draft-v1');
     clearBookingDraft();
     clearRentalDraft();
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setToken(null);
-    setUser(null);
+    endSession();
   }, []);
 
   const updateUser = useCallback((patch: Partial<User>) => {
@@ -95,7 +143,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, login, logout, updateUser, isAuthenticated: !!token, isBootstrapping }}
+      value={{
+        user,
+        token,
+        login,
+        logout,
+        updateUser,
+        isAuthenticated: !!user && !!token,
+        isBootstrapping,
+      }}
     >
       {children}
     </AuthContext.Provider>

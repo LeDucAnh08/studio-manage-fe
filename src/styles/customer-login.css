@@ -93,6 +93,35 @@
   overflow-wrap: anywhere;
 }
 
+.customer-ui .customer-auth__password {
+  position: relative;
+}
+
+.customer-ui .customer-auth__password-toggle {
+  position: absolute;
+  top: 0;
+  height: 48px;
+  inset-inline-end: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  border: 0;
+  border-radius: var(--customer-radius-control);
+  background: transparent;
+  color: var(--customer-muted);
+  cursor: pointer;
+}
+
+.customer-ui .customer-auth__password-toggle:hover {
+  color: var(--customer-ink);
+}
+
+.customer-ui .customer-auth__password-toggle:focus-visible {
+  outline: 2px solid var(--customer-ink);
+  outline-offset: -4px;
+}
+
 @media (min-width: 744px) and (max-width: 1127px) {
   .customer-ui .customer-auth__story,
   .customer-ui .customer-auth__form-zone {

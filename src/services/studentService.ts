@@ -21,7 +21,7 @@ export const studentService = {
   update: (id: string, data: Partial<Student>) =>
     api.put<ApiResponse<StudentResponse>>(`/students/${id}`, data).then((r) => r.data.data),
   remove: (id: string) => api.delete<ApiResponse<null>>(`/students/${id}`).then((r) => r.data),
-  /** Public (no-auth) endpoint — used by the student self-entry form */
+  /** Self-entry requires both an account session and the class access token. */
   createPublic: (data: Partial<Student> & { access: string }) =>
     api.post<ApiResponse<Student>>('/public/students', data).then((r) => r.data.data),
 };

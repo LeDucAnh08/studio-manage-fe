@@ -175,7 +175,9 @@ describe('customer concept order profile', () => {
     expect(
       within(section).getByRole('checkbox', { name: /Tôi chốt danh sách/ }),
     ).toBeInTheDocument();
-    expect(within(section).getByRole('button', { name: 'Chốt ảnh retouch' })).toBeDisabled();
+    expect(within(section).getByRole('button', { name: 'Chốt ảnh retouch' })).toBeEnabled();
+    fireEvent.click(within(section).getByRole('button', { name: 'Chốt ảnh retouch' }));
+    expect(await screen.findByText(/Chọn ít nhất một ảnh và đồng ý danh sách/)).toBeInTheDocument();
     expect(
       screen.getByRole('region', { name: 'Tiến độ đơn' }).querySelector('[aria-current="step"]'),
     ).toHaveTextContent('Đang bàn giao');

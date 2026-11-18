@@ -322,75 +322,6 @@
   outline: 3px solid #b51c40;
   outline-offset: 3px;
 }
-.photographer-selection {
-  margin-top: 26px;
-}
-.photographer-selection-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-  margin: 24px 0;
-}
-.photographer-selection-card {
-  padding: 22px;
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  min-width: 0;
-}
-.photographer-selection-card[data-selected='true'] {
-  border-color: var(--customer-primary, #ff385c);
-}
-.photographer-card-identity {
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
-}
-.photographer-card-identity > .customer-image {
-  width: 108px;
-  flex-shrink: 0;
-  border-radius: 10px;
-}
-.photographer-selection-card h3 {
-  margin: 0 0 6px;
-  font-size: 20px;
-  font-weight: 650;
-}
-.photographer-selection-card p {
-  margin: 0 0 12px;
-}
-.photographer-selection-card .photographer-card-title {
-  color: #666;
-  font-size: 14px;
-}
-.photographer-card-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 18px;
-}
-.photographer-card-actions a {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 10px 16px;
-  border: 1px solid #bbb;
-  border-radius: 8px;
-  text-decoration: none;
-  font-size: 14px;
-}
-.photographer-card-selected {
-  color: #ac1938;
-  font-size: 14px;
-}
-.photographer-selection-card .photographer-card-cover {
-  margin-top: 18px;
-  border-radius: 8px;
-}
-.photographer-card-cover img {
-  object-position: center 25%;
-}
 @media (max-width: 900px) {
   .photographer-hero {
     grid-template-columns: 270px minmax(0, 1fr);
@@ -407,12 +338,6 @@
   .photographer-hero--text {
     grid-template-columns: 1fr;
   }
-  .photographer-card-identity {
-    gap: 14px;
-  }
-  .photographer-card-identity > .customer-image {
-    width: 80px;
-  }
 }
 @media (max-width: 680px) {
   .photographer-page {
@@ -421,8 +346,7 @@
   }
   .photographer-hero,
   .photographer-working,
-  .photographer-audience,
-  .photographer-selection-grid {
+  .photographer-audience {
     grid-template-columns: 1fr;
   }
   .photographer-hero > .customer-image {

@@ -17,12 +17,16 @@ export const customerService = {
     api
       .get<ApiResponse<{ token: string }>>(`/customers/${id}/public-link`)
       .then((r) => r.data.data),
-  /** Public (no-auth) endpoint — used by the student self-entry form */
+  /** A valid session and class access link are both required. */
   getPublic: (id: string) =>
     api
       .get<ApiResponse<Pick<Customer, '_id' | 'className' | 'school'>>>(`/public/customers/${id}`)
       .then((r) => r.data.data),
-  /** Public (no-auth) endpoint — list all classes (for portfolio / dropdowns) */
+  portfolioStats: () =>
+    api
+      .get<ApiResponse<{ classes: number; schools: number }>>('/public/portfolio-stats')
+      .then((r) => r.data.data),
+  /** Legacy class lookup, available only after signing in. */
   listPublic: () =>
     api
       .get<ApiResponse<Pick<Customer, '_id' | 'className' | 'school'>[]>>(`/public/customers`)

@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import ConceptCatalogPage from './ConceptCatalogPage';
 import ConceptPackageDetailPage from './ConceptPackageDetailPage';
 import ConceptPhotographerPage from './ConceptPhotographerPage';
+import ConceptPhotographerSelection from './ConceptPhotographerSelection';
 import ConceptBookingPage, { CONCEPT_DRAFT_KEY } from './ConceptBookingPage';
 import ConceptOrderPage from './ConceptOrderPage';
 import { GuestConceptAlbumPage } from './ConceptAlbumPanel';
@@ -173,6 +174,9 @@ async function fillWizard() {
   fireEvent.click(await screen.findByRole('link', { name: 'Xem hồ sơ Thợ An' }));
   await waitFor(() => expect(screen.getByRole('button', { name: 'Chọn Thợ An' })).toBeEnabled());
   fireEvent.click(screen.getByRole('button', { name: 'Chọn Thợ An' }));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Tiếp tục' })).toBeEnabled());
+  expect(screen.getByRole('status')).toHaveTextContent('Đã chọn Thợ An');
+  fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
   await screen.findByRole('heading', { name: 'Thông tin buổi chụp' });
   fireEvent.change(screen.getByLabelText('Họ tên liên hệ'), { target: { value: 'Khách An' } });
   fireEvent.change(screen.getByLabelText('Số điện thoại'), { target: { value: '0901234567' } });
@@ -180,6 +184,47 @@ async function fillWizard() {
   await screen.findByRole('heading', { name: 'Kiểm tra trước khi đặt cọc' });
 }
 describe('concept booking contract', () => {
+  it('blocks continuing with a stale photographer during loading, errors or changed availability', () => {
+    const onNext = vi.fn(),
+      onRetry = vi.fn();
+    const props = {
+      pkg: catalog.packages[0],
+      startAt: '2026-11-14T10:00:00.000Z',
+      slot: {
+        startAt: '2026-11-14T10:00:00.000Z',
+        endAt: '2026-11-14T11:00:00.000Z',
+        photographers: [{ _id: 'photo-1', name: 'Thợ An' }],
+      },
+      selectedId: 'photo-1',
+      loading: true,
+      error: '',
+      onNext,
+      onRetry,
+    };
+    const view = (patch: Partial<typeof props>) => (
+      <MemoryRouter>
+        <ConceptPhotographerSelection {...props} {...patch} />
+      </MemoryRouter>
+    );
+    const { rerender } = render(view({}));
+    expect(screen.getByRole('button', { name: 'Tiếp tục' })).toBeDisabled();
+    rerender(view({ loading: false, error: 'Không thể tải lịch.' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Kiểm tra lại lịch' }));
+    expect(onRetry).toHaveBeenCalledOnce();
+    expect(screen.getByRole('button', { name: 'Tiếp tục' })).toBeDisabled();
+    rerender(
+      view({
+        loading: false,
+        slot: { ...props.slot, photographers: [{ _id: 'photo-2', name: 'Thợ Bình' }] },
+      }),
+    );
+    expect(screen.getByText(/Thợ đã chọn không còn nhận lịch này/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tiếp tục' })).toBeDisabled();
+    rerender(view({ loading: false }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
+    expect(onNext).toHaveBeenCalledOnce();
+    expect(conceptService.checkout).not.toHaveBeenCalled();
+  });
   it('restores a concept review, rechecks availability and keeps edits after reload', async () => {
     const withWardrobe = structuredClone(catalog);
     withWardrobe.packages[0].costumeCount = 1;
@@ -506,7 +551,7 @@ describe('concept booking contract', () => {
     expect(screen.getByRole('heading', { name: 'Điều tôi chú trọng' })).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('link', { name: 'Quay lại danh sách thợ' }));
-    await screen.findByRole('heading', { name: 'Chọn thợ chụp' });
+    await screen.findByRole('heading', { name: 'Chọn người kể câu chuyện của bạn' });
     expect(JSON.parse(sessionStorage.getItem(CONCEPT_DRAFT_KEY) || '{}').startAt).toBe(
       '2026-11-14T10:00:00.000Z',
     );
@@ -635,7 +680,12 @@ describe('concept booking contract', () => {
     expect(screen.queryByRole('button', { name: /Tạo QR/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('img', { name: /QR/ })).not.toBeInTheDocument();
     expect(sessionStorage.getItem(CONCEPT_DRAFT_KEY)).toContain('Khách An');
-    expect(screen.getByRole('button', { name: 'Tiếp theo' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Tiếp theo' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp theo' }));
+    expect(
+      await screen.findByText('Vui lòng xác nhận đồng ý điều khoản đặt chụp trước khi gửi.'),
+    ).toBeInTheDocument();
+    expect(conceptService.checkout).not.toHaveBeenCalled();
   });
   it('preserves the draft but blocks QR creation for an unverified account', async () => {
     auth.user = { _id: 'client-1', roles: [6] };
@@ -835,4 +885,34 @@ it('guest album uses an independent read-only client and offers no selection, fe
     expect.any(AbortSignal),
   );
   expect(screen.queryByRole('button', { name: /Chốt|Gửi|Tải/ })).not.toBeInTheDocument();
+});
+
+it('reports malformed reference links before advancing and preserves the preparation draft', async () => {
+  sessionStorage.setItem(
+    CONCEPT_DRAFT_KEY,
+    JSON.stringify({
+      ownerId: 'client-1',
+      packageId: 'pkg-1',
+      step: 4,
+      startAt: '2026-11-14T10:00:00.000Z',
+      photographerId: 'photo-1',
+      costumes: [],
+      contactName: 'Mai Anh',
+      phone: '0912345678',
+      people: 1,
+      referencesText: 'http://example.com/ref',
+      brief: 'Giữ ý tưởng của tôi',
+    }),
+  );
+  renderWizard('/concept-booking/packages/pkg-1/book/costumes');
+  await screen.findByRole('heading', { name: 'Thông tin buổi chụp' });
+  fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
+  expect(await screen.findByText(/Link ảnh mẫu dòng 1 phải là URL HTTPS/)).toBeInTheDocument();
+  expect(screen.getByLabelText('Ý tưởng và yêu cầu')).toHaveValue('Giữ ý tưởng của tôi');
+  expect(conceptService.checkout).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText(/^Link ảnh mẫu/), {
+    target: { value: 'https://example.com/ref' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
+  await screen.findByRole('heading', { name: 'Kiểm tra trước khi đặt cọc' });
 });

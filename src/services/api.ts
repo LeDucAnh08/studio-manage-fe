@@ -1,4 +1,5 @@
-import axios from 'axios';
+import axios, { CanceledError } from 'axios';
+import { endSession, tokenExpiresAt } from './authSession';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
@@ -6,7 +7,13 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  if (token) {
+  if (token && !['/auth/login', '/auth/register'].includes(config.url || '')) {
+    if (tokenExpiresAt(token) <= Date.now()) {
+      endSession(token);
+      if (config.url !== '/public/portfolio-stats')
+        throw new CanceledError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      return config;
+    }
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -16,21 +23,12 @@ api.interceptors.response.use(
   (res) => res,
   (error) => {
     if (error.response?.status === 401 && error.config?.url !== '/auth/login') {
-      // Account bootstrap may fail while a guest is opening an independent album link.
-      if (
-        window.location.pathname.startsWith('/albums/') ||
-        window.location.pathname.startsWith('/concept-albums/')
-      )
-        return Promise.reject(error);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      const path = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-      const canResume =
-        path.startsWith('/account/') ||
-        path.startsWith('/booking/start') ||
-        path.startsWith('/rental/start') ||
-        path.startsWith('/concept-booking');
-      window.location.href = canResume ? `/login?returnTo=${encodeURIComponent(path)}` : '/login';
+      const authorization = error.config?.headers?.Authorization;
+      const requestToken =
+        typeof authorization === 'string' && authorization.startsWith('Bearer ')
+          ? authorization.slice(7)
+          : undefined;
+      if (requestToken || !localStorage.getItem('token')) endSession(requestToken);
     }
     return Promise.reject(error);
   },

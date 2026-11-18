@@ -6,7 +6,7 @@ import type { User } from './types';
 import App from './App';
 const mocks = vi.hoisted(() => ({
   auth: { user: null as User | null, isBootstrapping: false, logout: vi.fn() },
-  flags: { portal: true },
+  flags: { portal: true, concept: false },
 }));
 vi.mock('./context/AuthContext', () => ({
   AuthProvider: ({ children }: { children: ReactNode }) => children,
@@ -17,7 +17,9 @@ vi.mock('./context/ThemeContext', () => ({
   useTheme: () => ({ themeMode: 'light', resolvedTheme: 'light', setThemeMode: vi.fn() }),
 }));
 vi.mock('./config/features', () => ({
-  conceptBookingEnabled: false,
+  get conceptBookingEnabled() {
+    return mocks.flags.concept;
+  },
   get clientPortalEnabled() {
     return mocks.flags.portal;
   },
@@ -84,6 +86,7 @@ describe('Public discovery and customer workspace', () => {
     mocks.auth.user = null;
     mocks.auth.isBootstrapping = false;
     mocks.flags.portal = true;
+    mocks.flags.concept = false;
     window.scrollTo = vi.fn();
   });
   it('shows only portfolio entry controls without guest navigation and gates booking with its source', () => {
@@ -96,10 +99,28 @@ describe('Public discovery and customer workspace', () => {
     fireEvent.click(header.getByRole('link', { name: 'Đặt lịch' }));
     expect(screen.getByTestId('return-to')).toHaveTextContent('/booking/start?source=portfolio');
   });
-  it.each(['/services', '/concepts', '/pricing'])('renders %s as its own public screen', (path) => {
+  it.each([
+    '/services',
+    '/concepts',
+    '/pricing',
+    '/pricing/package-1',
+    '/costumes',
+    '/rental-catalog?type=ao-dai',
+    '/photographers/photo-1',
+    '/feedback',
+    '/feedback/class-1',
+    '/form/class-1?access=link',
+    '/member-intake/token-1',
+    '/albums/album-1#access=share',
+    '/concept-albums/album-1#access=share',
+    '/concept-booking',
+    '/concept-booking/packages/package-1/book/costumes',
+  ])('requires a session before mounting %s', (path) => {
+    mocks.flags.concept = true;
     open(path);
-    expect(window.location.pathname).toBe(path);
-    expect(screen.getByRole('heading', { name: path.slice(1) })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/login');
+    expect(screen.getByRole('heading', { name: 'Đăng nhập' })).toBeInTheDocument();
+    expect(screen.getByTestId('return-to')).toHaveTextContent(path);
   });
   it.each([true, false])(
     'redirects the old staff login to the shared customer login with portal %s',
@@ -116,11 +137,25 @@ describe('Public discovery and customer workspace', () => {
       expect(document.querySelector('.staff-ui')).toBeNull();
     },
   );
-  it.each(['/costumes', '/rental-catalog?type=ao-dai'])('allows guests to browse %s', (path) => {
-    open(path);
-    expect(screen.getByRole('heading', { name: 'Kho trang phục' })).toBeInTheDocument();
-    expect(window.location.pathname).toBe('/costumes');
-    if (path.includes('?')) expect(window.location.search).toBe('?type=ao-dai');
+  it.each(['/costumes', '/rental-catalog?type=ao-dai'])(
+    'allows authenticated customers to browse %s',
+    (path) => {
+      client();
+      open(path);
+      expect(screen.getByRole('heading', { name: 'Kho trang phục' })).toBeInTheDocument();
+      expect(window.location.pathname).toBe('/costumes');
+      if (path.includes('?')) expect(window.location.search).toBe('?type=ao-dai');
+    },
+  );
+  it('removes an already mounted customer page when its session disappears', () => {
+    client();
+    const view = open('/services?source=portfolio#process');
+    expect(screen.getByRole('heading', { name: 'services' })).toBeInTheDocument();
+    mocks.auth.user = null;
+    view.rerender(<App />);
+    expect(screen.queryByRole('heading', { name: 'services' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Đăng nhập' })).toBeInTheDocument();
+    expect(screen.getByTestId('return-to')).toHaveTextContent('/services?source=portfolio#process');
   });
   it.each([
     ['/portfolio#services', '/services', ''],

@@ -70,6 +70,14 @@ function PageTitleManager() {
   return null;
 }
 
+function SessionAccessGuard({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation();
+  const path = pathname.replace(/\/+$/, '') || '/';
+  if (['/', '/portfolio', '/login', '/register', '/staff/login', '/staff-register'].includes(path))
+    return <>{children}</>;
+  return <ProtectedRoute>{children}</ProtectedRoute>;
+}
+
 function AlbumEntry() {
   const location = useLocation();
   return <BookingAlbumPage key={`${location.pathname}:${location.hash}`} />;
@@ -194,89 +202,160 @@ function App() {
         <TooltipProvider delayDuration={150}>
           <BrowserRouter>
             <PageTitleManager />
-            <Routes>
-              {conceptBookingEnabled && (
-                <Route path="/concept-albums/:publicId" element={<GuestConceptAlbumPage />} />
-              )}
-              <Route path="/albums/:publicId" element={<AlbumEntry />} />
-              <Route
-                path="/workflow-bookings/:id/album"
-                element={
-                  <ProtectedRoute allowedRoles={[0, 1, 3]}>
-                    <AlbumRedirect />
-                  </ProtectedRoute>
-                }
-              />
-              <Route element={<CustomerScope />}>
-                <Route path="/login" element={<LoginPage />} />
-                <Route
-                  path="/register"
-                  element={
-                    clientPortalEnabled ? (
-                      <ClientRegisterPage />
-                    ) : (
-                      <Navigate to="/portfolio" replace />
-                    )
-                  }
-                />
-                <Route path="/services" element={<PublicDiscoveryPage page="services" />} />
-                <Route
-                  path="/concepts"
-                  element={conceptBookingEnabled ? <ConceptCatalogPage /> : <ConceptEntry />}
-                />
+            <SessionAccessGuard>
+              <Routes>
                 {conceptBookingEnabled && (
-                  <>
-                    <Route path="/concept-booking" element={<ConceptCatalogPage />} />
-                    <Route
-                      path="/concept-booking/packages/:packageId/photographers/:photographerId"
-                      element={<ConceptPhotographerPage />}
-                    />
-                    <Route
-                      path="/concept-booking/packages/:packageId"
-                      element={<ConceptPackageDetailPage />}
-                    />
-                    <Route
-                      path="/concept-booking/packages/:packageId/book/:screen"
-                      element={<ConceptBookingPage />}
-                    />
-                  </>
+                  <Route path="/concept-albums/:publicId" element={<GuestConceptAlbumPage />} />
                 )}
-                <Route path="/pricing" element={<PublicDiscoveryPage page="pricing" />} />
-                <Route path="/pricing/:id" element={<PublicPackageDetailPage />} />
-                <Route path="/consultation" element={<Navigate to="/services" replace />} />
+                <Route path="/albums/:publicId" element={<AlbumEntry />} />
                 <Route
-                  path="/booking/start"
+                  path="/workflow-bookings/:id/album"
                   element={
-                    clientPortalEnabled ? (
-                      <ProtectedRoute allowedRoles={[6]}>
-                        <BookingEntry />
-                      </ProtectedRoute>
-                    ) : (
-                      <Navigate to="/services" replace />
-                    )
+                    <ProtectedRoute allowedRoles={[0, 1, 3]}>
+                      <AlbumRedirect />
+                    </ProtectedRoute>
                   }
                 />
-                {clientPortalEnabled && (
+                <Route element={<CustomerScope />}>
+                  <Route path="/login" element={<LoginPage />} />
                   <Route
-                    path="/account"
+                    path="/register"
                     element={
-                      <ProtectedRoute allowedRoles={[6]}>
-                        <ClientLayout />
+                      clientPortalEnabled ? (
+                        <ClientRegisterPage />
+                      ) : (
+                        <Navigate to="/portfolio" replace />
+                      )
+                    }
+                  />
+                  <Route path="/services" element={<PublicDiscoveryPage page="services" />} />
+                  <Route
+                    path="/concepts"
+                    element={conceptBookingEnabled ? <ConceptCatalogPage /> : <ConceptEntry />}
+                  />
+                  {conceptBookingEnabled && (
+                    <>
+                      <Route path="/concept-booking" element={<ConceptCatalogPage />} />
+                      <Route
+                        path="/concept-booking/packages/:packageId/photographers/:photographerId"
+                        element={<ConceptPhotographerPage />}
+                      />
+                      <Route
+                        path="/concept-booking/packages/:packageId"
+                        element={<ConceptPackageDetailPage />}
+                      />
+                      <Route
+                        path="/concept-booking/packages/:packageId/book/:screen"
+                        element={<ConceptBookingPage />}
+                      />
+                    </>
+                  )}
+                  <Route path="/pricing" element={<PublicDiscoveryPage page="pricing" />} />
+                  <Route path="/pricing/:id" element={<PublicPackageDetailPage />} />
+                  <Route path="/consultation" element={<Navigate to="/services" replace />} />
+                  <Route
+                    path="/booking/start"
+                    element={
+                      clientPortalEnabled ? (
+                        <ProtectedRoute allowedRoles={[6]}>
+                          <BookingEntry />
+                        </ProtectedRoute>
+                      ) : (
+                        <Navigate to="/services" replace />
+                      )
+                    }
+                  />
+                  {clientPortalEnabled && (
+                    <Route
+                      path="/account"
+                      element={
+                        <ProtectedRoute allowedRoles={[6]}>
+                          <ClientLayout />
+                        </ProtectedRoute>
+                      }
+                    >
+                      <Route index element={<Navigate to="orders" replace />} />
+                      <Route path="orders" element={<CustomerOrdersPage />} />
+                      {conceptBookingEnabled && (
+                        <Route path="concept-orders/:id" element={<ConceptOrderPage />} />
+                      )}
+                      <Route
+                        path="bookings"
+                        element={<Navigate to="/account/orders?tab=bookings" replace />}
+                      />
+                      <Route path="bookings/new" element={<NewBookingPage />} />
+                      <Route path="bookings/:id" element={<BookingWorkflowDetailPage />} />
+                      <Route path="bookings/:id/delivery" element={<BookingDeliveryPage />} />
+                      <Route path="profile" element={<ProfilePage />} />
+                      {conceptBookingEnabled && (
+                        <Route
+                          path="concept-orders/:id"
+                          element={
+                            <ProtectedRoute allowedRoles={[0, 1, 2, 3, 5]}>
+                              <ConceptOrderPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                      )}
+                      <Route path="verify-email" element={<VerifyEmailPage />} />
+                      <Route
+                        path="rentals"
+                        element={<Navigate to="/account/orders?tab=rentals" replace />}
+                      />
+                      <Route path="rentals/:id" element={<RentalDetailPage />} />
+                    </Route>
+                  )}
+                  <Route path="/portfolio" element={<PortfolioEntry />} />
+                  {conceptBookingEnabled && (
+                    <Route
+                      path="/photographers/:photographerId"
+                      element={<PhotographerPublicPage />}
+                    />
+                  )}
+                  <Route path="/costumes" element={<RentalCatalogPage />} />
+                  {clientPortalEnabled && (
+                    <Route
+                      path="/rental/start"
+                      element={
+                        <ProtectedRoute allowedRoles={[6]}>
+                          <PublicSiteLayout source="costumes">
+                            <NewRentalPage />
+                          </PublicSiteLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                  )}
+                  <Route
+                    path="/rental-catalog"
+                    element={<SearchPreservingRedirect pathname="/costumes" />}
+                  />
+                  <Route path="/form/:customer" element={<StudentFormPage />} />
+                  <Route
+                    path="/member-intake/:token"
+                    element={
+                      <PublicSiteLayout source="portfolio">
+                        <PublicMemberIntakePage />
+                      </PublicSiteLayout>
+                    }
+                  />
+                  <Route path="/feedback" element={<FeedbackFormPage />} />
+                  <Route path="/feedback/:customer" element={<FeedbackFormPage />} />
+                </Route>
+                <Route element={<StaffScope />}>
+                  <Route
+                    path="/staff/login"
+                    element={<SearchPreservingRedirect pathname="/login" />}
+                  />
+                  <Route path="/staff-register" element={<RegisterRequestPage />} />
+                  <Route
+                    path="/"
+                    element={
+                      <ProtectedRoute allowedRoles={[0, 1, 2, 3, 4, 5]}>
+                        <Layout />
                       </ProtectedRoute>
                     }
                   >
-                    <Route index element={<Navigate to="orders" replace />} />
-                    <Route path="orders" element={<CustomerOrdersPage />} />
-                    {conceptBookingEnabled && (
-                      <Route path="concept-orders/:id" element={<ConceptOrderPage />} />
-                    )}
-                    <Route
-                      path="bookings"
-                      element={<Navigate to="/account/orders?tab=bookings" replace />}
-                    />
-                    <Route path="bookings/new" element={<NewBookingPage />} />
-                    <Route path="bookings/:id" element={<BookingWorkflowDetailPage />} />
-                    <Route path="bookings/:id/delivery" element={<BookingDeliveryPage />} />
+                    {[...navItems, ...adminItems].map(renderRouteItem)}
                     <Route path="profile" element={<ProfilePage />} />
                     {conceptBookingEnabled && (
                       <Route
@@ -288,138 +367,69 @@ function App() {
                         }
                       />
                     )}
-                    <Route path="verify-email" element={<VerifyEmailPage />} />
                     <Route
-                      path="rentals"
-                      element={<Navigate to="/account/orders?tab=rentals" replace />}
+                      path="settings/packages/:id/content"
+                      element={
+                        <ProtectedRoute allowedRoles={[0, 1]}>
+                          <PackageContentPage />
+                        </ProtectedRoute>
+                      }
                     />
-                    <Route path="rentals/:id" element={<RentalDetailPage />} />
+                    {clientPortalEnabled && (
+                      <Route
+                        path="rental-orders/:id"
+                        element={
+                          <ProtectedRoute allowedRoles={[0, 1, 2, 4, 5]}>
+                            <RentalDetailPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                    )}
+                    {clientPortalEnabled && (
+                      <Route
+                        path="workflow-bookings/:id"
+                        element={
+                          <ProtectedRoute allowedRoles={[0, 1, 3, 5]}>
+                            <BookingWorkflowDetailPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                    )}
+                    {clientPortalEnabled && (
+                      <Route
+                        path="workflow-bookings/:id/delivery"
+                        element={
+                          <ProtectedRoute allowedRoles={[0, 1, 3]}>
+                            <BookingDeliveryPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                    )}
+                    {clientPortalEnabled && (
+                      <Route
+                        path="booking-requests"
+                        element={
+                          <ProtectedRoute allowedRoles={[0, 1]}>
+                            <BookingRequestsRedirect />
+                          </ProtectedRoute>
+                        }
+                      />
+                    )}
+                    {clientPortalEnabled && (
+                      <Route
+                        path="booking-requests/:id"
+                        element={
+                          <ProtectedRoute allowedRoles={[0, 1]}>
+                            <BookingRequestsRedirect />
+                          </ProtectedRoute>
+                        }
+                      />
+                    )}
                   </Route>
-                )}
-                <Route path="/portfolio" element={<PortfolioEntry />} />
-                {conceptBookingEnabled && (
-                  <Route
-                    path="/photographers/:photographerId"
-                    element={<PhotographerPublicPage />}
-                  />
-                )}
-                <Route path="/costumes" element={<RentalCatalogPage />} />
-                {clientPortalEnabled && (
-                  <Route
-                    path="/rental/start"
-                    element={
-                      <ProtectedRoute allowedRoles={[6]}>
-                        <PublicSiteLayout source="costumes">
-                          <NewRentalPage />
-                        </PublicSiteLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                )}
-                <Route
-                  path="/rental-catalog"
-                  element={<SearchPreservingRedirect pathname="/costumes" />}
-                />
-                <Route path="/form/:customer" element={<StudentFormPage />} />
-                <Route
-                  path="/member-intake/:token"
-                  element={
-                    <PublicSiteLayout source="portfolio">
-                      <PublicMemberIntakePage />
-                    </PublicSiteLayout>
-                  }
-                />
-                <Route path="/feedback" element={<FeedbackFormPage />} />
-                <Route path="/feedback/:customer" element={<FeedbackFormPage />} />
-              </Route>
-              <Route element={<StaffScope />}>
-                <Route
-                  path="/staff/login"
-                  element={<SearchPreservingRedirect pathname="/login" />}
-                />
-                <Route path="/staff-register" element={<RegisterRequestPage />} />
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute allowedRoles={[0, 1, 2, 3, 4, 5]}>
-                      <Layout />
-                    </ProtectedRoute>
-                  }
-                >
-                  {[...navItems, ...adminItems].map(renderRouteItem)}
-                  <Route path="profile" element={<ProfilePage />} />
-                  {conceptBookingEnabled && (
-                    <Route
-                      path="concept-orders/:id"
-                      element={
-                        <ProtectedRoute allowedRoles={[0, 1, 2, 3, 5]}>
-                          <ConceptOrderPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                  )}
-                  <Route
-                    path="settings/packages/:id/content"
-                    element={
-                      <ProtectedRoute allowedRoles={[0, 1]}>
-                        <PackageContentPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  {clientPortalEnabled && (
-                    <Route
-                      path="rental-orders/:id"
-                      element={
-                        <ProtectedRoute allowedRoles={[0, 1, 2, 4, 5]}>
-                          <RentalDetailPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                  )}
-                  {clientPortalEnabled && (
-                    <Route
-                      path="workflow-bookings/:id"
-                      element={
-                        <ProtectedRoute allowedRoles={[0, 1, 3, 5]}>
-                          <BookingWorkflowDetailPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                  )}
-                  {clientPortalEnabled && (
-                    <Route
-                      path="workflow-bookings/:id/delivery"
-                      element={
-                        <ProtectedRoute allowedRoles={[0, 1, 3]}>
-                          <BookingDeliveryPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                  )}
-                  {clientPortalEnabled && (
-                    <Route
-                      path="booking-requests"
-                      element={
-                        <ProtectedRoute allowedRoles={[0, 1]}>
-                          <BookingRequestsRedirect />
-                        </ProtectedRoute>
-                      }
-                    />
-                  )}
-                  {clientPortalEnabled && (
-                    <Route
-                      path="booking-requests/:id"
-                      element={
-                        <ProtectedRoute allowedRoles={[0, 1]}>
-                          <BookingRequestsRedirect />
-                        </ProtectedRoute>
-                      }
-                    />
-                  )}
                 </Route>
-              </Route>
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </SessionAccessGuard>
             <CustomerToastContainer />
           </BrowserRouter>
         </TooltipProvider>

@@ -14,6 +14,7 @@ import { CustomerStatusBadge } from '@/components/customer/CustomerStatusBadge';
 import { CustomerSurface } from '@/components/customer/CustomerSurface';
 import '../styles/customer-forms.css';
 import { emailService, emailError } from '@/services/emailService';
+import { validateEmail, validatePassword, validateText } from '@/utils/customerValidation';
 
 function ProfileField({
   label,
@@ -94,14 +95,22 @@ function ProfileSection() {
 
   return (
     <form
+      noValidate
+      data-validated-by="react-hook-form"
       onSubmit={handleSubmit(onSubmit)}
       className={isCustomer ? 'customer-form-stack' : 'space-y-4'}
     >
       <ProfileField label="Tên đăng nhập" htmlFor="username">
         <ProfileInput id="username" value={user?.username ?? ''} disabled />
       </ProfileField>
-      <ProfileField label="Họ tên hiển thị" htmlFor="name">
-        <ProfileInput id="name" placeholder="Nhập tên hiển thị" {...register('name')} />
+      <ProfileField label="Họ tên hiển thị" htmlFor="name" error={errors.name?.message}>
+        <ProfileInput
+          id="name"
+          required
+          maxLength={100}
+          placeholder="Nhập tên hiển thị"
+          {...register('name', { validate: (value) => validateText(value, 'Họ tên', 100) || true })}
+        />
       </ProfileField>
       {canEditEmail && (
         <ProfileField label="Email" htmlFor="email" error={errors.email?.message}>
@@ -113,6 +122,7 @@ function ProfileSection() {
             placeholder="Nhập email"
             {...register('email', {
               required: user?.email ? 'Vui lòng nhập email.' : false,
+              validate: (value) => validateEmail(value, !!user?.email) || true,
               setValueAs: (value: string) => value.trim().toLowerCase(),
               onChange: () => setNotice(''),
             })}
@@ -197,6 +207,8 @@ function PasswordSection() {
 
   return (
     <form
+      noValidate
+      data-validated-by="react-hook-form"
       onSubmit={handleSubmit(onSubmit)}
       className={isCustomer ? 'customer-form-stack' : 'space-y-4'}
     >
@@ -209,6 +221,7 @@ function PasswordSection() {
           id="currentPassword"
           type="password"
           autoComplete="current-password"
+          required
           {...register('currentPassword', { required: 'Vui lòng nhập mật khẩu hiện tại' })}
         />
       </ProfileField>
@@ -217,9 +230,12 @@ function PasswordSection() {
           id="newPassword"
           type="password"
           autoComplete="new-password"
+          required
+          minLength={8}
           {...register('newPassword', {
             required: 'Vui lòng nhập mật khẩu mới',
             minLength: { value: 8, message: 'Mật khẩu phải có ít nhất 8 ký tự' },
+            validate: (value) => validatePassword(value) || true,
           })}
         />
       </ProfileField>
@@ -230,8 +246,15 @@ function PasswordSection() {
       >
         <ProfileInput
           id="confirmPassword"
+          {...(isCustomer
+            ? {
+                validation: (value: string) =>
+                  value === newPassword ? undefined : 'Mật khẩu không khớp',
+              }
+            : {})}
           type="password"
           autoComplete="new-password"
+          required
           {...register('confirmPassword', {
             required: 'Vui lòng xác nhận mật khẩu',
             validate: (v) => v === newPassword || 'Mật khẩu không khớp',
