@@ -20,7 +20,7 @@
 }
 .admin-dashboard__filters {
   display: grid;
-  grid-template-columns: auto minmax(160px, 240px) auto minmax(160px, 240px);
+  grid-template-columns: auto minmax(160px, 240px);
   justify-content: start;
   align-items: center;
   gap: 10px 16px;

@@ -63,6 +63,7 @@ export interface RentalOrder {
   changesLocked?: boolean;
   reservation?: { status: string; expiresAt: string };
   depositPayment?: DepositPayment | null;
+  balancePayment?: (DepositPayment & { requiresReview?: boolean }) | null;
   reservationIssue?: string | null;
   contactName: string;
   phone?: string;
@@ -170,6 +171,10 @@ export const normalizeRentalView = (view: string): string => {
   return '';
 };
 export const rentalMoney = (value = 0) => value.toLocaleString('vi-VN') + ' đ';
+export const rentalReceivedLabel = (payments?: RentalOrder['payments']) =>
+  payments?.some((payment) => payment.kind === 'refund' && payment.amount > 0)
+    ? 'Thực thu'
+    : 'Đã thu';
 export const rentalDate = (value: string) =>
   new Date(value).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
 export const rentalError = (error: unknown) =>

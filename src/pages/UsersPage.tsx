@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Plus } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -459,5 +460,16 @@ const UsersPage = () => {
     </div>
   );
 };
+
+export function LegacyUsersRedirect() {
+  const location = useLocation();
+  return (
+    <Navigate
+      to={{ pathname: '/customers/users', search: location.search, hash: location.hash }}
+      state={location.state}
+      replace
+    />
+  );
+}
 
 export default UsersPage;

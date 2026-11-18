@@ -266,6 +266,10 @@ describe('Dashboard, finance and reports rollout', () => {
       expect(screen.queryByText('Chênh lệch thu–chi')).not.toBeInTheDocument();
       expect(screen.queryByRole('link', { name: 'Xem lịch chụp' })).not.toBeInTheDocument();
       expect(screen.getByRole('link', { name: /Tổng tài khoản/ })).toHaveTextContent('1.248');
+      expect(screen.getByRole('link', { name: /Tổng tài khoản/ })).toHaveAttribute(
+        'href',
+        '/customers/users',
+      );
       expect(screen.getByText('+16 user (+25%)')).toBeInTheDocument();
       expect(screen.getByText(/So với 01\/10 – 14\/10/)).toBeInTheDocument();
       expect(mocks.chart).toHaveBeenCalledWith([

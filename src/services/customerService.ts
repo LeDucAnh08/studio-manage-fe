@@ -1,5 +1,24 @@
 import api from './api';
 import type { ApiResponse, Customer, PaginatedApiResponse, PaginatedResponse } from '../types';
+import type { WorkflowMember } from './bookingWorkflowService';
+
+export interface ClassStudents {
+  source: 'booking' | 'legacy';
+  students: Array<
+    Pick<
+      WorkflowMember,
+      | '_id'
+      | 'name'
+      | 'gender'
+      | 'contact'
+      | 'height'
+      | 'weight'
+      | 'pantsSize'
+      | 'shirtSize'
+      | 'notes'
+    >
+  >;
+}
 
 export const customerService = {
   getAll: (params?: Record<string, string | number>) =>
@@ -8,6 +27,8 @@ export const customerService = {
       .then((r) => ({ data: r.data.data, ...r.data.pagination }) as PaginatedResponse<Customer>),
   getOne: (id: string) =>
     api.get<ApiResponse<Customer>>(`/customers/${id}`).then((r) => r.data.data),
+  getStudents: (id: string) =>
+    api.get<ApiResponse<ClassStudents>>(`/customers/${id}/students`).then((r) => r.data.data),
   create: (data: Partial<Customer>) =>
     api.post<ApiResponse<Customer>>('/customers', data).then((r) => r.data.data),
   update: (id: string, data: Partial<Customer>) =>

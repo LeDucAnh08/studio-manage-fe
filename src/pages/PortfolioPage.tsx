@@ -5,6 +5,7 @@ import Logo from '../components/atoms/Logo';
 import PublicSiteLayout from '../components/Layout/PublicSiteLayout';
 import { customerService } from '../services/customerService';
 import { clientPortalEnabled } from '../config/features';
+import { useAuth } from '../context/AuthContext';
 import { CustomerButton } from '../components/customer/CustomerButton';
 import { CustomerSurface } from '../components/customer/CustomerSurface';
 import { CustomerImage } from '../components/customer/CustomerImage';
@@ -49,6 +50,7 @@ const testimonials = [
 ];
 
 export default function PortfolioPage() {
+  const { isAuthenticated } = useAuth();
   const [counts, setCounts] = useState({ classes: '—', schools: '—' });
   useEffect(() => {
     let active = true;
@@ -95,15 +97,21 @@ export default function PortfolioPage() {
                 không bao giờ phai.
               </p>
               <div className="customer-portfolio__actions">
-                {clientPortalEnabled && (
+                {isAuthenticated && clientPortalEnabled && (
                   <CustomerButton asChild>
                     <Link to="/booking/start?source=portfolio">Đặt lịch</Link>
                   </CustomerButton>
                 )}
 
-                <CustomerButton asChild variant="secondary">
-                  <Link to="/costumes">Tra cứu trang phục</Link>
-                </CustomerButton>
+                {isAuthenticated ? (
+                  <CustomerButton asChild variant="secondary">
+                    <Link to="/costumes">Tra cứu trang phục</Link>
+                  </CustomerButton>
+                ) : (
+                  <CustomerButton asChild>
+                    <Link to="/login">Đăng nhập</Link>
+                  </CustomerButton>
+                )}
               </div>
               <div className="customer-portfolio__stats">
                 {stats.map((stat) => (
@@ -214,9 +222,11 @@ export default function PortfolioPage() {
                 <CustomerSurface as="article" key={item.to}>
                   <h3 className="customer-portfolio__card-title">{item.title}</h3>
                   <p className="customer-portfolio__card-copy">{item.text}</p>
-                  <CustomerButton asChild variant="text">
-                    <Link to={item.to}>Xem chi tiết →</Link>
-                  </CustomerButton>
+                  {isAuthenticated && (
+                    <CustomerButton asChild variant="text">
+                      <Link to={item.to}>Xem chi tiết →</Link>
+                    </CustomerButton>
+                  )}
                 </CustomerSurface>
               ))}
             </div>
@@ -254,14 +264,16 @@ export default function PortfolioPage() {
           </div>
         </section>
 
-        <section className="customer-portfolio__band">
-          <div className="customer-portfolio__container customer-portfolio__intro">
-            <h2 className="customer-portfolio__heading">Chia sẻ cảm nhận với Yume</h2>
-            <CustomerButton asChild variant="secondary">
-              <Link to="/feedback">Gửi phản hồi</Link>
-            </CustomerButton>
-          </div>
-        </section>
+        {isAuthenticated && (
+          <section className="customer-portfolio__band">
+            <div className="customer-portfolio__container customer-portfolio__intro">
+              <h2 className="customer-portfolio__heading">Chia sẻ cảm nhận với Yume</h2>
+              <CustomerButton asChild variant="secondary">
+                <Link to="/feedback">Gửi phản hồi</Link>
+              </CustomerButton>
+            </div>
+          </section>
+        )}
       </div>
     </PublicSiteLayout>
   );

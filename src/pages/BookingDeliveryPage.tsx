@@ -179,7 +179,11 @@ export default function BookingDeliveryPage() {
   return (
     <div className="delivery-page">
       <div className="delivery-page__toolbar">
-        <Link className={customer ? 'customer-back-link' : 'app-back-link text-primary'} to={back}>
+        <Link
+          className={customer ? 'customer-back-link' : 'app-back-link text-primary'}
+          to={back}
+          state={location.state}
+        >
           <ArrowLeft size={16} aria-hidden="true" /> Quay lại hồ sơ đơn
         </Link>
       </div>

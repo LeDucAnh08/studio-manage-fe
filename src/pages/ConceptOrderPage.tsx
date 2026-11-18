@@ -11,6 +11,8 @@ import {
 } from '../services/conceptDraft';
 import '../styles/concept-review.css';
 import { useAuth } from '../context/AuthContext';
+import { isPersonalPhotographer } from '../utils/staffRole';
+import { PhotographerOrder } from '../components/PhotographerOrder';
 import {
   ConceptOrder,
   Photographer,
@@ -154,7 +156,15 @@ export default function ConceptOrderPage() {
     if (retry.current?.signature !== signature)
       retry.current = { signature, key: crypto.randomUUID() };
     try {
-      setOrder(await conceptService.command(id, op, payload, retry.current.key));
+      const updated = await conceptService.command(id, op, payload, retry.current.key);
+      setOrder({
+        ...updated,
+        photographerName:
+          updated.photographerName ??
+          (updated.photographer === order.photographer ? order.photographerName : undefined),
+        editorName:
+          updated.editorName ?? (updated.editor === order.editor ? order.editorName : undefined),
+      });
       retry.current = null;
       setCancel(false);
     } catch (e) {
@@ -357,6 +367,193 @@ export default function ConceptOrderPage() {
     );
   }
 
+  const shootDetails = (
+    <section className={customer ? 'customer-order-surface' : 'concept-card'}>
+      <h2 className={customer ? 'customer-section-title' : undefined}>Buổi chụp</h2>
+      {!customer && (
+        <p>
+          {order.contactName} · {order.phone} · {order.people} người
+        </p>
+      )}
+      <p className="whitespace-pre-wrap break-words">{order.brief || 'Chưa có yêu cầu riêng.'}</p>
+      {order.references.map((url) => (
+        <p key={url}>
+          <a href={url} target="_blank" rel="noreferrer">
+            Ảnh mẫu tham khảo
+          </a>
+        </p>
+      ))}
+      {!!order.wardrobeMeasurements?.length && (
+        <section aria-label="Số đo chuẩn bị trang phục">
+          <h3 className={customer ? 'font-semibold' : undefined}>Số đo chuẩn bị trang phục</h3>
+          <ul>
+            {order.wardrobeMeasurements.map((row, i) => (
+              <li key={i}>
+                Người {i + 1} · Size {row.size} · {row.heightCm} cm · {row.weightKg} kg
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      <ul>
+        {order.costumes.map((c) => (
+          <li key={`${c.costumeId}:${c.size}`}>
+            {c.name} · size {c.size} × {c.quantity}
+          </li>
+        ))}
+      </ul>
+      <p>
+        Trang phục:{' '}
+        {
+          (
+            {
+              pending: 'Chờ chuẩn bị',
+              prepared: 'Đã chuẩn bị',
+              returned: 'Đã thu hồi',
+            } as Record<string, string>
+          )[order.wardrobe]
+        }
+      </p>
+    </section>
+  );
+
+  if (
+    !customer &&
+    isPersonalPhotographer(user) &&
+    !order.isOwner &&
+    !order.canAccount &&
+    order.canEdit
+  ) {
+    const terminal = ['cancelled', 'expired'].includes(order.status);
+    const duringShoot =
+      order.status === 'confirmed' &&
+      Date.parse(order.startAt) <= now &&
+      now < Date.parse(order.endAt);
+    const albumAvailable = ['shot', 'completed'].includes(order.status);
+    const crew = [
+      {
+        id: order.photographer,
+        name:
+          (order.photographer === user?._id ? user.name : order.photographerName) || 'Nhiếp ảnh',
+        role: order.photographer === order.editor ? 'Thợ chính / Hậu kỳ' : 'Thợ chính',
+        self: order.photographer === user?._id,
+      },
+      ...(order.editor && order.editor !== order.photographer
+        ? [
+            {
+              id: order.editor,
+              name: (order.editor === user?._id ? user.name : order.editorName) || 'Nhân sự hậu kỳ',
+              role: 'Hậu kỳ',
+              self: order.editor === user?._id,
+            },
+          ]
+        : []),
+    ];
+    const events = order.events
+      .filter(
+        (entry) =>
+          ['reschedule', 'assign', 'wardrobe', 'shot'].includes(entry.action) ||
+          entry.action.startsWith('album.'),
+      )
+      .map((entry) =>
+        entry.action === 'shot' ? { ...entry, message: 'Đã hoàn tất buổi chụp.' } : entry,
+      )
+      .reverse();
+    const date = new Date(order.startAt).toLocaleDateString('vi-VN', {
+      dateStyle: 'short',
+      timeZone: 'Asia/Ho_Chi_Minh',
+    });
+    const time = (value: string) =>
+      new Date(value).toLocaleTimeString('vi-VN', {
+        timeStyle: 'short',
+        timeZone: 'Asia/Ho_Chi_Minh',
+      });
+    return (
+      <section className="min-w-0 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link
+            className="app-back-link inline-flex min-h-10 items-center gap-2 text-sm font-medium"
+            to={staffOrdersPath}
+          >
+            <ArrowLeft size={17} aria-hidden="true" />
+            {staffOrdersPath.startsWith('/workflow-bookings')
+              ? 'Đơn chụp ảnh'
+              : 'Quay lại Dashboard'}
+          </Link>
+          <Button
+            variant="ghost"
+            disabled={busy}
+            onClick={() => load().catch((e) => setError(conceptError(e)))}
+          >
+            Tải lại hồ sơ
+          </Button>
+        </div>
+        {error && (
+          <p role="alert" className="rounded-xl border border-destructive/30 p-4 text-destructive">
+            {error}
+          </p>
+        )}
+        <PhotographerOrder
+          key={order._id}
+          service="concept"
+          title={order.snapshot.conceptName}
+          orderId={order._id}
+          subtitle={order.snapshot.name}
+          status={
+            duringShoot
+              ? 'Đang thực hiện'
+              : order.status === 'shot'
+                ? 'Đang bàn giao'
+                : conceptStatus[order.status]
+          }
+          step={albumAvailable ? 2 : order.status === 'confirmed' ? (duringShoot ? 1 : 0) : -1}
+          completed={order.status === 'completed'}
+          schedule={{
+            label: terminal
+              ? 'Lịch chụp đã hủy'
+              : order.status === 'awaiting_deposit'
+                ? 'Lịch chụp dự kiến'
+                : 'Lịch chụp đã chốt',
+            date,
+            hours: `${time(order.startAt)}–${time(order.endAt)}`,
+          }}
+          crew={crew}
+          task={
+            albumAvailable
+              ? {
+                  title: order.status === 'completed' ? 'Hồ sơ đã hoàn tất' : 'Bàn giao ảnh',
+                  openDelivery: true,
+                }
+              : order.status === 'confirmed'
+                ? {
+                    title: 'Thực hiện buổi chụp',
+                    action: (
+                      <Button
+                        disabled={busy || Date.parse(order.startAt) > now}
+                        onClick={() => void command('shot')}
+                      >
+                        Đánh dấu đã chụp
+                      </Button>
+                    ),
+                  }
+                : { title: terminal ? conceptStatus[order.status] : 'Theo dõi lịch chụp' }
+          }
+          events={events}
+          scheduleDetails={<div className="concept-workspace">{shootDetails}</div>}
+          delivery={
+            albumAvailable ? (
+              <div className="concept-workspace">
+                <ConceptAlbumPanel order={order} onOrderChange={() => void load()} />
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Chưa có thông tin bàn giao.</p>
+            )
+          }
+        />
+      </section>
+    );
+  }
+
   return (
     <div
       className={
@@ -444,53 +641,7 @@ export default function ConceptOrderPage() {
           <ConceptOrderProgress order={order} />
         </section>
       )}
-      <section className={customer ? 'customer-order-surface' : 'concept-card'}>
-        <h2 className={customer ? 'customer-section-title' : undefined}>Buổi chụp</h2>
-        {!customer && (
-          <p>
-            {order.contactName} · {order.phone} · {order.people} người
-          </p>
-        )}
-        <p className="whitespace-pre-wrap break-words">{order.brief || 'Chưa có yêu cầu riêng.'}</p>
-        {order.references.map((url) => (
-          <p key={url}>
-            <a href={url} target="_blank" rel="noreferrer">
-              Ảnh mẫu tham khảo
-            </a>
-          </p>
-        ))}
-        {!!order.wardrobeMeasurements?.length && (
-          <section aria-label="Số đo chuẩn bị trang phục">
-            <h3 className={customer ? 'font-semibold' : undefined}>Số đo chuẩn bị trang phục</h3>
-            <ul>
-              {order.wardrobeMeasurements.map((row, i) => (
-                <li key={i}>
-                  Người {i + 1} · Size {row.size} · {row.heightCm} cm · {row.weightKg} kg
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-        <ul>
-          {order.costumes.map((c) => (
-            <li key={`${c.costumeId}:${c.size}`}>
-              {c.name} · size {c.size} × {c.quantity}
-            </li>
-          ))}
-        </ul>
-        <p>
-          Trang phục:{' '}
-          {
-            (
-              {
-                pending: 'Chờ chuẩn bị',
-                prepared: 'Đã chuẩn bị',
-                returned: 'Đã thu hồi',
-              } as Record<string, string>
-            )[order.wardrobe]
-          }
-        </p>
-      </section>
+      {shootDetails}
       {(order.isOwner || order.canAccount) && (
         <section className={customer ? 'customer-order-surface' : undefined}>
           <h2 className={customer ? 'customer-section-title' : undefined}>Thanh toán</h2>

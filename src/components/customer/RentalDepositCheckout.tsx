@@ -7,12 +7,14 @@ import { rentalDraftFromOrder, writeRentalDraft } from '../../services/rentalDra
 
 export function RentalDepositCheckout({
   order,
+  balance = false,
   returnTo,
   error,
   loading,
   onReload,
 }: {
   order: RentalOrder;
+  balance?: boolean;
   returnTo: string;
   error: string;
   loading: boolean;
@@ -25,10 +27,16 @@ export function RentalDepositCheckout({
   const lines = quote?.lines || order.requestedLines;
   const fee = quote?.fee ?? 0;
   const deposit = quote?.deposit ?? order.depositPayment?.depositRequired ?? 0;
-  const paid = ['confirmed', 'checked_out', 'returned', 'completed'].includes(order.status);
+  const payment = balance ? order.balancePayment : order.depositPayment;
+  const paid = balance
+    ? payment?.status === 'paid'
+    : ['confirmed', 'checked_out', 'returned', 'completed'].includes(order.status);
+  const profileTo = `/account/rentals/${order._id}`;
+  const profileState = { ordersReturnTo: returnTo };
   return (
     <DepositCheckout
       service="rental"
+      purpose={balance ? 'balance' : undefined}
       orderId={order._id}
       title={lines.map((line) => line.name).join(', ')}
       description={
@@ -49,19 +57,31 @@ export function RentalDepositCheckout({
           ? `Cọc trước ${quote?.depositPercent ?? 30}% · Được trừ vào tiền thuê`
           : 'Cọc bảo đảm theo thỏa thuận đã lưu'
       }
-      remaining={advance ? Math.max(0, fee - deposit) : fee}
+      remaining={
+        balance
+          ? paid
+            ? 0
+            : (payment?.amount ?? order.payment?.due ?? fee)
+          : advance
+            ? Math.max(0, fee - deposit)
+            : fee
+      }
       remainingNote="Thanh toán trước khi nhận trang phục."
       confirmation={
-        paid
-          ? 'Trang phục đã được giữ theo kỳ thuê của bạn.'
-          : 'Trang phục được giữ ngay khi hệ thống nhận đủ cọc trong hạn.'
+        balance
+          ? paid
+            ? 'Đơn đã thanh toán đủ. Bạn có thể nhận trang phục theo lịch đã chốt.'
+            : 'SePay sẽ tự cập nhật đơn sau khi nhận được tiền.'
+          : paid
+            ? 'Trang phục đã được giữ theo kỳ thuê của bạn.'
+            : 'Trang phục được giữ ngay khi hệ thống nhận đủ cọc trong hạn.'
       }
-      payment={order.depositPayment}
-      deadline={order.reservation?.expiresAt}
+      payment={payment}
+      deadline={balance ? undefined : order.reservation?.expiresAt}
       state={
         ['cancelled', 'rejected'].includes(order.status)
           ? 'cancelled'
-          : order.status === 'payment_review'
+          : order.status === 'payment_review' || (balance && order.balancePayment?.requiresReview)
             ? 'review'
             : paid
               ? 'paid'
@@ -69,14 +89,15 @@ export function RentalDepositCheckout({
                 ? 'expired'
                 : undefined
       }
-      backTo={returnTo}
-      backLabel="Đơn của tôi"
-      profileTo={`/account/rentals/${order._id}`}
+      backTo={balance ? profileTo : returnTo}
+      backLabel={balance ? 'Quay lại chi tiết đơn thuê' : 'Đơn của tôi'}
+      backState={balance ? profileState : undefined}
+      profileTo={profileTo}
       profileLabel="Xem hồ sơ đơn thuê"
-      profileState={{ ordersReturnTo: returnTo }}
+      profileState={profileState}
       restartTo="/costumes"
       onRestart={
-        user
+        user && !balance
           ? () => {
               const rentalDraft = rentalDraftFromOrder(order, user._id);
               writeRentalDraft(rentalDraft);

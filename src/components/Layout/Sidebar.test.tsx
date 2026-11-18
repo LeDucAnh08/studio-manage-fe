@@ -43,6 +43,35 @@ describe('Sidebar navigation', () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
+  it.each([0, 1])('shows user management once inside Customers for admin role %s', (role) => {
+    mocks.roles = [role];
+    render(
+      <MemoryRouter initialEntries={['/customers/users']}>
+        <Sidebar isOpen onClose={vi.fn()} />
+      </MemoryRouter>,
+    );
+    const customers = screen.getByRole('button', { name: 'Khách hàng' });
+    expect(screen.queryByRole('combobox', { name: 'Mùa chụp' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Đặc biệt' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Quản trị', { exact: true })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Quản lý' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cài đặt' })).not.toBeInTheDocument();
+    expect(customers).toHaveAttribute('aria-expanded', 'true');
+    const users = screen.getAllByRole('link', { name: 'Người dùng' });
+    expect(users).toHaveLength(1);
+    expect(users[0]).toHaveAttribute('href', '/customers/users');
+    expect(users[0]).toHaveAttribute('aria-current', 'page');
+  });
+  it.each([2, 3, 4, 5, 6])('does not offer user management for role %s', (role) => {
+    mocks.roles = [role];
+    render(
+      <MemoryRouter initialEntries={['/customers']}>
+        <Sidebar isOpen onClose={vi.fn()} />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('link', { name: 'Người dùng' })).not.toBeInTheDocument();
+  });
+
   it('logs the admin out and opens the shared customer login', () => {
     const onClose = vi.fn();
     render(
@@ -103,6 +132,27 @@ describe('Sidebar navigation', () => {
     expect(screen.getByRole('link', { name: 'Đơn chụp ảnh' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Portfolio của tôi' })).not.toBeInTheDocument();
   });
+  it.each([0, 1])('opens wardrobe management as its own group for admin role %s', (role) => {
+    mocks.roles = [role];
+    render(
+      <MemoryRouter initialEntries={['/settings/costumes/types']}>
+        <Sidebar isOpen onClose={vi.fn()} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('button', { name: 'Quản lý trang phục' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(screen.getByRole('link', { name: 'Kho trang phục' })).toHaveAttribute(
+      'href',
+      '/settings/costumes',
+    );
+    expect(screen.getByRole('link', { name: 'Loại trang phục' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(screen.queryByRole('button', { name: 'Cài đặt' })).not.toBeInTheDocument();
+  });
   it('keeps photography orders active when the photographer opens a concept record', () => {
     mocks.roles = [3];
     render(
@@ -118,6 +168,7 @@ describe('Sidebar navigation', () => {
       'href',
       '/workflow-bookings',
     );
+    expect(screen.queryByRole('button', { name: 'Quản lý trang phục' })).not.toBeInTheDocument();
   });
   it.each([{ roles: [0] }, { roles: [3] }, { roles: [5] }])(
     'shows one photography workspace for roles $roles',
@@ -173,7 +224,7 @@ describe('Sidebar navigation', () => {
     fireEvent.click(trigger);
     const drawer = await screen.findByRole('dialog', { name: 'Điều hướng nội bộ' });
     await waitFor(() => expect(screen.getByRole('button', { name: 'Đóng menu' })).toHaveFocus());
-    expect(screen.getByRole('combobox', { name: 'Mùa chụp' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Mùa chụp' })).not.toBeInTheDocument();
     fireEvent.keyDown(drawer, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     await waitFor(() => expect(trigger).toHaveFocus());
@@ -181,8 +232,9 @@ describe('Sidebar navigation', () => {
   });
 
   it('keeps only one group open and exposes the controlled panel to assistive technology', () => {
+    mocks.roles = [2, 5];
     render(
-      <MemoryRouter initialEntries={['/customers/size']}>
+      <MemoryRouter initialEntries={['/customers']}>
         <Sidebar isOpen onClose={vi.fn()} />
       </MemoryRouter>,
     );
@@ -194,7 +246,8 @@ describe('Sidebar navigation', () => {
     expect(customers).toHaveAttribute('aria-expanded', 'true');
     expect(customersPanel).not.toBeNull();
     expect(customersPanel).not.toHaveAttribute('hidden');
-    expect(screen.getByRole('link', { name: 'Thông tin học sinh' })).toHaveAttribute(
+    expect(screen.queryByRole('link', { name: 'Thông tin học sinh' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Danh sách lớp học' })).toHaveAttribute(
       'aria-current',
       'page',
     );
@@ -210,8 +263,9 @@ describe('Sidebar navigation', () => {
   });
 
   it('opens the group for the current route and scrolls its active link into view', () => {
+    mocks.roles = [2, 5];
     render(
-      <MemoryRouter initialEntries={['/customers/size']}>
+      <MemoryRouter initialEntries={['/customers']}>
         <Sidebar isOpen onClose={vi.fn()} />
       </MemoryRouter>,
     );

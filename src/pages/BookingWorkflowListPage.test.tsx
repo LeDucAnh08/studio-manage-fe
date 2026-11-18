@@ -77,7 +77,7 @@ describe('unified photography workspace', () => {
       ],
     });
   });
-  it('shows new requests, progress and admin notifications in one workspace', async () => {
+  it('shows new requests and progress without the admin notification section', async () => {
     vi.mocked(shootOrdersService.list).mockResolvedValue(
       response([
         booking,
@@ -95,10 +95,7 @@ describe('unified photography workspace', () => {
     await screen.findByRole('link', { name: '12A1' });
     expect(screen.getAllByText('Chờ duyệt')).toHaveLength(2);
     expect(screen.getAllByText('Đã chốt lịch')).toHaveLength(2);
-    expect(screen.getByRole('link', { name: 'Thông báo yêu cầu' })).toHaveAttribute(
-      'href',
-      '/workflow-bookings/notice',
-    );
+    expect(screen.queryByRole('link', { name: 'Thông báo yêu cầu' })).not.toBeInTheDocument();
     expect(screen.queryByText('Quản lý lịch bận của thợ')).not.toBeInTheDocument();
   });
   it('combines both services and preserves service/status context when opening concept records', async () => {

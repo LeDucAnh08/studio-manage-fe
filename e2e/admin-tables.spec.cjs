@@ -162,7 +162,7 @@ test('all staff lists use the same scrollable tables on desktop and mobile', asy
     ['/customers', 'Danh sách lớp học'],
     ['/schedules', 'Danh sách lịch chụp'],
     ['/manage/finance', 'Danh sách giao dịch'],
-    ['/manage/users', null],
+    ['/customers/users', null],
     ['/manage/feedback', 'Phản hồi khách hàng'],
     ['/settings/categories', 'Danh mục thu chi'],
     ['/settings/costumes', 'Kho trang phục và phụ kiện'],

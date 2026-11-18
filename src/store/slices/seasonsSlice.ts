@@ -16,7 +16,10 @@ const initialState: SeasonsState = {
   error: null,
 };
 
-export const fetchSeasons = createAsyncThunk('seasons/fetchAll', () => seasonService.getAll());
+export const fetchSeasons = createAsyncThunk(
+  'seasons/fetchAll',
+  (_options?: { selectCurrent: boolean }) => seasonService.getAll(),
+);
 
 const seasonsSlice = createSlice({
   name: 'seasons',
@@ -28,15 +31,16 @@ const seasonsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchSeasons.pending, (state) => {
+      .addCase(fetchSeasons.pending, (state, action) => {
         state.loading = true;
         state.error = null;
+        if (action.meta.arg?.selectCurrent === false) state.selectedSeasonId = '';
       })
       .addCase(fetchSeasons.fulfilled, (state, action) => {
         state.loading = false;
         state.list = action.payload;
         // Tự động chọn mùa chứa ngày hôm nay nếu chưa chọn gì
-        if (!state.selectedSeasonId) {
+        if (action.meta.arg?.selectCurrent !== false && !state.selectedSeasonId) {
           const today = new Date();
           const current = action.payload.find(
             (s) => new Date(s.startDate) <= today && today <= new Date(s.endDate),

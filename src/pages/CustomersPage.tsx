@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { toast } from 'react-toastify';
 import { customerService } from '../services/customerService';
@@ -34,10 +34,33 @@ const CustomersPage = () => {
   const navigate = useNavigate();
   const { list: customers, total, loading, error } = useAppSelector((s) => s.customers);
   const { list: seasons, selectedSeasonId } = useAppSelector((s) => s.seasons);
-  const [search, setSearch] = useState('');
-  const [appliedSearch, setAppliedSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [params, setParams] = useSearchParams();
+  const appliedSearch = params.get('search') || '';
+  const [search, setSearch] = useState(appliedSearch);
+  useEffect(() => setSearch(appliedSearch), [appliedSearch]);
+  const requestedPage = Number(params.get('page') || 1);
+  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const requestedSize = Number(params.get('limit') || 20);
+  const pageSize = [10, 20, 50, 100].includes(requestedSize) ? requestedSize : 20;
+  const updateParam = (key: string, value: string) =>
+    setParams((previous) => {
+      const next = new URLSearchParams(previous);
+      if (value) next.set(key, value);
+      else next.delete(key);
+      return next;
+    });
+  const setPage = (value: number) => updateParam('page', String(value));
+  const setAppliedSearch = (value: string) =>
+    setParams((previous) => {
+      const next = new URLSearchParams(previous);
+      if (value) next.set('search', value);
+      else next.delete('search');
+      next.delete('page');
+      return next;
+    });
+  const detailState = {
+    classListReturnTo: '/customers' + (params.size ? '?' + params.toString() : ''),
+  };
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -49,16 +72,19 @@ const CustomersPage = () => {
     formState: { isSubmitting, errors },
   } = useForm<FormValues>();
 
-  const buildParams = (s: string, p: number, l: number): Record<string, string | number> => {
-    const params: Record<string, string | number> = { page: p, limit: l };
-    if (s) params.search = s;
-    if (selectedSeasonId) params.season = selectedSeasonId;
-    return params;
-  };
+  const buildParams = useCallback(
+    (s: string, p: number, l: number): Record<string, string | number> => {
+      const params: Record<string, string | number> = { page: p, limit: l };
+      if (s) params.search = s;
+      if (selectedSeasonId) params.season = selectedSeasonId;
+      return params;
+    },
+    [selectedSeasonId],
+  );
 
   useEffect(() => {
     dispatch(fetchCustomers(buildParams(appliedSearch, page, pageSize)));
-  }, [dispatch, appliedSearch, page, pageSize, selectedSeasonId]);
+  }, [dispatch, appliedSearch, page, pageSize, buildParams]);
 
   const openCreate = () => {
     setEditing(null);
@@ -112,7 +138,6 @@ const CustomersPage = () => {
   };
 
   const runSearch = () => {
-    setPage(1);
     setAppliedSearch(search);
   };
 
@@ -122,8 +147,12 @@ const CustomersPage = () => {
     total,
     onPageChange: setPage,
     onPageSizeChange: (size: number) => {
-      setPageSize(size);
-      setPage(1);
+      setParams((previous) => {
+        const next = new URLSearchParams(previous);
+        next.set('limit', String(size));
+        next.delete('page');
+        return next;
+      });
     },
   };
 
@@ -132,7 +161,7 @@ const CustomersPage = () => {
       <PageHeader
         as="h1"
         title="Danh sách lớp học"
-        description="Danh sách lớp học, trường và thông tin liên hệ."
+        description="Chọn lớp để xem thông tin học sinh đã điền khi đặt dịch vụ kỉ yếu."
         action={<Button onClick={openCreate}>+ Thêm lớp</Button>}
       />
 
@@ -146,7 +175,6 @@ const CustomersPage = () => {
           onClear={() => {
             setSearch('');
             setAppliedSearch('');
-            setPage(1);
           }}
         />
       </div>
@@ -176,7 +204,7 @@ const CustomersPage = () => {
               keyExtractor={(c) => c._id}
               emptyTitle={appliedSearch ? 'Không tìm thấy lớp' : 'Chưa có dữ liệu'}
               emptyDescription={appliedSearch ? 'Thử từ khóa khác hoặc xóa tìm kiếm.' : undefined}
-              onRowClick={(c) => navigate(`/customers/${c._id}`)}
+              onRowClick={(c) => navigate(`/customers/${c._id}`, { state: detailState })}
               pagination={{
                 serverSide: true,
                 ...pagination,
@@ -188,6 +216,7 @@ const CustomersPage = () => {
                   render: (c) => (
                     <Link
                       to={`/customers/${c._id}`}
+                      state={detailState}
                       className="font-medium text-primary hover:underline"
                     >
                       {c.className}
@@ -245,6 +274,14 @@ const CustomersPage = () => {
                   className: 'whitespace-nowrap',
                   render: (c) => (
                     <span className="staff-row-actions">
+                      <Link
+                        to={`/customers/${c._id}`}
+                        state={detailState}
+                        className="staff-row-action font-medium text-primary hover:underline"
+                        aria-label={`Chi tiết lớp ${classDescription(c)}`}
+                      >
+                        Chi tiết
+                      </Link>
                       <Button
                         variant="link"
                         size="sm"

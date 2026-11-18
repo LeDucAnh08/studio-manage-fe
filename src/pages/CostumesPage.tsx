@@ -32,9 +32,7 @@ interface CostumeFormValues {
   type?: string;
   itemKind: 'clothing' | 'accessory';
   isRentalItem: boolean;
-  rentalPrice: number;
   rentalDailyPrice: number | null;
-  rentalSecurityDeposit: number | null;
   inventory: CostumeInventory[];
 }
 
@@ -75,13 +73,14 @@ const GENDER_LABEL: Record<Costume['gender'], string> = {
 };
 
 const NO_TYPE = '__none__';
+const ALL_TYPES = '__all__';
 
 const getTypeId = (type: CostumeType | undefined): string => type?._id ?? '';
-const getTypeName = (type: CostumeType | undefined): string => type?.name ?? '—';
 
 const CostumesPage = () => {
   const [costumes, setCostumes] = useState<CostumeResponse[]>([]);
   const [costumeTypes, setCostumeTypes] = useState<CostumeType[]>([]);
+  const [category, setCategory] = useState(ALL_TYPES);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -99,6 +98,10 @@ const CostumesPage = () => {
   } = useForm<CostumeFormValues>({ mode: 'onBlur' });
   const { fields: inventoryFields, append, remove } = useFieldArray({ control, name: 'inventory' });
   const isRentalEnabled = watch('isRentalItem');
+  const visibleCostumes =
+    category !== ALL_TYPES
+      ? costumes.filter((costume) => (getTypeId(costume.type) || NO_TYPE) === category)
+      : costumes;
 
   const load = async () => {
     setLoading(true);
@@ -115,7 +118,10 @@ const CostumesPage = () => {
 
   useEffect(() => {
     load();
-    costumeTypeService.getAll().then(setCostumeTypes);
+    costumeTypeService
+      .getAll()
+      .then(setCostumeTypes)
+      .catch(() => toast.error('Không tải được danh mục trang phục.'));
   }, []);
 
   const openCreate = () => {
@@ -128,9 +134,7 @@ const CostumesPage = () => {
       type: '',
       itemKind: 'clothing',
       isRentalItem: false,
-      rentalPrice: 0,
       rentalDailyPrice: null,
-      rentalSecurityDeposit: null,
       inventory: [],
     });
     setModalOpen(true);
@@ -146,9 +150,7 @@ const CostumesPage = () => {
       type: getTypeId(costume.type),
       itemKind: costume.itemKind ?? 'clothing',
       isRentalItem: costume.isRentalItem ?? false,
-      rentalPrice: costume.rentalPrice ?? 0,
       rentalDailyPrice: costume.rentalDailyPrice ?? null,
-      rentalSecurityDeposit: costume.rentalSecurityDeposit ?? null,
       inventory: costume.inventory ?? [],
     });
     setModalOpen(true);
@@ -158,8 +160,6 @@ const CostumesPage = () => {
     setSubmitError('');
     const payload = {
       ...data,
-      rentalPrice:
-        Number.isSafeInteger(data.rentalPrice) && data.rentalPrice >= 0 ? data.rentalPrice : 0,
       rentalDailyPrice:
         data.rentalDailyPrice === undefined
           ? (editing?.rentalDailyPrice ?? null)
@@ -214,12 +214,20 @@ const CostumesPage = () => {
           <p className="font-semibold leading-tight">{c.name}</p>
           <div className="flex flex-wrap gap-1.5">
             <Badge variant="outline">{ITEM_KIND_LABEL[c.itemKind ?? 'clothing']}</Badge>
-            {c.type && <Badge variant="outline">{getTypeName(c.type)}</Badge>}
             <span className="text-xs text-muted-foreground">{GENDER_LABEL[c.gender] ?? '—'}</span>
           </div>
-          {c.description && <p className="text-sm text-muted-foreground">{c.description}</p>}
         </div>
       ),
+    },
+    {
+      key: 'category',
+      header: 'Danh mục',
+      render: (c) =>
+        c.type?.name ? (
+          <Badge variant="outline">{c.type.name}</Badge>
+        ) : (
+          <span className="text-muted-foreground">Chưa phân loại</span>
+        ),
     },
     {
       key: 'rental',
@@ -317,14 +325,35 @@ const CostumesPage = () => {
         </div>
       )}
 
+      <div className="mb-4 w-full sm:max-w-xs">
+        <FormField label="Danh mục trang phục" htmlFor="costume-category-filter">
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger id="costume-category-filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_TYPES}>Tất cả danh mục</SelectItem>
+              {costumeTypes.map((type) => (
+                <SelectItem key={type._id} value={type._id}>
+                  {type.name}
+                </SelectItem>
+              ))}
+              <SelectItem value={NO_TYPE}>Chưa phân loại</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
+      </div>
+
       <div className="min-w-0">
         <DataTable<CostumeResponse>
           aria-label="Kho trang phục và phụ kiện"
           className="staff-inventory-table"
           loading={loading}
-          data={costumes}
+          data={visibleCostumes}
           keyExtractor={(c) => c._id}
-          emptyTitle="Chưa có mặt hàng nào"
+          emptyTitle={
+            category === ALL_TYPES ? 'Chưa có mặt hàng nào' : 'Danh mục này chưa có mặt hàng'
+          }
           columns={columns}
           dense
           textSize="sm"
@@ -477,27 +506,6 @@ const CostumesPage = () => {
               )}
             />
             <FormField
-              label="Giá thuê kỳ cũ (đồng)"
-              htmlFor="rentalPrice"
-              hint="Giữ giá kỳ cũ cho dữ liệu cũ; không dùng làm giá/ngày."
-              error={errors.rentalPrice?.message}
-            >
-              <Input
-                id="rentalPrice"
-                type="number"
-                min="0"
-                step="1"
-                disabled={!isRentalEnabled}
-                {...register('rentalPrice', {
-                  valueAsNumber: true,
-                  validate: (value) =>
-                    !isRentalEnabled ||
-                    (Number.isSafeInteger(value) && value >= 0) ||
-                    'Nhập giá thuê là số nguyên không âm.',
-                })}
-              />
-            </FormField>
-            <FormField
               label="Giá thuê/ngày (đồng)"
               htmlFor="rentalDailyPrice"
               hint="Áp dụng cho đơn mới. Để trống sẽ không cho đặt thuê tự động."
@@ -516,28 +524,6 @@ const CostumesPage = () => {
                     value === null ||
                     (Number.isSafeInteger(value) && value > 0) ||
                     'Nhập giá/ngày là số nguyên dương hoặc để trống.',
-                })}
-              />
-            </FormField>
-            <FormField
-              label="Cọc bảo đảm/món cho hồ sơ cũ (đồng)"
-              htmlFor="rentalSecurityDeposit"
-              hint="Đơn đặt mới dùng cọc trước 30% tổng tiền thuê, được trừ vào tiền thuê. Trường này chỉ lưu cấu hình cọc bảo đảm cũ."
-              error={errors.rentalSecurityDeposit?.message}
-            >
-              <Input
-                id="rentalSecurityDeposit"
-                type="number"
-                min="0"
-                step="1"
-                disabled={!isRentalEnabled}
-                {...register('rentalSecurityDeposit', {
-                  setValueAs: (value) => (value === '' || value === null ? null : Number(value)),
-                  validate: (value) =>
-                    !isRentalEnabled ||
-                    value === null ||
-                    (Number.isSafeInteger(value) && value >= 0) ||
-                    'Nhập số nguyên không âm hoặc để trống.',
                 })}
               />
             </FormField>

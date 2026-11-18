@@ -63,7 +63,7 @@ export default function CustomerHeader({ source = 'portfolio' }: { source?: stri
       {item.label}
     </Link>
   ));
-  const booking = !client && clientPortalEnabled && (
+  const booking = isAuthenticated && !client && clientPortalEnabled && (
     <CustomerButton asChild>
       <Link to={`/booking/start?source=${encodeURIComponent(source)}`}>Đặt lịch</Link>
     </CustomerButton>

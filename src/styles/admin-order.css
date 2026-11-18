@@ -1,0 +1,477 @@
+.admin-order {
+  --order-accent: var(--staff-link, hsl(var(--primary)));
+  --order-tint: var(--staff-selection, hsl(var(--muted)));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+  min-width: 0;
+}
+
+.admin-order__header h1 {
+  margin: 4px 0 8px;
+  font-size: clamp(1.6rem, 3vw, 2rem);
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.admin-order__kicker {
+  color: var(--order-accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-order__meta,
+.admin-order__heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+}
+
+.admin-order__meta {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.94rem;
+}
+
+.admin-order__status {
+  padding: 4px 9px;
+  border: 1px solid;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.admin-order__progress {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.admin-order__progress li {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 7px;
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.84rem;
+}
+
+.admin-order__progress li:not(:last-child)::after {
+  position: absolute;
+  top: 12px;
+  left: calc(50% + 18px);
+  width: calc(100% - 36px);
+  height: 1px;
+  background: hsl(var(--border));
+  content: '';
+}
+
+.admin-order__progress li[data-step='done']::after {
+  background: var(--order-accent);
+}
+
+.admin-order__marker {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border: 2px solid hsl(var(--muted-foreground));
+  border-radius: 50%;
+}
+
+[data-step='done'] > .admin-order__marker {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.admin-order__progress li[data-step='current'] {
+  color: var(--order-accent);
+  font-weight: 700;
+}
+
+[data-step='current'] > .admin-order__marker {
+  border-color: var(--order-accent);
+  box-shadow: inset 0 0 0 3px hsl(var(--background));
+  background: var(--order-accent);
+}
+
+.admin-order__tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.admin-order__tabs button {
+  padding: 12px 18px;
+  min-height: 44px;
+  flex-shrink: 0;
+  border-bottom: 3px solid transparent;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.admin-order__tabs button[data-state='active'],
+.admin-order__tabs button:hover {
+  color: var(--order-accent);
+}
+
+.admin-order__tabs button[data-state='active'] {
+  border-color: currentColor;
+}
+
+.admin-order button:focus-visible,
+.admin-order [role='tabpanel']:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: -2px;
+}
+
+.admin-order__panel {
+  margin-top: 22px;
+  min-width: 0;
+}
+
+.admin-order__panel[data-state='inactive'] {
+  display: none;
+}
+
+.admin-order__overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.admin-order__card {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  background: hsl(var(--card));
+  overflow-wrap: anywhere;
+}
+
+.admin-order__card h2 {
+  margin: 0;
+  font-size: 1.16rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.admin-order__heading {
+  justify-content: space-between;
+}
+
+.admin-order__text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  color: var(--order-accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.admin-order__schedule {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  padding: 18px 0 22px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.admin-order__schedule > div,
+.admin-order__facts dt,
+.admin-order__task h2,
+.admin-order__recent h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-order__card svg {
+  flex-shrink: 0;
+  color: var(--order-accent);
+}
+
+.admin-order__schedule svg {
+  box-sizing: content-box;
+  width: 22px;
+  height: 22px;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--order-tint);
+}
+
+.admin-order__card small,
+.admin-order__schedule strong {
+  display: block;
+}
+
+.admin-order__card small,
+.admin-order__card dt,
+.admin-order__recent time,
+.admin-order__task p,
+.admin-order__note {
+  color: hsl(var(--muted-foreground));
+}
+
+.admin-order__facts {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 0;
+  font-size: 0.9rem;
+}
+
+.admin-order__facts > div,
+.admin-order__amounts > div {
+  display: grid;
+  grid-template-columns: minmax(115px, 0.6fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.admin-order__facts dd,
+.admin-order__amounts dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.admin-order__class {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.admin-order__note {
+  margin-top: 16px;
+  white-space: pre-wrap;
+  font-size: 0.875rem;
+}
+
+.admin-order__side {
+  padding: 0;
+}
+
+.admin-order__task {
+  display: grid;
+  gap: 10px;
+  padding: 20px 22px;
+  background: color-mix(in srgb, var(--order-tint), hsl(var(--card)) 30%);
+  border: 1px solid color-mix(in srgb, var(--order-accent), transparent 65%);
+  border-radius: 11px;
+}
+
+.admin-order__task p {
+  font-size: 0.9rem;
+}
+
+.admin-order__task button {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 5px;
+  white-space: normal;
+}
+
+.admin-order__task button svg {
+  color: currentColor;
+}
+
+.admin-order__meter-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-order__task progress {
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 6px;
+  background: hsl(var(--muted-foreground) / 24%);
+}
+
+.admin-order__task progress::-webkit-progress-bar {
+  background: transparent;
+}
+
+.admin-order__task progress::-webkit-progress-value {
+  border-radius: inherit;
+  background: var(--order-accent);
+}
+
+.admin-order__task progress::-moz-progress-bar {
+  border-radius: inherit;
+  background: var(--order-accent);
+}
+
+.admin-order__amounts,
+.admin-order__recent {
+  margin: 0 22px;
+  padding: 16px 0;
+  font-size: 0.875rem;
+}
+
+.admin-order__amounts > div {
+  grid-template-columns: 1fr auto;
+  padding: 5px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-order__amounts > div:last-child dd {
+  color: var(--order-accent);
+}
+
+.admin-order__recent {
+  border-top: 1px solid hsl(var(--border));
+}
+
+.admin-order__recent ol,
+.admin-order__recent > p {
+  margin-top: 12px;
+}
+
+.admin-order__recent li {
+  margin-top: 10px;
+  padding-left: 11px;
+  border-left: 2px solid var(--order-accent);
+}
+
+.admin-order__recent time {
+  font-size: 0.8rem;
+}
+
+.admin-rental__contact {
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+.admin-order__schedule.admin-rental__schedule {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding-block: 24px;
+}
+
+.admin-rental__schedule > div:last-child {
+  justify-self: end;
+}
+
+.admin-rental__days {
+  border-radius: 999px;
+  background: hsl(var(--muted));
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.admin-rental__items-heading {
+  margin-block: 16px 12px;
+}
+
+.admin-rental__table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+}
+
+.admin-rental__table {
+  width: 100%;
+  min-width: 460px;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.admin-rental__table th,
+.admin-rental__table td {
+  padding: 12px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.admin-rental__table thead {
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted) / 64%);
+}
+
+.admin-rental__table th {
+  font-weight: 600;
+}
+
+.admin-rental__table td:last-child,
+.admin-rental__table thead th:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.admin-rental__table tfoot > tr > * {
+  border-bottom: 0;
+}
+
+@media (max-width: 560px) {
+  .admin-order__schedule.admin-rental__schedule {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-rental__days {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .admin-rental__schedule > div:last-child {
+    justify-self: start;
+  }
+}
+
+@media (min-width: 1051px) {
+  .admin-yearbook .admin-order__overview {
+    min-height: 35rem;
+  }
+
+  .admin-order__facts,
+  .admin-order__task p,
+  .admin-order__amounts,
+  .admin-order__recent {
+    font-size: 0.94rem;
+  }
+}
+
+@media (max-width: 1050px) {
+  .admin-order__overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-order {
+    gap: 16px;
+  }
+
+  .admin-order__tabs button {
+    padding-inline: 13px;
+  }
+
+  .admin-order__card:not(.admin-order__side),
+  .admin-order__task {
+    padding: 16px;
+  }
+
+  .admin-order__schedule {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-order__progress li {
+    font-size: 0.73rem;
+  }
+}

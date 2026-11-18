@@ -22,7 +22,6 @@ import { ScheduleCalendar } from '@/components/organisms';
 import { useAppDispatch, useAppSelector } from '../store';
 import { fetchDashboardStats } from '../store/slices/dashboardSlice';
 import { fetchUsers } from '../store/slices/usersSlice';
-import { setSelectedSeason } from '../store/slices/seasonsSlice';
 import type { UpcomingSchedule } from '../services/dashboardService';
 import { formatCurrency } from '../utils/format';
 import { SCHEDULE_STATUS_COLOR, SCHEDULE_STATUS_LABEL } from '../utils/scheduleConstants';
@@ -43,17 +42,13 @@ export default function AdminDashboardPage() {
   const dispatch = useAppDispatch();
   const { stats, error, loading } = useAppSelector((state) => state.dashboard);
   const people = useAppSelector((state) => state.users.list);
-  const { list: seasons, selectedSeasonId } = useAppSelector((state) => state.seasons);
   const [person, setPerson] = useState('');
   const [chartView, setChartView] = useState<'day' | 'month'>('month');
   const [scheduleView, setScheduleView] = useState<'table' | 'calendar'>('table');
   const [now] = useState(() => new Date());
   const refresh = useCallback(
-    () =>
-      dispatch(
-        fetchDashboardStats({ userId: person || undefined, season: selectedSeasonId || undefined }),
-      ),
-    [dispatch, person, selectedSeasonId],
+    () => dispatch(fetchDashboardStats({ userId: person || undefined })),
+    [dispatch, person],
   );
   useEffect(() => {
     void refresh();
@@ -168,16 +163,6 @@ export default function AdminDashboardPage() {
         </div>
       )}
       <div className="admin-dashboard__filters">
-        <label htmlFor="admin-dashboard-season">Mùa chụp:</label>
-        <Combobox
-          id="admin-dashboard-season"
-          options={[
-            { value: '', label: '12 tháng gần đây' },
-            ...seasons.map((season) => ({ value: season._id, label: season.name })),
-          ]}
-          value={selectedSeasonId}
-          onChange={(value) => dispatch(setSelectedSeason(value))}
-        />
         <label htmlFor="admin-dashboard-person">Nhân sự:</label>
         <Combobox
           id="admin-dashboard-person"
@@ -210,7 +195,7 @@ export default function AdminDashboardPage() {
           <strong>{number(stats.scheduleCount)}</strong>
           <small>Xem chi tiết →</small>
         </Link>
-        <Link to="/manage/users" className="admin-dashboard__metric">
+        <Link to="/customers/users" className="admin-dashboard__metric">
           <span>Tổng tài khoản</span>
           <strong>{users ? number(users.total) : '—'}</strong>
           <small>Toàn hệ thống · hiện có</small>

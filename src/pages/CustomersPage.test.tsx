@@ -1,7 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import customersReducer from '../store/slices/customersSlice';
 import CustomersPage from './CustomersPage';
@@ -28,7 +28,11 @@ const customer: Customer = {
   notes: 'Liên hệ trước khi tới',
   season: 'season-1',
 };
-function renderPage() {
+function LocationProbe() {
+  const location = useLocation();
+  return <output data-testid="class-location">{JSON.stringify(location)}</output>;
+}
+function renderPage(path = '/customers') {
   const store = configureStore({
     reducer: {
       customers: customersReducer,
@@ -42,7 +46,8 @@ function renderPage() {
   });
   return render(
     <Provider store={store}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[path]}>
+        <LocationProbe />
         <CustomersPage />
       </MemoryRouter>
     </Provider>,
@@ -56,6 +61,26 @@ beforeEach(() => {
 });
 
 describe('Class list pilot', () => {
+  it('restores list filters and passes them to the class detail Back link', async () => {
+    renderPage('/customers?search=12A&page=2&limit=20');
+    const detail = await screen.findByRole('link', {
+      name: 'Chi tiết lớp 12A1, Trường THPT có tên dài',
+    });
+    expect(mocks.getAll).toHaveBeenLastCalledWith({
+      page: 2,
+      limit: 20,
+      season: 'season-1',
+      search: '12A',
+    });
+    expect(screen.getByRole('textbox', { name: 'Tìm kiếm lớp hoặc trường' })).toHaveValue('12A');
+    fireEvent.click(detail);
+    expect(screen.getByTestId('class-location')).toHaveTextContent(
+      '"pathname":"/customers/class-1"',
+    );
+    expect(screen.getByTestId('class-location')).toHaveTextContent(
+      '"classListReturnTo":"/customers?search=12A&page=2&limit=20"',
+    );
+  });
   it('searches on Enter, clears search and retains server pagination and season', async () => {
     renderPage();
     await screen.findByRole('table', { name: 'Danh sách lớp học' });

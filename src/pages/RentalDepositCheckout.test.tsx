@@ -182,4 +182,39 @@ describe('direct rental deposit checkout', () => {
     expect(screen.getByRole('region', { name: 'Tiến độ đơn' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Thanh toán tiền cọc' })).not.toBeInTheDocument();
   });
+  it('opens the balance QR from the profile and updates both surfaces after the receipt', async () => {
+    const order = fixture();
+    const depositPayment = { ...order.depositPayment!, status: 'paid' as const, amount: 0 };
+    const balancePayment = {
+      ...order.depositPayment!,
+      reference: 'RENB0123456789ABCDEF',
+      amount: 483000,
+      expiresAt: '2026-11-12T07:10:00Z',
+    };
+    const confirmed = {
+      ...order,
+      status: 'confirmed',
+      depositPayment,
+      balancePayment,
+      payment: { payable: 690000, netReceived: 207000, due: 483000, refundDue: 0 },
+    };
+    await open(confirmed, '');
+    fireEvent.click(screen.getByRole('link', { name: 'Thanh toán phần còn lại' }));
+    expect(screen.getByRole('img', { name: 'Mã QR thanh toán phần còn lại' })).toBeInTheDocument();
+    expect(screen.getByRole('timer')).toHaveTextContent('10:00');
+    vi.mocked(rentalService.get).mockResolvedValue({
+      ...confirmed,
+      version: 2,
+      balancePayment: { ...balancePayment, status: 'paid', amount: 0, qrUrl: null },
+      payment: { ...confirmed.payment, netReceived: 690000, due: 0 },
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+    expect(screen.getByRole('heading', { name: 'Đã thanh toán đủ' })).toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('link', { name: 'Quay lại chi tiết đơn thuê' }));
+    expect(screen.getByText('Đã thanh toán đủ')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Thanh toán phần còn lại' })).not.toBeInTheDocument();
+  });
 });

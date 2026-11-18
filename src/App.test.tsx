@@ -89,15 +89,18 @@ describe('Public discovery and customer workspace', () => {
     mocks.flags.concept = false;
     window.scrollTo = vi.fn();
   });
-  it('shows only portfolio entry controls without guest navigation and gates booking with its source', () => {
+  it('shows only the portfolio and login entry without guest navigation or booking', () => {
     open('/');
     const header = within(screen.getByRole('banner'));
     expect(header.queryByRole('navigation')).not.toBeInTheDocument();
     expect(header.queryByRole('button', { name: 'Mở menu điều hướng' })).not.toBeInTheDocument();
     expect(header.getByRole('link', { name: 'Đăng nhập' })).toHaveAttribute('href', '/login');
     expect(header.getByRole('link', { name: /Yume Studio/ })).toHaveAttribute('href', '/portfolio');
-    fireEvent.click(header.getByRole('link', { name: 'Đặt lịch' }));
-    expect(screen.getByTestId('return-to')).toHaveTextContent('/booking/start?source=portfolio');
+    expect(header.queryByRole('link', { name: 'Đặt lịch' })).not.toBeInTheDocument();
+    expect(header.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
+      '/portfolio',
+      '/login',
+    ]);
   });
   it.each([
     '/services',

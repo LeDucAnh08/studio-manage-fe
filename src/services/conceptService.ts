@@ -146,7 +146,9 @@ export interface ConceptOrder {
   brief: string;
   references: string[];
   photographer: string;
+  photographerName?: string;
   editor?: string;
+  editorName?: string;
   wardrobe: string;
   costumes: CostumeChoice[];
   wardrobeMeasurements?: WardrobeMeasurement[];

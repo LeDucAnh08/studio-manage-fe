@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   action: vi.fn(),
   costumes: vi.fn(),
+  costumeTypes: vi.fn(),
   updateCostume: vi.fn(),
   auth: { user: { _id: 'customer-1', roles: [6] } as { _id: string; roles: number[] } | null },
 }));
@@ -32,7 +33,7 @@ vi.mock('../services/costumeService', () => ({
   },
 }));
 vi.mock('../services/costumeTypeService', () => ({
-  costumeTypeService: { getAll: async () => [] },
+  costumeTypeService: { getAll: mocks.costumeTypes },
 }));
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock('../services/bookingWorkflowService', () => ({
@@ -601,6 +602,60 @@ describe('date-first daily rental form', () => {
 });
 
 describe('automatic paid rental terms', () => {
+  it('prioritizes recording a refund after admin cancels an order that cannot be delivered', async () => {
+    mocks.auth.user = { _id: 'admin-1', roles: [1] };
+    const order = orderFixture();
+    order.autoCheckout = true;
+    order.status = 'cancelled';
+    order.quote!.acceptedAt = receive;
+    order.reservationIssue = 'Trang phục không còn khả dụng';
+    order.payment = { netReceived: 90000, payable: 0, due: 0, refundDue: 90000 };
+    mocks.action.mockResolvedValue(order);
+    renderDetail(order);
+    const overview = await screen.findByRole('tabpanel', { name: 'Tổng quan' });
+    expect(overview).toHaveTextContent('Cần hoàn 90.000 đ');
+    fireEvent.click(screen.getByRole('button', { name: 'Xem thanh toán' }));
+    expect(screen.queryByRole('combobox', { name: 'Loại giao dịch thuê' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Số tiền thuê (đ)'), { target: { value: '90000' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ghi nhận hoàn tiền' }));
+    await waitFor(() =>
+      expect(mocks.action).toHaveBeenCalledWith(
+        'rental-1',
+        2,
+        'payment.record',
+        expect.objectContaining({ kind: 'refund', amount: 90000 }),
+        'request-1',
+      ),
+    );
+  });
+
+  it('shows the admin overview and opens the existing payment form before handover', async () => {
+    mocks.auth.user = { _id: 'admin-1', roles: [0] };
+    const record = orderFixture();
+    record.autoCheckout = true;
+    record.status = 'confirmed';
+    Object.assign(record.quote!, {
+      depositKind: 'advance',
+      depositPercent: 30,
+      deposit: 90000,
+      acceptedAt: receive,
+    });
+    record.payment = { netReceived: 90000, payable: 300000, due: 210000, refundDue: 0 };
+    record.payments = [{ kind: 'deposit', amount: 90000, method: 'cash', at: receive }];
+    renderDetail(record);
+    const overview = await screen.findByRole('tabpanel', { name: 'Tổng quan' });
+    expect(overview).toHaveTextContent('Cần thu 210.000 đ trước khi giao đồ.');
+    expect(overview).toHaveTextContent('Đã cọc (30%)');
+    expect(overview).toHaveTextContent('3 ngày thuê');
+    expect(overview).not.toHaveTextContent('Cọc bảo đảm');
+    fireEvent.click(screen.getByRole('button', { name: 'Xem thanh toán' }));
+    expect(screen.getByRole('tab', { name: 'Thanh toán' })).toHaveFocus();
+    expect(screen.getByRole('heading', { name: 'Thanh toán tiền thuê' })).toBeVisible();
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Giao & nhận trả' }), { key: 'Enter' });
+    expect(screen.getByRole('button', { name: 'Xác nhận đã giao hàng' })).toBeDisabled();
+    expect(mocks.action).not.toHaveBeenCalled();
+  });
+
   it('presents the advance as part of the rental fee and shows the remaining 70%', async () => {
     const record = orderFixture();
     record.autoCheckout = true;
@@ -644,6 +699,7 @@ describe('automatic paid rental terms', () => {
     mocks.action.mockResolvedValue({ ...record, readyForHandover: true });
     renderDetail(record);
     await screen.findByLabelText('Phương thức thuê');
+    expect(screen.queryByRole('combobox', { name: 'Loại giao dịch thuê' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Phương thức thuê')).toHaveValue('cash');
     expect(screen.getByRole('link', { name: 'Đối soát SePay' })).toHaveAttribute(
       'href',
@@ -725,9 +781,10 @@ describe('daily and legacy rental detail', () => {
     };
     mocks.action.mockResolvedValue(order);
     renderDetail(order);
-    await screen.findByText(/Phí thuê cuối theo ngày:/);
+    fireEvent.click(await screen.findByRole('button', { name: 'Xem yêu cầu' }));
+    const handover = await screen.findByRole('tabpanel', { name: 'Giao & nhận trả' });
     expect(screen.queryByLabelText('Phí thuê cuối sau thay đổi (đ)')).not.toBeInTheDocument();
-    expect(screen.getByText(/Phí thuê cuối theo ngày:/)).toHaveTextContent('400.000 đ');
+    expect(handover).toHaveTextContent('400.000 đ');
     fireEvent.change(screen.getByLabelText('Điều khoản thay đổi đơn thuê'), {
       target: { value: 'Giữ đơn giá/ngày' },
     });
@@ -744,8 +801,15 @@ describe('daily and legacy rental detail', () => {
   });
 });
 
-describe('separate daily rate in staff inventory', () => {
-  beforeEach(() =>
+describe('staff costume inventory', () => {
+  const scrollIntoView = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollIntoView');
+
+  beforeEach(() => {
+    mocks.costumeTypes.mockResolvedValue([]);
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(),
+    });
     vi.stubGlobal(
       'ResizeObserver',
       class {
@@ -753,9 +817,50 @@ describe('separate daily rate in staff inventory', () => {
         unobserve = vi.fn();
         disconnect = vi.fn();
       },
-    ),
-  );
-  afterEach(() => vi.unstubAllGlobals());
+    );
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    if (scrollIntoView) {
+      Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', scrollIntoView);
+    } else {
+      Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
+    }
+  });
+
+  it('filters costumes by category and restores all items when cleared', async () => {
+    const category = { _id: 'formal', name: 'Trang phục truyền thống' };
+    const accessory = { _id: 'accessory', name: 'Phụ kiện biểu diễn' };
+    mocks.costumeTypes.mockResolvedValue([category, accessory]);
+    mocks.costumes.mockResolvedValue([
+      { ...item, type: category },
+      { ...item, _id: 'hat', name: 'Mũ biểu diễn' },
+    ]);
+    render(<CostumesPage />);
+    await screen.findByRole('button', { name: 'Sửa mặt hàng Mũ biểu diễn' });
+    expect(screen.getByRole('columnheader', { name: 'Danh mục' })).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: category.name })).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: 'Chưa phân loại' })).toBeInTheDocument();
+    const filter = screen.getByRole('combobox', { name: 'Danh mục trang phục' });
+    const select = (name: string) => {
+      fireEvent.keyDown(filter, { key: 'Enter' });
+      expect(screen.queryByPlaceholderText('Tìm danh mục')).not.toBeInTheDocument();
+      fireEvent.keyDown(screen.getByRole('option', { name }), { key: 'Enter' });
+    };
+    select(category.name);
+    expect(screen.getByRole('button', { name: 'Sửa mặt hàng Áo dài' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Sửa mặt hàng Mũ biểu diễn' }),
+    ).not.toBeInTheDocument();
+    select(accessory.name);
+    expect(screen.getByText('Danh mục này chưa có mặt hàng')).toBeInTheDocument();
+    select('Chưa phân loại');
+    expect(screen.getByRole('button', { name: 'Sửa mặt hàng Mũ biểu diễn' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sửa mặt hàng Áo dài' })).not.toBeInTheDocument();
+    select('Tất cả danh mục');
+    expect(screen.getByRole('button', { name: 'Sửa mặt hàng Áo dài' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sửa mặt hàng Mũ biểu diễn' })).toBeInTheDocument();
+  });
 
   async function editCostume() {
     mocks.costumes.mockResolvedValue([
@@ -765,19 +870,22 @@ describe('separate daily rate in staff inventory', () => {
     render(<CostumesPage />);
     const edits = await screen.findAllByRole('button', { name: `Sửa mặt hàng ${item.name}` });
     fireEvent.click(edits[0]);
-    expect(screen.getByLabelText('Giá thuê kỳ cũ (đồng)')).toHaveValue(item.rentalPrice);
+    expect(screen.queryByLabelText('Giá thuê kỳ cũ (đồng)')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Cọc bảo đảm\/món/)).not.toBeInTheDocument();
   }
 
-  it('saves a separate daily price while preserving the old period price', async () => {
+  it('updates the daily price without overwriting legacy rental settings', async () => {
     await editCostume();
     fireEvent.change(screen.getByLabelText('Giá thuê/ngày (đồng)'), { target: { value: '75000' } });
     fireEvent.click(screen.getByRole('button', { name: 'Lưu' }));
     await waitFor(() =>
       expect(mocks.updateCostume).toHaveBeenCalledWith(
         item._id,
-        expect.objectContaining({ rentalPrice: item.rentalPrice, rentalDailyPrice: 75000 }),
+        expect.objectContaining({ rentalDailyPrice: 75000 }),
       ),
     );
+    expect(mocks.updateCostume.mock.lastCall?.[1]).not.toHaveProperty('rentalPrice');
+    expect(mocks.updateCostume.mock.lastCall?.[1]).not.toHaveProperty('rentalSecurityDeposit');
   });
 
   it('clears the daily rate to null rather than zero or the legacy price', async () => {
@@ -787,7 +895,7 @@ describe('separate daily rate in staff inventory', () => {
     await waitFor(() =>
       expect(mocks.updateCostume).toHaveBeenCalledWith(
         item._id,
-        expect.objectContaining({ rentalPrice: item.rentalPrice, rentalDailyPrice: null }),
+        expect.objectContaining({ rentalDailyPrice: null }),
       ),
     );
   });

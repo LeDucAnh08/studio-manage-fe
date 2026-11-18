@@ -1,0 +1,217 @@
+.photographer-order {
+  gap: 26px;
+}
+
+.photographer-order__title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 23px;
+}
+
+.photographer-order__title h1 {
+  font-size: clamp(1.75rem, 3.1vw, 2.5rem);
+  margin: 0 0 5px;
+}
+
+.photographer-order__status,
+.photographer-order__role {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 6px;
+  padding: 4px 10px;
+  background: hsl(var(--muted));
+  font-weight: 600;
+}
+
+.photographer-order__status {
+  font-size: 1rem;
+}
+
+.photographer-order .admin-order__meta {
+  font-size: 1.05rem;
+}
+
+.photographer-order .admin-order__progress li,
+.photographer-order .admin-order__tabs button {
+  font-size: 1rem;
+}
+
+.photographer-order .admin-order__panel {
+  margin-top: 26px;
+}
+
+.photographer-order__role {
+  padding: 2px 8px;
+  color: var(--order-accent);
+  font-size: 0.78rem;
+}
+
+.photographer-order .admin-order__progress {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 12px 12px 4px;
+}
+
+.photographer-order--concept .admin-order__progress {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.photographer-order .admin-order__marker {
+  width: 33px;
+  height: 33px;
+}
+
+.photographer-order .admin-order__progress li:not(:last-child)::after {
+  top: 15px;
+  height: 2px;
+}
+
+.photographer-order__overview {
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+.photographer-order__overview > .admin-order__card {
+  padding: 25px;
+}
+
+.photographer-order__task h2 {
+  font-size: 1.4rem;
+}
+
+.photographer-order__fact,
+.photographer-order__task-row,
+.photographer-order__crew li,
+.photographer-order__recent p {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.photographer-order__fact {
+  padding: 5px 0 23px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.photographer-order__fact svg,
+.photographer-order__recent svg {
+  color: hsl(var(--muted-foreground));
+}
+
+.photographer-order__fact span,
+.photographer-order__task-row p {
+  display: block;
+  color: hsl(var(--muted-foreground));
+  font-size: 1rem;
+}
+
+.photographer-order__fact strong,
+.photographer-order__task-row strong {
+  font-size: 1.25rem;
+}
+
+.photographer-order__crew li {
+  padding: 15px 0;
+}
+
+.photographer-order__crew li + li {
+  border-top: 1px solid hsl(var(--border));
+}
+
+.photographer-order__crew li > div {
+  display: grid;
+  gap: 3px;
+}
+
+.photographer-order__avatar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: hsl(var(--muted));
+  color: var(--order-accent);
+  font-weight: 650;
+}
+
+.photographer-order__task {
+  background: color-mix(in srgb, hsl(var(--card)) 48%, var(--order-tint));
+  border-color: color-mix(in srgb, hsl(var(--border)) 65%, var(--order-accent));
+}
+
+.photographer-order__task-row {
+  margin: 22px 0;
+}
+
+.photographer-order__task > :is(a, button) {
+  width: 100%;
+  min-height: 48px;
+  font-size: 1rem;
+}
+
+.photographer-order__recent {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.photographer-order__recent h3 {
+  margin-bottom: 11px;
+  font-weight: 650;
+}
+
+.photographer-order__recent p,
+.photographer-order__history {
+  font-size: 0.95rem;
+}
+
+.photographer-order__history li {
+  margin-top: 14px;
+  border-left: 2px solid var(--order-accent);
+  padding-left: 12px;
+}
+
+.photographer-order__history time {
+  color: hsl(var(--muted-foreground));
+}
+
+@media (max-width: 850px) {
+  .photographer-order__overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .photographer-order__task {
+    grid-row: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .photographer-order {
+    gap: 16px;
+  }
+
+  .photographer-order .admin-order__progress {
+    margin-inline: 0;
+  }
+
+  .photographer-order .admin-order__progress li,
+  .photographer-order .admin-order__tabs button {
+    font-size: 0.85rem;
+  }
+
+  .photographer-order__overview > .admin-order__card {
+    padding: 18px;
+  }
+
+  .photographer-order .admin-order__marker {
+    width: 25px;
+    height: 25px;
+  }
+
+  .photographer-order .admin-order__progress li:not(:last-child)::after {
+    top: 12px;
+    height: 1px;
+  }
+}

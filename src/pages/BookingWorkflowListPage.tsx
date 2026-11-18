@@ -9,7 +9,6 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useCurrentTime } from '../components/customer/useCurrentTime';
 import { useShootWindowRefresh } from '../components/customer/useShootWindowRefresh';
-import { BookingNotifications } from './BookingsPage';
 import PhotographerOrdersPage from './PhotographerOrdersPage';
 import { isPersonalPhotographer } from '../utils/staffRole';
 import { conceptBookingEnabled } from '../config/features';
@@ -250,7 +249,6 @@ function StaffBookingWorkflowListPage() {
           </Button>
         }
       />
-      {isAdmin && <BookingNotifications base="/workflow-bookings" />}
       <div className="staff-toolbar flex flex-wrap gap-4 rounded-lg border bg-card p-4">
         <label className="flex flex-wrap items-center gap-3 text-sm font-medium">
           Loại đơn chụp

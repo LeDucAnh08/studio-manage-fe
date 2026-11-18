@@ -356,6 +356,13 @@ function App() {
                     }
                   >
                     {[...navItems, ...adminItems].map(renderRouteItem)}
+                    <Route
+                      path="settings/costume-types"
+                      element={wrapProtected(
+                        <SearchPreservingRedirect pathname="/settings/costumes/types" />,
+                        [0, 1],
+                      )}
+                    />
                     <Route path="profile" element={<ProfilePage />} />
                     {conceptBookingEnabled && (
                       <Route

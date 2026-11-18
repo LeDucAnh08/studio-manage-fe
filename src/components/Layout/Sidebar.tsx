@@ -28,6 +28,7 @@ const mobileQuery = '(max-width: 767px)';
 
 const Sidebar = ({ isOpen, onClose, triggerRef }: SidebarProps) => {
   const { user, logout } = useAuth();
+  const isAdmin = user?.roles?.some((role) => role === 0 || role === 1) ?? false;
   const { themeMode, resolvedTheme, setThemeMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -42,8 +43,8 @@ const Sidebar = ({ isOpen, onClose, triggerRef }: SidebarProps) => {
   );
 
   useEffect(() => {
-    dispatch(fetchSeasons());
-  }, [dispatch]);
+    dispatch(fetchSeasons({ selectCurrent: !isAdmin }));
+  }, [dispatch, isAdmin]);
 
   useEffect(() => {
     const media = window.matchMedia(mobileQuery);
@@ -224,32 +225,35 @@ const Sidebar = ({ isOpen, onClose, triggerRef }: SidebarProps) => {
         )}
       </div>
       <nav ref={navRef} className="staff-sidebar__nav" aria-label="Chức năng nội bộ">
-        <div className="staff-season">
-          <label htmlFor={seasonId} className="staff-nav-label">
-            Mùa chụp
-          </label>
-          <select
-            id={seasonId}
-            value={selectedSeasonId}
-            onChange={(e) => dispatch(setSelectedSeason(e.target.value))}
-          >
-            <option value="">Tất cả mùa</option>
-            {seasons.map((season) => (
-              <option key={season._id} value={season._id}>
-                {season.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        {navItems.map(renderNavItem)}
-        {user?.roles?.some((role) =>
-          adminItems.some((item) => item.allowedRoles?.includes(role)),
-        ) && (
-          <>
-            <p className="staff-nav-label px-3 pt-4">Quản trị</p>
-            {adminItems.map(renderNavItem)}
-          </>
+        {!isAdmin && (
+          <div className="staff-season">
+            <label htmlFor={seasonId} className="staff-nav-label">
+              Mùa chụp
+            </label>
+            <select
+              id={seasonId}
+              value={selectedSeasonId}
+              onChange={(e) => dispatch(setSelectedSeason(e.target.value))}
+            >
+              <option value="">Tất cả mùa</option>
+              {seasons.map((season) => (
+                <option key={season._id} value={season._id}>
+                  {season.name}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
+        {navItems.map(renderNavItem)}
+        {!isAdmin &&
+          user?.roles?.some((role) =>
+            adminItems.some((item) => item.allowedRoles?.includes(role)),
+          ) && (
+            <>
+              <p className="staff-nav-label px-3 pt-4">Quản trị</p>
+              {adminItems.map(renderNavItem)}
+            </>
+          )}
       </nav>
       <div className="staff-sidebar__user">
         <NavLink to="/profile" onClick={onClose} className="staff-profile-link">

@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   MessageSquare,
   Package,
-  Ruler,
   School,
   Settings,
   Shirt,
@@ -27,11 +26,10 @@ import FinancePage from '../pages/FinancePage';
 import CategoriesPage from '../pages/CategoriesPage';
 import CostumesPage from '../pages/CostumesPage';
 import CostumeTypesPage from '../pages/CostumeTypesPage';
-import UsersPage from '../pages/UsersPage';
+import UsersPage, { LegacyUsersRedirect } from '../pages/UsersPage';
 import CustomerSizePage from '../pages/CustomerSizePage';
 import PackagesPage from '../pages/PackagesPage';
 import FeedbackPage from '../pages/FeedbackPage';
-import SeasonPage from '@/pages/SeasonPage';
 import BookingWorkflowListPage from '../pages/BookingWorkflowListPage';
 import { clientPortalEnabled, conceptBookingEnabled } from './features';
 import ConceptOrdersPage from '../pages/ConceptOrdersPage';
@@ -121,16 +119,23 @@ export const navItems: NavItem[] = [
         component: CustomersPage,
       },
       {
+        to: '/users',
+        label: 'Người dùng',
+        icon: Users,
+        iconClassName: 'text-blue-300',
+        allowedRoles: [0, 1],
+        component: UsersPage,
+      },
+      {
         to: '/size',
-        label: 'Thông tin học sinh',
-        icon: Ruler,
-        iconClassName: 'text-emerald-300',
+        label: 'Danh sách lớp học',
+        hidden: true,
         allowedRoles: [0, 1, 2, 4],
         component: CustomerSizePage,
       },
       {
         to: '/:id',
-        label: 'Chi tiết khách hàng',
+        label: 'Chi tiết lớp học',
         allowedRoles: [0, 1, 2, 4],
         component: CustomerDetailPage,
         hidden: true,
@@ -143,6 +148,27 @@ export const navItems: NavItem[] = [
     icon: Calendar,
     iconClassName: 'text-indigo-300',
     component: SchedulesPage,
+  },
+  {
+    to: '/settings/costumes',
+    label: 'Quản lý trang phục',
+    icon: Shirt,
+    iconClassName: 'text-fuchsia-300',
+    allowedRoles: [0, 1],
+    children: [
+      {
+        to: '',
+        label: 'Kho trang phục',
+        icon: Shirt,
+        component: CostumesPage,
+      },
+      {
+        to: '/types',
+        label: 'Loại trang phục',
+        icon: Layers,
+        component: CostumeTypesPage,
+      },
+    ],
   },
   ...(conceptBookingEnabled
     ? [
@@ -190,10 +216,9 @@ export const adminItems: NavItem[] = [
       {
         to: '/users',
         label: 'Người dùng',
-        icon: Users,
-        iconClassName: 'text-blue-300',
+        hidden: true,
         allowedRoles: [0, 1],
-        component: UsersPage,
+        component: LegacyUsersRedirect,
       },
       {
         to: '/feedback',
@@ -221,45 +246,12 @@ export const adminItems: NavItem[] = [
         component: CategoriesPage,
       },
       {
-        to: '/costumes',
-        label: 'Trang phục',
-        icon: Shirt,
-        iconClassName: 'text-fuchsia-300',
-        allowedRoles: [0, 1],
-        component: CostumesPage,
-      },
-      {
-        to: '/costume-types',
-        label: 'Loại trang phục',
-        icon: Layers,
-        iconClassName: 'text-violet-200',
-        allowedRoles: [0, 1],
-        component: CostumeTypesPage,
-      },
-      {
         to: '/packages',
         label: 'Gói chụp',
         icon: Package,
         iconClassName: 'text-orange-300',
         allowedRoles: [0, 1, 2, 4],
         component: PackagesPage,
-      },
-    ],
-  },
-  {
-    to: '/special',
-    label: 'Đặc biệt',
-    icon: ClipboardList,
-    iconClassName: 'text-slate-300',
-    allowedRoles: [0],
-    children: [
-      {
-        to: '/seasons',
-        label: 'Mùa chụp',
-        icon: Calendar,
-        iconClassName: 'text-indigo-300',
-        allowedRoles: [0],
-        component: SeasonPage, // TODO: create season management page
       },
     ],
   },

@@ -42,6 +42,7 @@ export interface DepositCheckoutProps {
   fields: Array<[string, string]>;
   total: number;
   totalLabel: string;
+  purpose?: 'balance';
   deposit: number;
   depositNote?: string;
   remaining: number;
@@ -67,6 +68,7 @@ export interface DepositCheckoutProps {
 /** One customer deposit surface; orders retain their existing loading and polling. */
 export function DepositCheckout(props: DepositCheckoutProps) {
   const { payment } = props;
+  const balance = props.purpose === 'balance';
   const now = usePaymentClock();
   const headingId = useId();
   const summaryId = useId();
@@ -106,30 +108,40 @@ export function DepositCheckout(props: DepositCheckoutProps) {
     payment.amount > 0 &&
     Number.isFinite(deadline) &&
     deadline > now;
-  const received = paid
-    ? props.deposit
-    : Math.max(0, props.deposit - (payment?.amount ?? props.deposit));
-  const partial = payable && received > 0;
+  const received = balance
+    ? props.total - props.remaining
+    : paid
+      ? props.deposit
+      : Math.max(0, props.deposit - (payment?.amount ?? props.deposit));
+  const partial = !balance && payable && received > 0;
   const item = services[props.service];
   const Icon = item.icon;
   const title = paid
-    ? 'Đã nhận tiền cọc'
+    ? balance
+      ? 'Đã thanh toán đủ'
+      : 'Đã nhận tiền cọc'
     : reviewing
       ? 'Thanh toán cần đối soát'
       : cancelled
         ? 'Yêu cầu đã kết thúc'
         : expired
           ? 'Phiên thanh toán đã hết hạn'
-          : 'Thanh toán tiền cọc';
+          : balance
+            ? 'Thanh toán phần còn lại'
+            : 'Thanh toán tiền cọc';
   const status = paid
-    ? 'Đã nhận đủ cọc'
+    ? balance
+      ? 'Đã thu đủ tiền thuê'
+      : 'Đã nhận đủ cọc'
     : reviewing
       ? 'Đang đối soát'
       : cancelled
         ? 'Đã kết thúc'
         : expired
           ? 'Đã hết hạn'
-          : 'Chờ thanh toán cọc';
+          : balance
+            ? 'Chờ thanh toán'
+            : 'Chờ thanh toán cọc';
   const copy = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value);
@@ -185,8 +197,12 @@ export function DepositCheckout(props: DepositCheckoutProps) {
                 : reviewing
                   ? 'Studio đang kiểm tra khoản tiền đã nhận. Bạn không cần chuyển khoản lần nữa.'
                   : cancelled || expired
-                    ? 'Vui lòng kiểm tra hồ sơ trước khi đặt lại dịch vụ.'
-                    : 'Chỉ còn một bước để xác nhận đơn của bạn.'}
+                    ? balance
+                      ? 'Vui lòng xem hồ sơ đơn hoặc liên hệ studio.'
+                      : 'Vui lòng kiểm tra hồ sơ trước khi đặt lại dịch vụ.'
+                    : balance
+                      ? 'Thanh toán đủ tiền thuê trước khi nhận trang phục.'
+                      : 'Chỉ còn một bước để xác nhận đơn của bạn.'}
             </p>
           </div>
           <span className={`payment-state-pill ${paid ? 'is-paid' : !active ? 'is-ended' : ''}`}>
@@ -205,13 +221,15 @@ export function DepositCheckout(props: DepositCheckoutProps) {
             <span>
               <Check size={14} />
             </span>
-            Kiểm tra thông tin
+            {balance ? 'Đã cọc' : 'Kiểm tra thông tin'}
           </li>
           <li className={paid ? 'is-done' : 'is-current'} aria-current={paid ? undefined : 'step'}>
-            <span>{paid ? <Check size={14} /> : '2'}</span>Thanh toán cọc
+            <span>{paid ? <Check size={14} /> : '2'}</span>
+            {balance ? 'Thanh toán phần còn lại' : 'Thanh toán cọc'}
           </li>
           <li className={paid ? 'is-current' : ''} aria-current={paid ? 'step' : undefined}>
-            <span>{paid ? <Check size={14} /> : '3'}</span>Tự động xác nhận
+            <span>{paid ? <Check size={14} /> : '3'}</span>
+            {balance ? 'Nhận trang phục' : 'Tự động xác nhận'}
           </li>
         </ol>
         {props.error && (
@@ -269,7 +287,11 @@ export function DepositCheckout(props: DepositCheckoutProps) {
                                 src={payment.qrUrl}
                                 width={234}
                                 height={234}
-                                alt="Mã QR thanh toán tiền cọc"
+                                alt={
+                                  balance
+                                    ? 'Mã QR thanh toán phần còn lại'
+                                    : 'Mã QR thanh toán tiền cọc'
+                                }
                                 referrerPolicy="no-referrer"
                                 onError={() => setImageError(true)}
                               />
@@ -301,7 +323,11 @@ export function DepositCheckout(props: DepositCheckoutProps) {
                             <span>{partial ? 'Số tiền còn thiếu' : 'Số tiền cần thanh toán'}</span>
                             <strong>{money(payment.amount)}</strong>
                             <small>
-                              {partial ? 'QR hiển thị phần cọc còn thiếu' : props.depositNote}
+                              {balance
+                                ? props.remainingNote
+                                : partial
+                                  ? 'QR hiển thị phần cọc còn thiếu'
+                                  : props.depositNote}
                             </small>
                           </div>
                           <dl className="transfer-details">
@@ -396,14 +422,18 @@ export function DepositCheckout(props: DepositCheckoutProps) {
                   </div>
                   <span className="terminal-eyebrow">
                     {paid
-                      ? 'ĐÃ NHẬN ĐỦ TIỀN CỌC'
+                      ? balance
+                        ? 'ĐÃ THU ĐỦ TIỀN THUÊ'
+                        : 'ĐÃ NHẬN ĐỦ TIỀN CỌC'
                       : reviewing
                         ? 'STUDIO ĐANG ĐỐI SOÁT'
                         : 'PHIÊN THANH TOÁN ĐÃ KẾT THÚC'}
                   </span>
                   <h2 id={headingId}>
                     {paid
-                      ? 'Thanh toán cọc thành công'
+                      ? balance
+                        ? 'Thanh toán thành công'
+                        : 'Thanh toán cọc thành công'
                       : reviewing
                         ? 'Khoản thanh toán đang được kiểm tra'
                         : cancelled
@@ -412,15 +442,19 @@ export function DepositCheckout(props: DepositCheckoutProps) {
                   </h2>
                   <p>
                     {paid
-                      ? `Yume đã nhận đủ ${money(props.deposit)} tiền cọc. ${props.confirmation}`
+                      ? balance
+                        ? props.confirmation
+                        : `Yume đã nhận đủ ${money(props.deposit)} tiền cọc. ${props.confirmation}`
                       : reviewing
                         ? 'Vui lòng giữ lại biên lai và chờ studio kiểm tra giao dịch.'
-                        : 'Vui lòng không chuyển tiền vào mã QR cũ. Kiểm tra hồ sơ đơn hoặc đặt lại dịch vụ.'}
+                        : balance
+                          ? 'Vui lòng xem hồ sơ đơn và liên hệ studio nếu cần hỗ trợ.'
+                          : 'Vui lòng không chuyển tiền vào mã QR cũ. Kiểm tra hồ sơ đơn hoặc đặt lại dịch vụ.'}
                   </p>
                   {paid && (
                     <div className="received-amount">
-                      <span>Tiền cọc đã nhận</span>
-                      <strong>{money(props.deposit)}</strong>
+                      <span>{balance ? 'Tổng tiền thuê đã nhận' : 'Tiền cọc đã nhận'}</span>
+                      <strong>{money(balance ? props.total : props.deposit)}</strong>
                     </div>
                   )}
                   {expired && Number.isFinite(deadline) && deadline <= now && (
@@ -437,10 +471,10 @@ export function DepositCheckout(props: DepositCheckoutProps) {
                   ) : (
                     <Link
                       className="deposit-button is-primary"
-                      to={paid || reviewing ? props.profileTo : props.restartTo}
-                      state={paid || reviewing ? props.profileState : undefined}
+                      to={balance || paid || reviewing ? props.profileTo : props.restartTo}
+                      state={balance || paid || reviewing ? props.profileState : undefined}
                     >
-                      {paid || reviewing
+                      {balance || paid || reviewing
                         ? props.profileLabel || 'Xem hồ sơ đơn'
                         : 'Đặt lại dịch vụ'}
                       <ArrowRight size={17} />
@@ -467,8 +501,11 @@ export function DepositCheckout(props: DepositCheckoutProps) {
                   lại biên lai và liên hệ studio nếu cần hỗ trợ. Bạn không cần chuyển khoản lần nữa.
                 </p>
                 <p>
-                  <strong>Đã hết thời gian?</strong> Kiểm tra hồ sơ trước khi đặt lại. Khoản tiền về
-                  muộn cần studio đối soát.
+                  <strong>Đã hết thời gian?</strong>{' '}
+                  {balance
+                    ? 'Liên hệ studio nếu bạn đã chuyển tiền.'
+                    : 'Kiểm tra hồ sơ trước khi đặt lại.'}{' '}
+                  Khoản tiền về muộn cần studio đối soát.
                 </p>
                 <button
                   type="button"
@@ -518,20 +555,24 @@ export function DepositCheckout(props: DepositCheckoutProps) {
               <div className="deposit-price-row">
                 <div>
                   <strong>
-                    {paid
-                      ? 'Tiền cọc đã nhận'
-                      : expired || cancelled || reviewing
-                        ? 'Tiền cọc theo đơn'
-                        : partial
-                          ? 'Tổng tiền cọc'
-                          : 'Tiền cọc cần thanh toán'}
+                    {balance
+                      ? 'Đã thanh toán'
+                      : paid
+                        ? 'Tiền cọc đã nhận'
+                        : expired || cancelled || reviewing
+                          ? 'Tiền cọc theo đơn'
+                          : partial
+                            ? 'Tổng tiền cọc'
+                            : 'Tiền cọc cần thanh toán'}
                   </strong>
-                  <span>{props.depositNote}</span>
+                  {!balance && <span>{props.depositNote}</span>}
                 </div>
-                <strong className="deposit-price">{money(props.deposit)}</strong>
+                <strong className="deposit-price">
+                  {money(balance ? received : props.deposit)}
+                </strong>
               </div>
               <div className="remaining-price">
-                <span>Còn lại sau cọc</span>
+                <span>{balance ? 'Còn phải trả' : 'Còn lại sau cọc'}</span>
                 <strong>{money(props.remaining)}</strong>
               </div>
               <p className="remaining-note">{props.remainingNote}</p>
@@ -544,7 +585,9 @@ export function DepositCheckout(props: DepositCheckoutProps) {
                   : reviewing
                     ? 'Studio đang đối soát khoản tiền đã nhận.'
                     : expired || cancelled
-                      ? 'Phiên thanh toán đã kết thúc. Kiểm tra hồ sơ trước khi đặt lại.'
+                      ? balance
+                        ? 'Phiên thanh toán đã kết thúc.'
+                        : 'Phiên thanh toán đã kết thúc. Kiểm tra hồ sơ trước khi đặt lại.'
                       : props.confirmation}
               </p>
             </div>

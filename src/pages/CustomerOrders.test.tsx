@@ -201,14 +201,25 @@ function deferred<T>() {
 
 function Location() {
   const location = useLocation();
-  return <p data-testid="destination">{location.pathname + location.search}</p>;
+  return (
+    <>
+      <p data-testid="destination">{location.pathname + location.search}</p>
+      <output data-testid="destination-state">{JSON.stringify(location.state)}</output>
+    </>
+  );
 }
 
-function renderPage(page: ReactNode, path: string, route: string, customer = true) {
+function renderPage(
+  page: ReactNode,
+  path: string,
+  route: string,
+  customer = true,
+  state?: Record<string, unknown>,
+) {
   return render(
     <CustomerAppearanceContext.Provider value={customer}>
       <div className={customer ? 'customer-ui customer-tokens' : undefined}>
-        <MemoryRouter initialEntries={[path]}>
+        <MemoryRouter initialEntries={state ? [{ pathname: path, state }] : [path]}>
           <Routes>
             <Route path={route} element={page} />
             <Route path="/login" element={<Location />} />
@@ -217,6 +228,7 @@ function renderPage(page: ReactNode, path: string, route: string, customer = tru
             <Route path="/account/orders" element={<Location />} />
             <Route path="/account/bookings" element={<Location />} />
             <Route path="/account/rentals/:id" element={<Location />} />
+            <Route path="/customers/:id" element={<Location />} />
           </Routes>
         </MemoryRouter>
       </div>
@@ -235,6 +247,28 @@ const renderRental = (customer = true) =>
 const apiFailure = (message: string) => ({ response: { status: 409, data: { message } } });
 
 describe('Customer order presentation preserves workflow contracts', () => {
+  it('returns from a staff order to its class detail with the original class-list context', async () => {
+    mocks.auth.user = { _id: 'admin-1', name: 'Admin', roles: [0] };
+    mocks.workflowGet.mockResolvedValue(bookingFixture());
+    renderPage(
+      <BookingWorkflowDetailPage />,
+      '/workflow-bookings/booking-1',
+      '/workflow-bookings/:id',
+      false,
+      {
+        bookingOrdersReturnTo: '/customers/class-1',
+        classListReturnTo: '/customers?search=12A&page=2',
+      },
+    );
+    const back = await screen.findByRole('link', { name: '← Chi tiết lớp' });
+    expect(back).toHaveAttribute('href', '/customers/class-1');
+    expect(back).toHaveClass('app-back-link');
+    fireEvent.click(back);
+    expect(screen.getByTestId('destination')).toHaveTextContent('/customers/class-1');
+    expect(screen.getByTestId('destination-state')).toHaveTextContent(
+      '"classListReturnTo":"/customers?search=12A&page=2"',
+    );
+  });
   it('restores a cancelled yearbook order and its students from the deposit screen', async () => {
     const record = bookingFixture();
     record.booking.status = 'cancelled';
@@ -284,6 +318,12 @@ describe('Customer order presentation preserves workflow contracts', () => {
     });
     expect(readBookingDraft()?.packageConsentKey).toBeUndefined();
   });
+  const openAdminTab = async (name: string) => {
+    const tab = await screen.findByRole('tab', { name });
+    fireEvent.keyDown(tab, { key: 'Enter' });
+    expect(tab).toHaveAttribute('aria-selected', 'true');
+  };
+
   const packageAgreement = () => ({
     total: 1500000,
     depositRequired: 450000,
@@ -299,6 +339,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
     mocks.workflowGet.mockResolvedValue(record);
     mocks.auth.user = { _id: 'admin-1', name: 'Admin', roles: [0] };
     renderBooking(false);
+    await openAdminTab('Lịch & ekip');
     expect(
       await screen.findByRole('heading', { name: 'Thông tin gói khách đã xác nhận' }),
     ).toBeInTheDocument();
@@ -319,6 +360,7 @@ describe('Customer order presentation preserves workflow contracts', () => {
       .mockResolvedValueOnce({ _id: 'booking-1' });
     mocks.auth.user = { _id: 'admin-1', name: 'Admin', roles: [0] };
     renderBooking(false);
+    fireEvent.click(await screen.findByRole('button', { name: 'Xử lý yêu cầu' }));
     const approve = await screen.findByRole('button', { name: 'Duyệt và giữ lịch tạm' });
     fireEvent.click(approve);
     const notification = await screen.findByRole('alert');
@@ -519,11 +561,16 @@ describe('Customer order presentation preserves workflow contracts', () => {
     mocks.workflowGet.mockResolvedValue(record);
     mocks.auth.user = { _id: 'admin-1', name: 'Admin', roles: [0] };
     renderBooking(false);
+    fireEvent.click(await screen.findByRole('button', { name: 'Hoàn thiện danh sách' }));
+    expect(screen.getByRole('tab', { name: 'Học sinh' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: 'Lưu danh sách thành viên' })).toBeVisible();
+    await openAdminTab('Lịch & ekip');
     expect(
       await screen.findByRole('heading', { name: 'Chuẩn bị trang phục cho buổi chụp' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Kiểm tra tồn kho và lưu phân bổ' })).toBeEnabled();
     expect(screen.queryByRole('button', { name: 'Kiểm tra và giữ lịch' })).not.toBeInTheDocument();
+    await openAdminTab('Bàn giao');
     expect(screen.getByRole('button', { name: 'Bắt đầu buổi chụp' })).toBeDisabled();
   });
   it.each(['delivered', 'accepted'] as const)(
@@ -780,9 +827,10 @@ describe('Customer order presentation preserves workflow contracts', () => {
     mocks.auth.user = { _id: 'admin-1', name: 'Admin', roles: [0] };
     mocks.workflowGet.mockResolvedValue(intakeFixture());
     const { container } = renderBooking(false);
+    await openAdminTab('Lịch & ekip');
     await screen.findByRole('heading', { name: 'Xét duyệt yêu cầu ban đầu' });
     expect(container.querySelector('.customer-booking-intake')).toBeNull();
-    expect(container.querySelector('main')).toHaveClass('max-w-6xl');
+    expect(container.querySelector('main .admin-yearbook')).toBeInTheDocument();
     const feedback = screen.getByLabelText('Phản hồi cho khách');
     expect(feedback.tagName).toBe('TEXTAREA');
     expect(feedback).not.toHaveClass('customer-control');
@@ -937,8 +985,9 @@ describe('Customer order presentation preserves workflow contracts', () => {
     mocks.auth.user = { _id: 'admin-1', name: 'Admin', roles: [0] };
     mocks.workflowGet.mockResolvedValue(bookingFixture(false));
     const { container } = renderBooking(false);
+    await openAdminTab('Lịch & ekip');
     await screen.findByRole('heading', { name: 'Lớp 12A' });
-    expect(container.querySelector('main')).toHaveClass('max-w-6xl');
+    expect(container.querySelector('main .admin-yearbook')).toBeInTheDocument();
     expect(screen.getByLabelText('Ngày chụp')).toHaveAttribute('type', 'date');
     expect(screen.getByLabelText('Ngày chụp')).not.toHaveClass('customer-control');
     expect(screen.getByRole('button', { name: 'Gửi phiên bản báo giá mới' })).not.toHaveClass(

@@ -1,3 +1,4 @@
+import { AdminRentalOrder } from '../components/AdminRentalOrder';
 import { RentalOrderProgress } from '../components/customer/RentalOrderProgress';
 import { RentalDepositCheckout } from '../components/customer/RentalDepositCheckout';
 import {
@@ -29,11 +30,13 @@ import {
   rentalDate as date,
   rentalError,
   rentalLabels,
+  rentalReceivedLabel,
   type RentalOrder,
 } from '../services/rentalService';
 import { createWorkflowRequestId } from '../services/bookingWorkflowService';
 import { vietnamCalendarDate } from '../utils/vietnamCalendarDate';
 import { rentalDayCount, validateRentalPeriod } from '../utils/rentalPeriod';
+import { toast } from 'react-toastify';
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   const customer = useCustomerAppearance();
@@ -69,6 +72,7 @@ export default function RentalDetailPage() {
   const ContentTag = customer ? 'section' : 'main';
   const { id = '' } = useParams();
   const location = useLocation();
+  const paymentView = new URLSearchParams(location.search).get('payment');
   const ordersReturnTo = location.state?.ordersReturnTo;
   const staffReturnTo = location.state?.rentalOrdersReturnTo;
   const staffBackPath =
@@ -87,6 +91,7 @@ export default function RentalDetailPage() {
     sale = admin || roles.includes(2),
     finance = admin || roles.includes(5),
     client = roles.includes(6);
+  const [adminTab, setAdminTab] = useState({ orderId: '', value: 'overview' });
   const [order, setOrder] = useState<RentalOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -112,6 +117,12 @@ export default function RentalDetailPage() {
   const [rating, setRating] = useState('5');
   const [comment, setComment] = useState('');
   const keys = useRef(new Map<string, string>());
+  const pollPayment =
+    (client &&
+      !!(order?.autoCheckout || order?.depositPayment) &&
+      ['awaiting_deposit', 'expired', 'payment_review'].includes(order?.status ?? '')) ||
+    ((client || finance) &&
+      (order?.balancePayment?.status === 'pending' || !!order?.balancePayment?.requiresReview));
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -127,18 +138,22 @@ export default function RentalDetailPage() {
     void load();
   }, [load]);
   useEffect(() => {
-    if (
-      !client ||
-      (!order?.autoCheckout && !order?.depositPayment) ||
-      !['awaiting_deposit', 'expired', 'payment_review'].includes(order.status)
-    )
-      return;
+    if (!pollPayment) return;
     let active = true;
     const timer = window.setInterval(() => {
       rentalService
         .get(id)
         .then((value) => {
-          if (active) setOrder(value);
+          if (active) {
+            setOrder((previous) =>
+              previous?.version === value.version &&
+              previous.status === value.status &&
+              previous.depositPayment?.status === value.depositPayment?.status &&
+              previous.balancePayment?.status === value.balancePayment?.status
+                ? previous
+                : value,
+            );
+          }
         })
         .catch(() => {
           if (active) setError('Chưa cập nhật được thanh toán. Vui lòng tải lại hồ sơ.');
@@ -148,7 +163,7 @@ export default function RentalDetailPage() {
       active = false;
       window.clearInterval(timer);
     };
-  }, [client, id, order?.autoCheckout, order?.depositPayment, order?.status]);
+  }, [id, pollPayment]);
   useEffect(() => {
     if (!order) return;
     const rows = order.quote?.lines ?? order.requestedLines;
@@ -234,12 +249,13 @@ export default function RentalDetailPage() {
     );
   if (
     client &&
-    (order.autoCheckout || order.depositPayment) &&
-    new URLSearchParams(location.search).get('payment') === 'deposit'
+    ((paymentView === 'deposit' && (order.autoCheckout || order.depositPayment)) ||
+      (paymentView === 'balance' && order.balancePayment))
   )
     return (
       <RentalDepositCheckout
         order={order}
+        balance={paymentView === 'balance'}
         returnTo={customerBackPath}
         error={error}
         loading={busy}
@@ -249,6 +265,28 @@ export default function RentalDetailPage() {
   const quote = order.quote,
     changeOpen = !!order.change && ['requested', 'proposed'].includes(order.change.status);
   const advanceDeposit = quote?.depositKind === 'advance';
+  const balanceTo = `/account/rentals/${order._id}?payment=balance`;
+  const balanceAvailable = order.balancePayment?.status === 'pending';
+  const collectionViaQr =
+    order.depositPayment?.status === 'pending' ||
+    balanceAvailable ||
+    !!order.balancePayment?.requiresReview;
+  const balanceLinkAction = finance && balanceAvailable && (
+    <Button
+      type="button"
+      variant="outline"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(new URL(balanceTo, window.location.origin).href);
+          toast.success('Đã sao chép liên kết thanh toán.');
+        } catch {
+          toast.error('Chưa sao chép được liên kết thanh toán.');
+        }
+      }}
+    >
+      Sao chép liên kết thanh toán
+    </Button>
+  );
   const depositLabel = advanceDeposit ? `Cọc trước ${quote?.depositPercent ?? 30}%` : 'Cọc bảo đảm';
   const effectiveChangeKind =
     order.status === 'checked_out'
@@ -333,19 +371,10 @@ export default function RentalDetailPage() {
         .filter(Boolean),
     });
   };
-  return (
-    <ContentTag className={customer ? 'customer-orders customer-orders--detail' : 'space-y-6'}>
-      <div className="flex flex-wrap justify-between gap-3">
-        <Link
-          className={customer ? 'customer-back-link' : 'app-back-link text-sm text-primary'}
-          to={client ? customerBackPath : staffBackPath}
-        >
-          ← Danh sách đơn thuê
-        </Link>
-        <Button disabled={busy} variant="outline" onClick={() => void load()}>
-          Tải lại đơn thuê
-        </Button>
-      </div>
+  const adminWorkspace = admin && !client && !customer;
+
+  const legacySummary = (
+    <>
       <header className={customer ? 'customer-order-surface' : sectionClass}>
         <p
           className={
@@ -387,6 +416,11 @@ export default function RentalDetailPage() {
       <section className={customer ? 'customer-order-surface' : sectionClass}>
         <RentalOrderProgress order={order} />
       </section>
+    </>
+  );
+
+  const reservationNotice = (
+    <>
       {order.reservationIssue && (
         <section
           role="alert"
@@ -398,12 +432,27 @@ export default function RentalDetailPage() {
         >
           <p className="font-semibold">Đơn thuê cần studio xử lý</p>
           <p>{order.reservationIssue}</p>
-          <p>
-            Studio cần kiểm tra tồn kho và thống nhất cách xử lý với khách. Khoản tiền đã nhận vẫn
-            được ghi nhận; chưa có giao dịch hoàn tiền tự động.
-          </p>
+          {order.balancePayment?.requiresReview ? (
+            client ? (
+              <p>Vui lòng giữ biên lai và chờ studio đối soát trước khi chuyển thêm.</p>
+            ) : (
+              <Link className="underline" to="/manage/payment-receipts">
+                Mở đối soát SePay
+              </Link>
+            )
+          ) : (
+            <p>
+              Studio cần kiểm tra tồn kho và thống nhất cách xử lý với khách. Khoản tiền đã nhận vẫn
+              được ghi nhận; chưa có giao dịch hoàn tiền tự động.
+            </p>
+          )}
         </section>
       )}
+    </>
+  );
+
+  const clientActions = (
+    <>
       {client &&
         ((!order.autoCheckout && ['requested', 'quoting'].includes(order.status)) ||
           (order.autoCheckout && order.status === 'awaiting_deposit' && !order.changesLocked)) && (
@@ -418,11 +467,21 @@ export default function RentalDetailPage() {
             </Button>
           </section>
         )}
+    </>
+  );
+
+  const changeLock = (
+    <>
       {order.autoCheckout && order.changesLocked && (
         <p className="text-sm font-medium">
           Đã ghi nhận thanh toán: không được hủy, đổi mẫu, size, số lượng, ngày thuê hoặc gia hạn.
         </p>
       )}
+    </>
+  );
+
+  const clientDeposit = (
+    <>
       {client && order.depositPayment && (
         <section className="customer-order-surface">
           <Button asChild>
@@ -450,6 +509,11 @@ export default function RentalDetailPage() {
             .
           </p>
         )}
+    </>
+  );
+
+  const deliveryException = (
+    <>
       {admin &&
         order.autoCheckout &&
         !order.checkedOutAt &&
@@ -479,6 +543,11 @@ export default function RentalDetailPage() {
             </Button>
           </form>
         )}
+    </>
+  );
+
+  const errorNotice = (
+    <>
       {error && (
         <p
           role="alert"
@@ -491,6 +560,11 @@ export default function RentalDetailPage() {
           {error}
         </p>
       )}
+    </>
+  );
+
+  const quotePanel = (
+    <>
       {quote && (
         <section className={customer ? 'customer-order-surface' : sectionClass}>
           <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
@@ -739,6 +813,11 @@ export default function RentalDetailPage() {
           </div>
         </form>
       )}
+    </>
+  );
+
+  const paymentsPanel = (
+    <>
       {order.payment && (
         <section className={customer ? 'customer-order-surface' : sectionClass}>
           <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
@@ -748,17 +827,29 @@ export default function RentalDetailPage() {
             <CustomerPriceBreakdown
               items={[
                 {
-                  label: 'Đã thu sau hoàn',
+                  label:
+                    order.balancePayment &&
+                    order.status === 'confirmed' &&
+                    order.payment.netReceived === quote?.deposit
+                      ? 'Đã cọc'
+                      : rentalReceivedLabel(order.payments),
                   value: <CustomerPrice amount={order.payment.netReceived} />,
                 },
-                { label: 'Còn thu', value: <CustomerPrice amount={order.payment.due} /> },
+                {
+                  label:
+                    order.balancePayment && order.status === 'confirmed'
+                      ? 'Còn phải trả trước khi nhận đồ'
+                      : 'Còn thu',
+                  value: <CustomerPrice amount={order.payment.due} />,
+                },
                 { label: 'Cần hoàn', value: <CustomerPrice amount={order.payment.refundDue} /> },
               ]}
             />
           ) : (
             <div className="grid gap-3 sm:grid-cols-3">
               <p>
-                Đã thu sau hoàn: <strong>{money(order.payment.netReceived)}</strong>
+                {rentalReceivedLabel(order.payments)}:{' '}
+                <strong>{money(order.payment.netReceived)}</strong>
               </p>
               <p>
                 Còn thu: <strong>{money(order.payment.due)}</strong>
@@ -766,8 +857,21 @@ export default function RentalDetailPage() {
               <p>
                 Cần hoàn: <strong>{money(order.payment.refundDue)}</strong>
               </p>
+              {balanceLinkAction}
             </div>
           )}
+          {client && balanceAvailable && (
+            <Button asChild>
+              <Link to={balanceTo} state={{ ordersReturnTo: customerBackPath }}>
+                Thanh toán phần còn lại
+              </Link>
+            </Button>
+          )}
+          {order.balancePayment?.status === 'paid' &&
+            order.payment.due === 0 &&
+            !['cancelled', 'expired', 'payment_review'].includes(order.status) && (
+              <p className="font-semibold">Đã thanh toán đủ</p>
+            )}
           <p className="text-sm text-muted-foreground">
             {advanceDeposit
               ? 'Tiền cọc là một phần tiền thuê. Thanh toán đủ tiền thuê trước khi nhận đồ; phát sinh sau nhận trả cần khách xác nhận.'
@@ -793,7 +897,7 @@ export default function RentalDetailPage() {
               {row.reference ? ` · ${row.reference}` : ''}
             </p>
           ))}
-          {finance && kinds.length > 0 && (
+          {finance && kinds.length > 0 && (!collectionViaQr || selectedKind === 'refund') && (
             <form
               className="grid gap-3 rounded-xl border p-4 sm:grid-cols-2"
               onSubmit={(event) => {
@@ -811,23 +915,21 @@ export default function RentalDetailPage() {
                 });
               }}
             >
-              <Field label="Loại giao dịch thuê">
-                <OrderSelect
-                  className={selectClass}
-                  value={selectedKind}
-                  onChange={(event) => setPaymentKind(event.target.value)}
-                >
-                  {kinds.map((kind) => (
-                    <option key={kind} value={kind}>
-                      {kind === 'refund'
-                        ? 'Hoàn tiền'
-                        : kind === 'deposit'
-                          ? depositLabel
-                          : 'Thanh toán'}
-                    </option>
-                  ))}
-                </OrderSelect>
-              </Field>
+              {kinds.length > 1 && (
+                <Field label="Loại giao dịch thuê">
+                  <OrderSelect
+                    className={selectClass}
+                    value={selectedKind}
+                    onChange={(event) => setPaymentKind(event.target.value)}
+                  >
+                    {kinds.map((kind) => (
+                      <option key={kind} value={kind}>
+                        {kind === 'deposit' ? depositLabel : 'Thanh toán'}
+                      </option>
+                    ))}
+                  </OrderSelect>
+                </Field>
+              )}
               <Field label="Số tiền thuê (đ)">
                 <Input
                   required
@@ -857,14 +959,13 @@ export default function RentalDetailPage() {
                 />
               </Field>
               <Button type="submit" disabled={busy}>
-                Ghi nhận tiền thuê
+                {selectedKind === 'refund' ? 'Ghi nhận hoàn tiền' : 'Ghi nhận tiền thuê'}
               </Button>
             </form>
           )}
           {finance && bankCollection && (
             <p className="text-sm">
-              Khoản thu chuyển khoản được ghi nhận từ SePay. Với phí thuê trả thêm hoặc sai/thừa
-              tiền, mở{' '}
+              Khoản thu chuyển khoản được ghi nhận từ SePay. Với giao dịch sai hoặc thừa tiền, mở{' '}
               <Link className="underline" to="/manage/payment-receipts">
                 Đối soát SePay
               </Link>{' '}
@@ -873,6 +974,11 @@ export default function RentalDetailPage() {
           )}
         </section>
       )}
+    </>
+  );
+
+  const handoverPanel = (
+    <>
       {admin && !order.autoCheckout && order.status === 'ready_to_confirm' && (
         <section className={customer ? 'customer-order-surface' : sectionClass}>
           <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
@@ -1301,6 +1407,11 @@ export default function RentalDetailPage() {
             </Button>
           </form>
         )}
+    </>
+  );
+
+  const feedbackPanel = (
+    <>
       {order.status === 'completed' && (
         <section className={customer ? 'customer-order-surface' : sectionClass}>
           <h2 className={customer ? 'customer-section-title' : 'text-lg font-semibold'}>
@@ -1347,6 +1458,11 @@ export default function RentalDetailPage() {
           )}
         </section>
       )}
+    </>
+  );
+
+  const historyPanel = (
+    <>
       {!!order.quoteHistory.length && (
         <details className={customer ? 'customer-order-surface' : sectionClass}>
           <summary className="cursor-pointer font-semibold">Lịch sử báo giá thuê</summary>
@@ -1486,6 +1602,95 @@ export default function RentalDetailPage() {
             ))}
           </ol>
         </section>
+      )}
+    </>
+  );
+
+  return (
+    <ContentTag className={customer ? 'customer-orders customer-orders--detail' : 'space-y-6'}>
+      <div className="flex flex-wrap justify-between gap-3">
+        <Link
+          className={customer ? 'customer-back-link' : 'app-back-link text-sm text-primary'}
+          to={client ? customerBackPath : staffBackPath}
+        >
+          {adminWorkspace ? '← Đơn thuê' : '← Danh sách đơn thuê'}
+        </Link>
+        <Button disabled={busy} variant="outline" onClick={() => void load()}>
+          Tải lại đơn thuê
+        </Button>
+      </div>
+      {adminWorkspace ? (
+        <>
+          {reservationNotice}
+          {errorNotice}
+          <AdminRentalOrder
+            balanceLinkAction={balanceLinkAction}
+            order={order}
+            tab={adminTab.orderId === order._id ? adminTab.value : 'overview'}
+            onTabChange={(value) => setAdminTab({ orderId: order._id, value })}
+            panels={{
+              items: (
+                <>
+                  {quotePanel}
+                  {!quote && !canQuote && (
+                    <section className={sectionClass}>
+                      <h2 className="text-lg font-semibold">Trang phục yêu cầu</h2>
+                      <ul>
+                        {order.requestedLines.map((line) => (
+                          <li key={`${line.costumeId}:${line.size}`}>
+                            {line.name} · {line.size} · {line.quantity} món
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                </>
+              ),
+              payments: order.payment ? (
+                paymentsPanel
+              ) : (
+                <p className="text-sm text-muted-foreground">Chưa có dữ liệu thanh toán.</p>
+              ),
+              handover: (
+                <>
+                  {changeLock}
+                  {handoverPanel}
+                  {deliveryException}
+                  {!['ready_to_confirm', 'confirmed', 'checked_out', 'returned'].includes(
+                    order.status,
+                  ) &&
+                    !order.returnedAt &&
+                    !order.change && (
+                      <p className="text-sm text-muted-foreground">
+                        Chưa có giao nhận cho đơn này.
+                      </p>
+                    )}
+                </>
+              ),
+              history: (
+                <>
+                  {historyPanel}
+                  {feedbackPanel}
+                </>
+              ),
+            }}
+          />
+        </>
+      ) : (
+        <>
+          {legacySummary}
+          {reservationNotice}
+          {clientActions}
+          {changeLock}
+          {clientDeposit}
+          {deliveryException}
+          {errorNotice}
+          {quotePanel}
+          {paymentsPanel}
+          {handoverPanel}
+          {feedbackPanel}
+          {historyPanel}
+        </>
       )}
     </ContentTag>
   );
