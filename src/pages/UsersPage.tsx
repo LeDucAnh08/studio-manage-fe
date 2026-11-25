@@ -23,22 +23,11 @@ import {
   Textarea,
 } from '@/components/ui';
 import type { Column } from '@/components/ui';
-import { cn } from '@/lib/utils';
 import { accountRequestService, type AccountRequest } from '../services/accountRequestService';
 
 const requestErrorText = (error: unknown) =>
   (error as { response?: { data?: { message?: string } } }).response?.data?.message ??
   'Không thể xử lý yêu cầu.';
-
-const ROLE_BADGE: Record<UserRole, string> = {
-  0: 'bg-purple-500/15 text-purple-700 dark:text-purple-300',
-  1: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300',
-  2: 'bg-blue-500/15 text-blue-700 dark:text-blue-300',
-  3: 'bg-orange-500/15 text-orange-700 dark:text-orange-300',
-  4: 'bg-teal-500/15 text-teal-700 dark:text-teal-300',
-  5: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
-  6: 'bg-pink-500/15 text-pink-700 dark:text-pink-300',
-};
 
 interface FormValues {
   username: string;
@@ -54,7 +43,7 @@ const UsersPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
-  const [selectedRoles, setSelectedRoles] = useState<UserRole[]>([2]);
+  const [selectedRoles, setSelectedRoles] = useState<UserRole[]>([]);
   const [accountRequests, setAccountRequests] = useState<AccountRequest[]>([]);
   const [accountRequestError, setAccountRequestError] = useState('');
   const [reviewTarget, setReviewTarget] = useState<AccountRequest | null>(null);
@@ -127,7 +116,7 @@ const UsersPage = () => {
 
   const openCreate = () => {
     setEditing(null);
-    setSelectedRoles([2]);
+    setSelectedRoles([]);
     reset({ isActive: true });
     setModalOpen(true);
   };
@@ -140,6 +129,10 @@ const UsersPage = () => {
   };
 
   const onSubmit = async (data: FormValues) => {
+    if (!selectedRoles.length) {
+      toast.error('Chọn ít nhất một vai trò cho tài khoản.');
+      return;
+    }
     const payload = {
       ...data,
       roles: selectedRoles,
@@ -211,12 +204,12 @@ const UsersPage = () => {
     },
     {
       key: 'roles',
-      header: 'Role',
+      header: 'Vai trò',
       render: (u) => (
         <div className="flex flex-wrap gap-1">
           {(u.roles ?? []).map((r) => (
-            <Badge key={r} variant="outline" className={cn('border-transparent', ROLE_BADGE[r])}>
-              {ROLE_LABELS[r]}
+            <Badge key={r} variant="secondary">
+              {ROLE_LABELS[r] || 'Vai trò đã ngừng sử dụng'}
             </Badge>
           ))}
         </div>
@@ -238,11 +231,11 @@ const UsersPage = () => {
       align: 'right',
       className: 'whitespace-nowrap',
       render: (u) => (
-        <span className="space-x-2">
+        <span className="staff-row-actions justify-end">
           <Button
             variant="link"
             size="sm"
-            className="h-auto p-0 text-xs text-primary"
+            className="staff-row-action text-primary"
             onClick={() => openEdit(u)}
           >
             Sửa
@@ -251,7 +244,7 @@ const UsersPage = () => {
             <Button
               variant="link"
               size="sm"
-              className="h-auto p-0 text-xs text-destructive"
+              className="staff-row-action text-destructive"
               onClick={() => handleDelete(u._id)}
             >
               Xoá
@@ -265,7 +258,6 @@ const UsersPage = () => {
   return (
     <div>
       <PageHeader
-        kicker="Users"
         title="Quản lý người dùng"
         description="Quản lý tài khoản và phân quyền người dùng trong hệ thống."
         action={
@@ -303,7 +295,8 @@ const UsersPage = () => {
               {
                 key: 'role',
                 header: 'Vai trò',
-                render: (request) => ROLE_LABELS[request.requestedRole],
+                render: (request) =>
+                  ROLE_LABELS[request.requestedRole] || 'Vai trò đã ngừng sử dụng',
               },
               { key: 'phone', header: 'Điện thoại', render: (request) => request.phone || '—' },
               { key: 'note', header: 'Ghi chú', render: (request) => request.note || '—' },
@@ -320,7 +313,11 @@ const UsersPage = () => {
                     >
                       Từ chối
                     </Button>
-                    <Button size="sm" onClick={() => openRequestReview(request, 'approved')}>
+                    <Button
+                      size="sm"
+                      disabled={![3].includes(request.requestedRole)}
+                      onClick={() => openRequestReview(request, 'approved')}
+                    >
                       Cấp tài khoản
                     </Button>
                   </div>
@@ -362,7 +359,7 @@ const UsersPage = () => {
             />
           </FormField>
           <div className="space-y-1.5">
-            <Label>Role</Label>
+            <Label>Vai trò</Label>
             <div className="rounded-lg border p-2 space-y-1">
               {(Object.entries(ROLE_LABELS) as [string, string][]).map(([val, label]) => {
                 const r = Number(val) as UserRole;
@@ -375,9 +372,7 @@ const UsersPage = () => {
                       checked={selectedRoles.includes(r)}
                       onCheckedChange={() => toggleRole(r)}
                     />
-                    <Badge variant="outline" className={cn('border-transparent', ROLE_BADGE[r])}>
-                      {label}
-                    </Badge>
+                    <Badge variant="secondary">{label}</Badge>
                   </label>
                 );
               })}

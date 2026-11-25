@@ -50,7 +50,7 @@ vi.mock('../services/costumeTypeService', () => ({
 }));
 vi.mock('../services/costumeService', () => ({ costumeService: { getAll: mocks.costumes } }));
 vi.mock('../services/userService', () => ({
-  userService: { getPhotographers: async () => [], getSales: async () => [] },
+  userService: { getPhotographers: async () => [], getCoordinators: async () => [] },
 }));
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: mocks.toast } }));
 // Filter request tests keep the native string/undefined callback contract; browser QA covers the real calendar.

@@ -1,0 +1,287 @@
+/* Hallmark · checked: 2026-11-19 · built: the project · redesign: restyle · scope: app
+ * Existing studio photography, aligned booking steps, quiet controls; no workflow changes. */
+.customer-ui
+  :is(
+    .concept-time-page,
+    .concept-photographer-selection-page,
+    .concept-preparation-page,
+    .concept-review-page
+  ) {
+  width: 100%;
+  max-width: var(--customer-booking-width);
+  margin-inline: auto;
+  padding: 24px 24px 40px;
+}
+.customer-ui
+  :is(
+    .concept-time-heading,
+    .cps,
+    .concept-preparation-page > header,
+    .concept-review-page > header
+  )
+  h1 {
+  min-width: 0;
+  margin-block: 24px 8px;
+  font-size: var(--customer-page-heading-size);
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  overflow-wrap: break-word;
+}
+.customer-ui .cps h1 {
+  margin-top: 0;
+}
+.customer-ui .cps-topline {
+  margin-bottom: 24px;
+  gap: 16px;
+  color: var(--customer-muted);
+  font-size: 14px;
+}
+.customer-ui .cps .cps-back {
+  gap: 8px;
+  font-size: 14px;
+}
+.customer-ui .cps-intro {
+  max-width: 65ch;
+  margin-top: 8px;
+  color: var(--customer-body);
+  font-size: 16px;
+  line-height: 1.6;
+}
+.customer-ui .cps-session {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 24px;
+  padding-bottom: 24px;
+  font-size: 16px;
+}
+.customer-ui .cps-session > div {
+  gap: 12px;
+  min-width: 0;
+  min-height: 48px;
+  padding-inline: 20px;
+  border-color: var(--customer-hairline-soft);
+}
+.customer-ui .cps-session > div:first-child {
+  padding-left: 0;
+}
+.customer-ui .cps-session > div:last-child {
+  padding-right: 0;
+}
+.customer-ui .cps-session strong {
+  font-weight: 600;
+}
+.customer-ui .cps-session small {
+  margin-top: 4px;
+  color: var(--customer-muted);
+  font-size: 14px;
+}
+.customer-ui .cps-session svg {
+  width: 20px;
+  height: 20px;
+  color: var(--customer-muted);
+}
+.customer-ui .cps-grid {
+  gap: 24px;
+  margin-top: 24px;
+}
+.customer-ui .cps-grid:has(> .cps-card:only-child) {
+  grid-template-columns: minmax(0, 800px);
+}
+.customer-ui .cps-card {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 20px;
+  min-height: 360px;
+  padding: 20px;
+  border-color: var(--customer-hairline);
+  border-radius: 16px;
+  background: var(--customer-canvas);
+}
+.customer-ui .cps-portrait {
+  min-height: 320px;
+  max-height: none;
+  border-radius: 12px;
+}
+.customer-ui .cps-portrait img {
+  object-position: center 25%;
+}
+.customer-ui .cps-identity {
+  min-width: 0;
+  padding-block: 32px 0;
+}
+.customer-ui .cps-card h2 {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  overflow-wrap: break-word;
+}
+.customer-ui .cps-quote {
+  margin-top: 12px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--customer-body);
+}
+.customer-ui .cps-specialty {
+  gap: 8px;
+  margin-top: 16px;
+  color: var(--customer-muted);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.customer-ui .cps-specialty svg {
+  width: 18px;
+  height: 18px;
+}
+.customer-ui .cps-profile-link {
+  gap: 8px;
+  min-height: 48px;
+  margin-top: 20px;
+  padding: 12px 16px;
+  border-radius: var(--customer-radius-control);
+  border-color: var(--customer-button-border);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.customer-ui .cps-profile-link svg {
+  width: 18px;
+  height: 18px;
+}
+.customer-ui .cps-selected {
+  top: 16px;
+  right: 16px;
+  gap: 4px;
+  padding: 6px 8px;
+  color: var(--customer-primary);
+  background: var(--customer-accent-soft);
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+}
+.customer-ui .cps-selected svg {
+  width: 16px;
+  height: 16px;
+}
+.customer-ui .cps-decision {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-color: var(--customer-hairline-soft);
+}
+.customer-ui .cps-decision > strong {
+  min-width: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.customer-ui .cps-decision > div {
+  flex-shrink: 0;
+  gap: 16px;
+}
+.customer-ui .cps-decision > div > span {
+  color: var(--customer-muted);
+  font-size: 14px;
+}
+.customer-ui
+  :is(
+    .cps .cps-next,
+    .concept-time-next button,
+    .concept-preparation-footer button,
+    .concept-review-summary .concept-checkout-next
+  ) {
+  gap: 8px;
+  min-height: 48px;
+  padding: 12px 20px;
+  border-radius: var(--customer-radius-control);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  white-space: nowrap;
+}
+.customer-ui :is(.concept-preparation, .concept-review-page) h2 {
+  font-size: var(--customer-section-heading-size);
+  font-weight: 600;
+  line-height: 1.35;
+}
+@media (max-width: 900px) {
+  .customer-ui .cps-session {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .customer-ui .cps-session > div:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .customer-ui .cps-session > div:nth-child(even) {
+    padding-right: 0;
+  }
+}
+@media (max-width: 743px) {
+  .customer-ui .customer-wizard__headline {
+    font-size: 28px;
+  }
+  .customer-ui
+    :is(
+      .concept-time-page,
+      .concept-photographer-selection-page,
+      .concept-preparation-page,
+      .concept-review-page
+    ) {
+    padding: 20px 20px 32px;
+  }
+  .customer-ui
+    :is(
+      .concept-time-heading,
+      .cps,
+      .concept-preparation-page > header,
+      .concept-review-page > header
+    )
+    h1 {
+    font-size: 28px;
+  }
+  .customer-ui :is(.concept-preparation, .concept-review-page) h2 {
+    font-size: 20px;
+  }
+  .customer-ui .cps-card {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    padding: 16px;
+    min-height: 0;
+  }
+  .customer-ui .cps-portrait {
+    aspect-ratio: 1;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+  }
+  .customer-ui .cps-identity {
+    padding-block: 0;
+    align-items: stretch;
+  }
+  .customer-ui .cps-card h2 {
+    font-size: 24px;
+  }
+  .customer-ui .cps-profile-link {
+    justify-content: center;
+  }
+  .customer-ui .cps-selected {
+    top: 24px;
+    right: 24px;
+  }
+  .customer-ui .cps-decision {
+    margin: 24px -20px -32px;
+    padding: 16px 20px max(16px, env(safe-area-inset-bottom));
+    gap: 12px;
+    background: var(--customer-canvas);
+  }
+  .customer-ui .cps-decision > strong {
+    flex: 1;
+    font-size: 14px;
+  }
+  .customer-ui .cps-decision > div {
+    gap: 0;
+  }
+  .customer-ui .cps-session {
+    font-size: 14px;
+  }
+}

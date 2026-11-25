@@ -52,7 +52,7 @@ import { useAppDispatch, useAppSelector } from '../store';
 import { fetchCustomers } from '../store/slices/customersSlice';
 import { fetchPackages } from '../store/slices/packagesSlice';
 import { fetchSchedules } from '../store/slices/schedulesSlice';
-import { fetchPhotographers, fetchSales } from '../store/slices/usersSlice';
+import { fetchPhotographers, fetchCoordinators } from '../store/slices/usersSlice';
 import type { CostumeResponse, ScheduleResponse } from '../types';
 import { ROLE_LABELS } from '../types';
 import { formatDate } from '../utils/format';
@@ -386,7 +386,7 @@ const StaffSchedulesPage = () => {
   const { list: schedules, total, loading, error } = useAppSelector((s) => s.schedules);
   const { list: customers } = useAppSelector((s) => s.customers);
   const { list: packages } = useAppSelector((s) => s.packages);
-  const { photographers, sales: salesUsers } = useAppSelector((s) => s.users);
+  const { photographers, coordinators: coordinatorUsers } = useAppSelector((s) => s.users);
   const { list: seasons, selectedSeasonId } = useAppSelector((s) => s.seasons);
   const [filter, setFilter] = useState<FilterState>(defaultFilter);
   const [appliedFilter, setAppliedFilter] = useState<FilterState>(defaultFilter);
@@ -454,7 +454,7 @@ const StaffSchedulesPage = () => {
     );
     dispatch(fetchPackages());
     dispatch(fetchPhotographers());
-    dispatch(fetchSales());
+    dispatch(fetchCoordinators());
     costumeService.getAll().then(setAllCostumes);
   }, [dispatch, appliedFilter, page, pageSize, selectedSeasonId]);
 
@@ -719,8 +719,8 @@ const StaffSchedulesPage = () => {
       render: (s) => s.package?.name ?? '—',
     },
     {
-      key: 'sale',
-      header: 'Sale',
+      key: 'coordinator',
+      header: 'Người phụ trách',
       render: (s) => {
         const fullName = s.bookedBy?.name ?? s.bookedBy?.username;
         if (!fullName) return '—';
@@ -1116,14 +1116,14 @@ const StaffSchedulesPage = () => {
             <FormField label="Địa điểm" htmlFor="location" className="lg:col-span-3">
               <Input id="location" {...register('location')} />
             </FormField>
-            <FormField label="Người chốt lớp (Sale)" htmlFor="schedule-sale">
+            <FormField label="Người phụ trách" htmlFor="schedule-coordinator">
               <Controller
                 name="bookedBy"
                 control={control}
                 render={({ field }) => (
                   <Combobox
-                    id="schedule-sale"
-                    options={salesUsers.map((u) => ({
+                    id="schedule-coordinator"
+                    options={coordinatorUsers.map((u) => ({
                       value: u._id,
                       label: u.username + (u.name ? ` (${u.name})` : ''),
                     }))}
@@ -1313,7 +1313,7 @@ const StaffSchedulesPage = () => {
               <dl className="grid gap-4 sm:grid-cols-2">
                 {[
                   {
-                    label: 'Sale',
+                    label: 'Người phụ trách',
                     people: detail.bookedBy
                       ? [detail.bookedBy.name ?? detail.bookedBy.username]
                       : [],

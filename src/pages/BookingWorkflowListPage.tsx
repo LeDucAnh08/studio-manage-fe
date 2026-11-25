@@ -37,7 +37,7 @@ function StaffBookingWorkflowListPage() {
     requestedService === 'yearbook' || (requestedService === 'concept' && conceptBookingEnabled)
       ? requestedService
       : '';
-  const canSeeYearbook = !!user?.roles.some((role) => [0, 1, 3, 5].includes(role));
+  const canSeeYearbook = !!user?.roles.some((role) => [0, 1, 3].includes(role));
   const requestedStage = params.get('view') || '';
   const filter: BookingOrderStage | '' = Object.keys(bookingOrderStageLabels).includes(
     requestedStage,
@@ -84,7 +84,6 @@ function StaffBookingWorkflowListPage() {
     };
   }, [page, filter, service, reloadKey, user?._id]);
 
-  const isAccountant = !!user?.roles.includes(5);
   const isPhotographer = !!user?.roles.includes(3);
   const isAdmin = !!user?.roles.some((role) => role === 0 || role === 1);
 
@@ -179,7 +178,7 @@ function StaffBookingWorkflowListPage() {
           ? date(item.shootDate) + (item.startTime ? ' · ' + item.startTime : '')
           : 'Chưa chốt lịch',
     },
-    ...(isAccountant
+    ...(isAdmin
       ? [
           {
             key: 'payment',
@@ -233,11 +232,9 @@ function StaffBookingWorkflowListPage() {
         as="h1"
         title="Đơn chụp ảnh"
         description={
-          isAccountant
-            ? 'Theo dõi các khoản thu, cọc và số dư của hồ sơ dịch vụ.'
-            : isPhotographer
-              ? 'Chăm sóc đơn được giao, theo dõi lịch và tiến độ bàn giao.'
-              : 'Xử lý yêu cầu, phân công ekip và theo dõi lịch chụp, thanh toán, bàn giao.'
+          isPhotographer
+            ? 'Chăm sóc đơn được giao, theo dõi lịch và tiến độ bàn giao.'
+            : 'Xử lý yêu cầu, phân công ekip và theo dõi lịch chụp, thanh toán, bàn giao.'
         }
         action={
           <Button
@@ -314,7 +311,7 @@ function StaffBookingWorkflowListPage() {
           loading={loading}
           emptyTitle="Chưa có đơn chụp ảnh phù hợp"
           emptyDescription={
-            isAdmin || isAccountant
+            isAdmin
               ? 'Bạn có thể đổi loại đơn chụp hoặc trạng thái để xem các đơn khác.'
               : 'Đơn được phân công cho bạn sẽ xuất hiện tại đây.'
           }

@@ -79,9 +79,9 @@
 .customer-ui .customer-wizard__headline {
   margin: 0;
   color: var(--customer-ink);
-  font-size: var(--customer-display-xl-size);
-  font-weight: var(--customer-display-xl-weight);
-  line-height: var(--customer-display-xl-line);
+  font-size: var(--customer-page-heading-size);
+  font-weight: 600;
+  line-height: 1.25;
   letter-spacing: 0;
   overflow-wrap: anywhere;
 }

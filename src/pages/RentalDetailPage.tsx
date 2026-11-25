@@ -88,8 +88,8 @@ export default function RentalDetailPage() {
   const { user } = useAuth();
   const roles = user?.roles ?? [];
   const admin = roles.includes(0) || roles.includes(1),
-    sale = admin || roles.includes(2),
-    finance = admin || roles.includes(5),
+    canManageQuotes = admin,
+    finance = admin,
     client = roles.includes(6);
   const [adminTab, setAdminTab] = useState({ orderId: '', value: 'overview' });
   const [order, setOrder] = useState<RentalOrder | null>(null);
@@ -294,7 +294,7 @@ export default function RentalDetailPage() {
       : ['awaiting_deposit', 'ready_to_confirm'].includes(order.status)
         ? 'cancel'
         : changeKind;
-  const canQuote = sale && ['requested', 'quoting'].includes(order.status);
+  const canQuote = canManageQuotes && ['requested', 'quoting'].includes(order.status);
   const kinds = order.payment?.refundDue
     ? ['refund']
     : order.payment?.due &&
@@ -1291,12 +1291,12 @@ export default function RentalDetailPage() {
               )}
             </>
           )}
-          {changeOpen && (client || sale) && (
+          {changeOpen && (client || canManageQuotes) && (
             <Button variant="outline" disabled={busy} onClick={() => void act('change.decline')}>
               Đóng yêu cầu thay đổi
             </Button>
           )}
-          {sale && changeOpen && (
+          {canManageQuotes && changeOpen && (
             <form
               className="space-y-3 border-t pt-4"
               onSubmit={(event) => {

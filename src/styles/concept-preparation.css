@@ -5,6 +5,11 @@
   padding-top: 14px;
   padding-bottom: 32px;
 }
+@media (max-width: 743px) {
+  .customer-ui .concept-preparation-page .concept-preparation :is(input, select, textarea) {
+    font-size: 16px;
+  }
+}
 .concept-preparation-page > header h1 {
   margin: 14px 0 4px;
   font-size: 30px;

@@ -274,9 +274,8 @@ export default function BookingWorkflowDetailPage() {
   const roles = user?.roles ?? [];
   const isAdmin = roles.includes(0) || roles.includes(1);
   const isClient = roles.includes(6);
-  const isAccountant = !isAdmin && roles.includes(5);
   const isPhotographer = !isAdmin && !isClient && roles.includes(3);
-  const canSeeFinancials = isAdmin || isClient || isAccountant;
+  const canSeeFinancials = isAdmin || isClient;
   const photographerWorkspace = isPersonalPhotographer(user) && !canSeeFinancials && !customer;
   const [record, setRecord] = useState<BookingWorkflowDto | null>(null);
   const [adminTab, setAdminTab] = useState({ orderId: '', value: 'overview' });
@@ -450,7 +449,7 @@ export default function BookingWorkflowDetailPage() {
       ? workflow.lifecycle === 'confirmed'
       : ['awaiting_deposit', 'ready_to_confirm'].includes(workflow.lifecycle))
   );
-  const isPaymentEntryAvailable = isAdmin || isAccountant;
+  const isPaymentEntryAvailable = isAdmin;
   const availablePaymentKinds: Array<'deposit' | 'balance' | 'refund'> = [];
   if (isPaymentEntryAvailable && workflow?.quote?.acceptedAt) {
     if (
@@ -1691,8 +1690,8 @@ export default function BookingWorkflowDetailPage() {
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {workflow.depositPayment
-                ? 'Các khoản chuyển khoản được SePay tự ghi nhận; Admin/Kế toán xử lý tiền mặt và đối soát ngoại lệ.'
-                : 'Các khoản dưới đây do Admin hoặc Kế toán ghi nhận sau khi kiểm tra giao dịch thực tế.'}
+                ? 'Các khoản chuyển khoản được SePay tự ghi nhận; Quản trị viên xử lý tiền mặt và đối soát ngoại lệ.'
+                : 'Các khoản dưới đây do quản trị viên ghi nhận sau khi kiểm tra giao dịch thực tế.'}
             </p>
           </div>
           {customer ? (
@@ -1758,12 +1757,6 @@ export default function BookingWorkflowDetailPage() {
                 </p>
               </div>
             </div>
-          )}
-          {isAccountant && (
-            <p className="text-sm text-muted-foreground">
-              Kế toán chỉ xem và ghi nhận khoản thu, cọc, thanh toán còn lại hoặc hoàn tiền trong hồ
-              sơ này.
-            </p>
           )}
           {effectivePayment.entries.length > 0 ? (
             <div

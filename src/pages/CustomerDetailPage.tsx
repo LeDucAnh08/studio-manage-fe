@@ -20,7 +20,7 @@ const CustomerDetailPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const canOpenOrders = !!user?.roles.some((role) => [0, 1, 3, 5].includes(role));
+  const canOpenOrders = !!user?.roles.some((role) => [0, 1, 3].includes(role));
   const savedReturnTo = location.state?.classListReturnTo;
   const returnTo =
     typeof savedReturnTo === 'string' && savedReturnTo.startsWith('/customers?')

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ArrowRight, Check } from 'lucide-react';
 import { portfolioImages } from '../assets/images/portfolio-images';
 import Logo from '../components/atoms/Logo';
 import PublicSiteLayout from '../components/Layout/PublicSiteLayout';
@@ -84,7 +85,7 @@ export default function PortfolioPage() {
       <div className="customer-portfolio">
         <section id="top" className="customer-portfolio__band">
           <div className="customer-portfolio__container customer-portfolio__hero">
-            <div>
+            <div className="customer-portfolio__hero-copy">
               <p className="customer-portfolio__eyebrow">Studio chụp ảnh kỷ yếu chuyên nghiệp</p>
               <h1 className="customer-page-title customer-portfolio__title">
                 Lưu giữ thanh xuân
@@ -92,9 +93,8 @@ export default function PortfolioPage() {
                 qua từng khung hình
               </h1>
               <p className="customer-portfolio__copy">
-                Yume Studio đồng hành cùng các lớp 12, sinh viên năm cuối tạo nên những bộ ảnh và
-                video kỷ yếu chuẩn điện ảnh – nơi mỗi nụ cười, mỗi cái ôm đều trở thành kỷ niệm
-                không bao giờ phai.
+                Chụp ảnh và video kỉ yếu cho lớp 12, sinh viên năm cuối. Yume ghi lại những nụ cười,
+                cái ôm và những ngày còn chung lớp.
               </p>
               <div className="customer-portfolio__actions">
                 {isAuthenticated && clientPortalEnabled && (
@@ -112,14 +112,6 @@ export default function PortfolioPage() {
                     <Link to="/login">Đăng nhập</Link>
                   </CustomerButton>
                 )}
-              </div>
-              <div className="customer-portfolio__stats">
-                {stats.map((stat) => (
-                  <div key={stat.label} className="customer-portfolio__stat">
-                    <strong>{stat.num}</strong>
-                    <span>{stat.label}</span>
-                  </div>
-                ))}
               </div>
             </div>
             <div className="customer-portfolio__hero-images">
@@ -140,6 +132,14 @@ export default function PortfolioPage() {
                 ),
               )}
             </div>
+            <div className="customer-portfolio__stats">
+              {stats.map((stat) => (
+                <div key={stat.label} className="customer-portfolio__stat">
+                  <strong>{stat.num}</strong>
+                  <span>{stat.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -149,9 +149,8 @@ export default function PortfolioPage() {
               <p className="customer-portfolio__eyebrow">Về Yume Studio</p>
               <h2 className="customer-portfolio__heading">Mỗi bộ ảnh là một câu chuyện</h2>
               <p className="customer-portfolio__copy">
-                Chúng tôi không chỉ chụp ảnh – chúng tôi kể lại tuổi 18 của bạn bằng ngôn ngữ điện
-                ảnh. Từ ánh sáng, màu sắc đến từng khoảnh khắc tự nhiên nhất, Yume Studio biến buổi
-                chụp kỷ yếu thành một ngày đáng nhớ trong đời.
+                Yume kể lại tuổi 18 qua ánh sáng, màu sắc và những khoảnh khắc tự nhiên. Để mỗi buổi
+                chụp kỉ yếu trở thành một ngày cả lớp cùng nhớ.
               </p>
               <p className="customer-portfolio__copy">
                 Hơn 5 năm đồng hành cùng các lớp và sinh viên trên khắp cả nước, chúng tôi tự hào là
@@ -165,7 +164,7 @@ export default function PortfolioPage() {
                   'Hệ thống quản lý lịch & trang phục online minh bạch',
                 ].map((item) => (
                   <li key={item}>
-                    <span aria-hidden="true">✓</span>
+                    <Check size={16} strokeWidth={1.5} aria-hidden="true" />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -178,16 +177,18 @@ export default function PortfolioPage() {
                     key={image.original.file}
                     {...image}
                     alt=""
-                    sizes="(min-width: 1280px) 187px, (min-width: 1128px) calc((100vw - 160px) / 6), (min-width: 744px) calc((100vw - 144px) / 6), calc((100vw - 64px) / 3)"
+                    sizes="(min-width: 1280px) 143px, (min-width: 1128px) calc((100vw - 136px) / 8), (min-width: 744px) calc((100vw - 120px) / 8), calc((100vw - 56px) / 3)"
                   />
                 ))}
-                <div className="customer-portfolio__about-logo">
-                  <Logo size={120} />
-                </div>
               </div>
               <div className="customer-portfolio__about-facts">
-                <span>Khách hàng hài lòng · 98%</span>
-                <span>Hàng trăm lớp đã chọn</span>
+                <div className="customer-portfolio__about-logo" aria-hidden="true">
+                  <Logo size={48} />
+                </div>
+                <div className="customer-portfolio__about-caption">
+                  <span>Khách hàng hài lòng · 98%</span>
+                  <span>Hàng trăm lớp đã chọn</span>
+                </div>
               </div>
             </div>
           </div>
@@ -224,7 +225,9 @@ export default function PortfolioPage() {
                   <p className="customer-portfolio__card-copy">{item.text}</p>
                   {isAuthenticated && (
                     <CustomerButton asChild variant="text">
-                      <Link to={item.to}>Xem chi tiết →</Link>
+                      <Link to={item.to}>
+                        Xem chi tiết <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
+                      </Link>
                     </CustomerButton>
                   )}
                 </CustomerSurface>

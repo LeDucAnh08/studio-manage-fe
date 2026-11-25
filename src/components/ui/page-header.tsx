@@ -26,12 +26,8 @@ export const PageHeader = ({
     )}
   >
     <div className="space-y-1">
-      {kicker && (
-        <span className="text-xs font-semibold uppercase tracking-wider text-primary">
-          {kicker}
-        </span>
-      )}
       <Heading className="text-2xl font-bold tracking-tight text-foreground">{title}</Heading>
+      {kicker && <p className="text-sm text-muted-foreground">{kicker}</p>}
       {description && <p className="text-sm text-muted-foreground">{description}</p>}
     </div>
     {action && <div className="self-start md:self-auto">{action}</div>}

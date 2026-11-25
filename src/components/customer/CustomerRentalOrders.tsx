@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import { CustomerButton } from './CustomerButton';
 import { CustomerPrice } from './CustomerPrice';
 import { CustomerOrdersWorkspace } from './CustomerOrdersWorkspace';
+import { CustomerOrderThumbnail } from './CustomerOrderThumbnail';
 import { RentalOrderProgress } from './RentalOrderProgress';
 import { vietnamDisplayDate as day } from '../../utils/vietnamCalendarDate';
 import {
@@ -175,6 +176,7 @@ export function CustomerRentalOrders() {
               )
             }
           >
+            <CustomerOrderThumbnail src={item.thumbnailUrl} service="rental" />
             <span className="customer-orders-list__item-heading">
               <span>{titleFor(item)}</span>
               <span

@@ -28,7 +28,7 @@
   display: inline-flex;
   align-items: center;
   justify-self: start;
-  min-height: 24px;
+  min-height: 44px;
   gap: 8px;
   color: var(--customer-muted);
   font-size: 14px;

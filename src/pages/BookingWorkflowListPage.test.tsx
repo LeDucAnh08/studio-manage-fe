@@ -136,11 +136,11 @@ describe('unified photography workspace', () => {
     expect(screen.getByRole('combobox', { name: 'Loại đơn chụp' })).toHaveValue('concept');
     expect(shootOrdersService.list).toHaveBeenLastCalledWith(2, 20, '', 'concept');
   });
-  it('keeps sales limited to concept orders without offering the yearbook filter', async () => {
-    auth.user = { _id: 'sales', roles: [2] };
+  it('keeps both service filters available to administrators', async () => {
+    auth.user = { _id: 'finance-admin', roles: [1] };
     open();
     await screen.findByRole('link', { name: '12A1' });
-    expect(screen.queryByRole('option', { name: 'Kỉ yếu' })).not.toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Kỉ yếu' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Concept' })).toBeInTheDocument();
   });
   it('restores filters and pagination from the URL and retains them when opening a record', async () => {

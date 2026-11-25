@@ -22,17 +22,17 @@
   gap: 16px;
   padding: 16px 24px;
   min-height: 56px;
-  border: 1px solid #ff385c;
+  border: 1px solid var(--customer-primary);
   border-radius: 10px;
-  background: #ff385c;
+  background: var(--customer-primary);
   color: #fff;
   font-size: 20px;
   font-weight: 500;
   cursor: pointer;
 }
 .cps .cps-next:hover {
-  background: #e9254d;
-  border-color: #e9254d;
+  background: var(--customer-primary-hover);
+  border-color: var(--customer-primary-hover);
 }
 .concept-photographer-selection-page {
   max-width: 1544px;
@@ -52,7 +52,7 @@
   display: inline-flex;
   align-items: center;
   gap: 14px;
-  min-height: 32px;
+  min-height: 44px;
   color: #222;
   font-size: 18px;
   text-decoration: none;
@@ -127,8 +127,8 @@
   border-radius: 20px;
 }
 .cps-card[data-selected='true'] {
-  border-color: #ff385c;
-  box-shadow: inset 0 0 0 0.5px #ff385c;
+  border-color: var(--customer-primary);
+  box-shadow: inset 0 0 0 1px var(--customer-primary);
 }
 .cps-portrait {
   width: 100%;

@@ -4,6 +4,7 @@ import { ArrowRight, LoaderCircle } from 'lucide-react';
 import { CustomerButton } from './CustomerButton';
 import { BookingOrderProgress } from './BookingOrderProgress';
 import { CustomerOrdersWorkspace } from './CustomerOrdersWorkspace';
+import { CustomerOrderThumbnail } from './CustomerOrderThumbnail';
 import { useCurrentTime } from './useCurrentTime';
 import { useShootWindowRefresh } from './useShootWindowRefresh';
 import { vietnamDisplayDate as day } from '../../utils/vietnamCalendarDate';
@@ -251,6 +252,7 @@ export function CustomerBookingOrders() {
               )
             }
           >
+            <CustomerOrderThumbnail src={item.thumbnailUrl} service="yearbook" />
             <span className="customer-orders-list__item-heading">
               <span>{item.packageName}</span>
               <span

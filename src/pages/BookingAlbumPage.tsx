@@ -1,3 +1,5 @@
+import { isQueuedAlbum } from '../services/backgroundJobService';
+import { useAlbumOperation } from '../hooks/useAlbumOperation';
 import { CustomerTextarea } from '@/components/customer/CustomerFields';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
@@ -156,7 +158,7 @@ export default function BookingAlbumPage({
   const [loaded, setLoaded] = useState(false),
     [error, setError] = useState(''),
     [notice, setNotice] = useState(''),
-    [busy, setBusy] = useState(false);
+    [saving, setBusy] = useState(false);
   const [title, setTitle] = useState(''),
     [limit, setLimit] = useState('0'),
     [folders, setFolders] = useState(''),
@@ -240,8 +242,10 @@ export default function BookingAlbumPage({
       setError(albumError(e));
     }
   };
+  const background = useAlbumOperation('yearbook', id, staff, refresh);
+  const busy = saving || background.pending;
   const command = async (operation: string, data: Record<string, unknown> = {}) => {
-    if (inflight.current) return;
+    if (inflight.current || background.pending) return;
     if (
       operation === 'photo' &&
       data.note !== undefined &&
@@ -260,6 +264,11 @@ export default function BookingAlbumPage({
     try {
       const next = await client.command(operation, payload, keys.current.get(signature)!);
       if (currentIdentity.current !== identity) return;
+      if (isQueuedAlbum(next)) {
+        background.watch(next.backgroundOperation);
+        keys.current.delete(signature);
+        return;
+      }
       apply(next);
       keys.current.delete(signature);
       setNotice('Đã lưu.');
@@ -443,6 +452,9 @@ export default function BookingAlbumPage({
           </p>
         )}
         {notice && <p role="status">{notice}</p>}
+        {background.message && (
+          <p role={background.failed ? 'alert' : 'status'}>{background.message}</p>
+        )}
       </div>
       {!loaded ? (
         <p role="status">Đang mở album…</p>
@@ -999,6 +1011,9 @@ export default function BookingAlbumPage({
                         </p>
                       )}
                       {notice && <p role="status">{notice}</p>}
+                      {background.message && (
+                        <p role={background.failed ? 'alert' : 'status'}>{background.message}</p>
+                      )}
                       <button disabled={busy} onClick={() => void refresh()}>
                         Tải lại album · giữ ghi chú đang viết
                       </button>

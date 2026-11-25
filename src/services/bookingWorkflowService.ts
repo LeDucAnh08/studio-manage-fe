@@ -315,6 +315,7 @@ export interface WorkflowSummary {
   lifecycle: BookingWorkflowLifecycle;
   packageName: string;
   className?: string;
+  thumbnailUrl?: string;
   school?: string;
   startTime?: string;
   shootDate: string | null;

@@ -55,6 +55,7 @@ export interface RentalSettlement {
 }
 export interface RentalOrder {
   _id: string;
+  thumbnailUrl?: string;
   version: number;
   status: string;
   orderStage?: RentalStage;

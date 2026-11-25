@@ -70,7 +70,14 @@ const Sidebar = ({ isOpen, onClose, triggerRef }: SidebarProps) => {
     const target = activeLink?.closest('[hidden]')
       ? activeGroupToggle
       : (activeLink ?? activeGroupToggle);
-    target?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    const container = navRef.current;
+    if (!target || !container) return;
+    // Scrolling the link itself changes Chrome's sequential keyboard starting point.
+    const bounds = container.getBoundingClientRect();
+    const itemBounds = target.getBoundingClientRect();
+    if (itemBounds.top < bounds.top) container.scrollTop += itemBounds.top - bounds.top;
+    else if (itemBounds.bottom > bounds.bottom)
+      container.scrollTop += itemBounds.bottom - bounds.bottom;
   }, [location.pathname, openGroup]);
 
   useEffect(() => {

@@ -30,6 +30,7 @@ import { CustomerImage } from '../components/customer/CustomerImage';
 import '../styles/concept-photographer.css';
 import '../styles/concept-preparation.css';
 import '../styles/concept-review.css';
+import '../styles/customer-booking-visual.css';
 import {
   studioDay,
   addCalendarDays as addDay,

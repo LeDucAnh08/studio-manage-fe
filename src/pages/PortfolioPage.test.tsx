@@ -5,7 +5,7 @@ import type { User } from '../types';
 import PortfolioPage from './PortfolioPage';
 
 const auth = vi.hoisted(() => ({
-  user: { roles: [2] } as User | null,
+  user: { roles: [1] } as User | null,
   isAuthenticated: true,
   logout: vi.fn(),
 }));

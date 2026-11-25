@@ -1,3 +1,5 @@
+import { isQueuedAlbum } from '../services/backgroundJobService';
+import { useAlbumOperation } from '../hooks/useAlbumOperation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useParams } from 'react-router-dom';
@@ -249,7 +251,7 @@ export default function ConceptAlbumPanel({
   const id = order._id;
   const [album, setAlbum] = useState<ConceptAlbum | null>(null),
     [error, setError] = useState(''),
-    [busy, setBusy] = useState(false),
+    [saving, setBusy] = useState(false),
     [folders, setFolders] = useState(''),
     [title, setTitle] = useState(order.snapshot.name),
     [share, setShare] = useState('');
@@ -279,7 +281,13 @@ export default function ConceptAlbumPanel({
       active = false;
     };
   }, [id, order.version]);
+  const background = useAlbumOperation('concept', id, order.canEdit, async () => {
+    await load();
+    onOrderChange();
+  });
+  const busy = saving || background.pending;
   const command = async (operation: string, body: Record<string, unknown> = {}) => {
+    if (background.pending || saving) return false;
     if (
       operation === 'finalize' &&
       (!consent || !album?.photos.some((photo) => photo.version === 0 && photo.selected))
@@ -314,6 +322,11 @@ export default function ConceptAlbumPanel({
       retry.current = { signature, key: crypto.randomUUID() };
     try {
       const result = await conceptService.albumCommand(id, operation, payload, retry.current.key);
+      if (isQueuedAlbum(result)) {
+        background.watch(result.backgroundOperation);
+        retry.current = null;
+        return true;
+      }
       setAlbum(result);
       retry.current = null;
       onOrderChange();
@@ -346,6 +359,9 @@ export default function ConceptAlbumPanel({
             Tải lại album
           </Button>
         </p>
+      )}
+      {background.message && (
+        <p role={background.failed ? 'alert' : 'status'}>{background.message}</p>
       )}
       {order.canEdit && (
         <details className="concept-card" open={!album}>

@@ -138,9 +138,9 @@ describe('Login appearance preserves authentication and return contracts', () =>
 
   it.each([
     { roles: [6], target: '/booking/start?source=portfolio#review' },
-    { roles: [5, 6], target: '/booking/start?source=portfolio#review' },
-    { roles: [5], target: '/manage/finance' },
-    { roles: [0, 5], target: '/' },
+    { roles: [1, 6], target: '/booking/start?source=portfolio#review' },
+    { roles: [1], target: '/' },
+    { roles: [0, 1], target: '/' },
     { roles: [0], target: '/' },
   ])('keeps role priority for $roles', async ({ roles, target }) => {
     loginMock.mockResolvedValueOnce({ roles });

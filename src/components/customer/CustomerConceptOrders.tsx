@@ -5,6 +5,7 @@ import { CustomerButton } from './CustomerButton';
 import { CustomerPrice } from './CustomerPrice';
 import { ConceptOrderProgress } from './ConceptOrderProgress';
 import { CustomerOrdersWorkspace } from './CustomerOrdersWorkspace';
+import { CustomerOrderThumbnail } from './CustomerOrderThumbnail';
 import { vietnamDisplayDate as day } from '../../utils/vietnamCalendarDate';
 import {
   conceptError,
@@ -189,6 +190,7 @@ export function CustomerConceptOrders() {
                 )
               }
             >
+              <CustomerOrderThumbnail src={order.snapshot.imageUrl} service="concept" />
               <span className="customer-orders-list__item-heading">
                 <span>{order.snapshot.name}</span>
                 <span

@@ -24,7 +24,7 @@ describe('layout breadcrumbs', () => {
 
     const breadcrumb = screen.getByRole('navigation', { name: 'Đường dẫn' });
     expect(breadcrumb).toHaveTextContent('Khách hàng');
-    expect(breadcrumb).toHaveTextContent('Chi tiết khách hàng');
+    expect(breadcrumb).toHaveTextContent('Chi tiết lớp học');
     expect(screen.getByRole('link', { name: 'Khách hàng' })).toHaveAttribute('href', '/customers');
     expect(breadcrumb.compareDocumentPosition(screen.getByText('Nội dung khách hàng'))).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,

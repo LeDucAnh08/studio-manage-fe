@@ -291,7 +291,7 @@ function App() {
                         <Route
                           path="concept-orders/:id"
                           element={
-                            <ProtectedRoute allowedRoles={[0, 1, 2, 3, 5]}>
+                            <ProtectedRoute allowedRoles={[0, 1, 3]}>
                               <ConceptOrderPage />
                             </ProtectedRoute>
                           }
@@ -350,7 +350,7 @@ function App() {
                   <Route
                     path="/"
                     element={
-                      <ProtectedRoute allowedRoles={[0, 1, 2, 3, 4, 5]}>
+                      <ProtectedRoute allowedRoles={[0, 1, 3]}>
                         <Layout />
                       </ProtectedRoute>
                     }
@@ -368,7 +368,7 @@ function App() {
                       <Route
                         path="concept-orders/:id"
                         element={
-                          <ProtectedRoute allowedRoles={[0, 1, 2, 3, 5]}>
+                          <ProtectedRoute allowedRoles={[0, 1, 3]}>
                             <ConceptOrderPage />
                           </ProtectedRoute>
                         }
@@ -386,7 +386,7 @@ function App() {
                       <Route
                         path="rental-orders/:id"
                         element={
-                          <ProtectedRoute allowedRoles={[0, 1, 2, 4, 5]}>
+                          <ProtectedRoute allowedRoles={[0, 1]}>
                             <RentalDetailPage />
                           </ProtectedRoute>
                         }
@@ -396,7 +396,7 @@ function App() {
                       <Route
                         path="workflow-bookings/:id"
                         element={
-                          <ProtectedRoute allowedRoles={[0, 1, 3, 5]}>
+                          <ProtectedRoute allowedRoles={[0, 1, 3]}>
                             <BookingWorkflowDetailPage />
                           </ProtectedRoute>
                         }

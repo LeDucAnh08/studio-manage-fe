@@ -40,6 +40,16 @@ describe('Sidebar navigation', () => {
       configurable: true,
       value: scrollIntoView,
     });
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this.matches('nav[aria-label="Chức năng nội bộ"]')) return new DOMRect(0, 80, 240, 160);
+      if (this.matches('a[aria-current="page"]')) {
+        const container = this.closest('nav');
+        return new DOMRect(0, 260 - (container?.scrollTop ?? 0), 200, 40);
+      }
+      return new DOMRect();
+    });
   });
   afterEach(() => vi.restoreAllMocks());
 
@@ -170,7 +180,7 @@ describe('Sidebar navigation', () => {
     );
     expect(screen.queryByRole('button', { name: 'Quản lý trang phục' })).not.toBeInTheDocument();
   });
-  it.each([{ roles: [0] }, { roles: [3] }, { roles: [5] }])(
+  it.each([{ roles: [0] }, { roles: [3] }, { roles: [1] }])(
     'shows one photography workspace for roles $roles',
     ({ roles }) => {
       mocks.roles = roles;
@@ -231,57 +241,48 @@ describe('Sidebar navigation', () => {
     expect(screen.queryByRole('button', { name: 'Đăng xuất →' })).not.toBeInTheDocument();
   });
 
-  it('keeps only one group open and exposes the controlled panel to assistive technology', () => {
-    mocks.roles = [2, 5];
+  it('keeps retired finance permissions out of a legacy photographer account', () => {
+    mocks.roles = [3, 5];
     render(
-      <MemoryRouter initialEntries={['/customers']}>
+      <MemoryRouter initialEntries={['/workflow-bookings']}>
         <Sidebar isOpen onClose={vi.fn()} />
       </MemoryRouter>,
     );
-
-    const customers = screen.getByRole('button', { name: 'Khách hàng' });
-    const manage = screen.getByRole('button', { name: 'Quản lý' });
-    const customersPanel = document.getElementById(customers.getAttribute('aria-controls')!);
-
-    expect(customers).toHaveAttribute('aria-expanded', 'true');
-    expect(customersPanel).not.toBeNull();
-    expect(customersPanel).not.toHaveAttribute('hidden');
-    expect(screen.queryByRole('link', { name: 'Thông tin học sinh' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Danh sách lớp học' })).toHaveAttribute(
+    expect(screen.queryByRole('link', { name: 'Tài chính' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Người dùng' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Đơn chụp ảnh' })).toHaveAttribute(
       'aria-current',
       'page',
-    );
-    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest', inline: 'nearest' });
-
-    fireEvent.click(manage);
-
-    expect(customers).toHaveAttribute('aria-expanded', 'false');
-    expect(manage).toHaveAttribute('aria-expanded', 'true');
-    expect(document.getElementById(customers.getAttribute('aria-controls')!)).toHaveAttribute(
-      'hidden',
     );
   });
 
   it('opens the group for the current route and scrolls its active link into view', () => {
-    mocks.roles = [2, 5];
+    mocks.roles = [1];
     render(
       <MemoryRouter initialEntries={['/customers']}>
         <Sidebar isOpen onClose={vi.fn()} />
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Quản lý' }));
-    fireEvent.click(screen.getByRole('link', { name: 'Tài chính' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Quản lý trang phục' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Kho trang phục' }));
 
     expect(screen.getByRole('button', { name: 'Khách hàng' })).toHaveAttribute(
       'aria-expanded',
       'false',
     );
-    expect(screen.getByRole('button', { name: 'Quản lý' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Quản lý trang phục' })).toHaveAttribute(
       'aria-expanded',
       'true',
     );
-    expect(screen.getByRole('link', { name: 'Tài chính' })).toHaveAttribute('aria-current', 'page');
-    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest', inline: 'nearest' });
+    expect(screen.getByRole('link', { name: 'Kho trang phục' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    const navigation = screen.getByRole('navigation', { name: 'Chức năng nội bộ' });
+    expect(
+      screen.getByRole('link', { name: 'Kho trang phục' }).getBoundingClientRect().bottom,
+    ).toBeLessThanOrEqual(navigation.getBoundingClientRect().bottom);
+    expect(scrollIntoView).not.toHaveBeenCalled();
   });
 });

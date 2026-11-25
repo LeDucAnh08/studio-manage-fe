@@ -34,11 +34,7 @@ const ProtectedRoute = ({ children, requiredRole, allowedRoles }: Props) => {
         replace
       />
     );
-  const home = user?.roles?.includes(6)
-    ? '/account/orders'
-    : user?.roles?.includes(5) && user.roles.length === 1
-      ? '/manage/finance'
-      : '/';
+  const home = user?.roles?.includes(6) ? '/account/orders' : '/';
   if (requiredRole !== undefined && !user?.roles?.includes(requiredRole))
     return <Navigate to={home} replace />;
   if (allowedRoles && !user?.roles?.some((r) => allowedRoles.includes(r)))

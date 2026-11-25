@@ -676,7 +676,7 @@ describe('automatic paid rental terms', () => {
   });
 
   it('records cash consistently and directs bank collections to receipt reconciliation', async () => {
-    mocks.auth.user = { _id: 'finance-1', roles: [5] };
+    mocks.auth.user = { _id: 'finance-1', roles: [1] };
     const record = orderFixture();
     record.autoCheckout = true;
     record.status = 'confirmed';
@@ -754,7 +754,7 @@ describe('daily and legacy rental detail', () => {
   });
 
   it('leaves an unknown daily quote rate blank instead of zero for staff', async () => {
-    mocks.auth.user = { _id: 'sale-1', roles: [2] };
+    mocks.auth.user = { _id: 'admin-1', roles: [1] };
     const order = orderFixture();
     order.quote = null;
     delete order.requestedLines[0].unitPrice;

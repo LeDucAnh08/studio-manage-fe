@@ -168,6 +168,28 @@ describe('Customer shared navigation', () => {
     },
   );
 
+  it.each([
+    '/account/bookings/order-1',
+    '/account/rentals/order-1',
+    '/account/concept-orders/order-1',
+  ])('keeps Đơn của tôi active in a customer order profile at %s', (pathname) => {
+    render(
+      <MemoryRouter initialEntries={[pathname]}>
+        <SharedCustomerHeader />
+      </MemoryRouter>,
+    );
+    const navigation = screen.getByRole('navigation', { name: 'Tài khoản khách hàng' });
+    expect(within(navigation).getByRole('link', { name: 'Đơn của tôi' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(
+      within(navigation)
+        .getAllByRole('link')
+        .filter((link) => link.hasAttribute('aria-current')),
+    ).toHaveLength(1);
+  });
+
   it('opens pricing from the signed-in mobile menu and closes the drawer', async () => {
     render(
       <MemoryRouter initialEntries={['/account/orders']}>
@@ -259,7 +281,7 @@ describe('Customer shared navigation', () => {
   });
 
   it('keeps staff account access directed to their profile', () => {
-    mocks.auth.user = { ...mocks.auth.user!, roles: [2] };
+    mocks.auth.user = { ...mocks.auth.user!, roles: [1] };
     renderHeader();
     expect(within(desktopNav()).getByRole('link', { name: 'Tài khoản' })).toHaveAttribute(
       'href',

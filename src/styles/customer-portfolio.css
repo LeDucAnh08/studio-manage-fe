@@ -46,10 +46,12 @@
 
 .customer-portfolio .customer-portfolio__title {
   margin-top: var(--customer-space-16);
-  font-size: var(--customer-display-xl-size);
-  font-weight: var(--customer-display-xl-weight);
-  line-height: var(--customer-display-xl-line);
-  letter-spacing: 0;
+  min-width: 0;
+  overflow-wrap: break-word;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.16;
+  letter-spacing: -0.025em;
 }
 
 .customer-portfolio__heading {
@@ -101,7 +103,7 @@
 .customer-portfolio__hero-images {
   display: grid;
   min-width: 0;
-  grid-template-columns: 1.4fr 1fr;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
   grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: var(--customer-space-8);
 }
@@ -381,6 +383,9 @@
 }
 
 @media (min-width: 1128px) {
+  .customer-portfolio .customer-portfolio__title {
+    font-size: 48px;
+  }
   .customer-portfolio__container {
     padding-inline: var(--customer-space-32);
   }
@@ -398,5 +403,131 @@
   .customer-portfolio__grid--concepts,
   .customer-portfolio__grid--process {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Portfolio polish · Unslop by Damir Sokolovsky (@heydamir), CC BY 4.0.
+ * Real yearbook photography leads; shared catalog styles above remain independent. */
+.customer-portfolio .customer-portfolio__hero {
+  grid-template-areas: 'copy' 'images' 'stats';
+  gap: 24px;
+}
+.customer-portfolio__hero-copy {
+  grid-area: copy;
+}
+.customer-portfolio .customer-portfolio__hero-images {
+  grid-area: images;
+}
+.customer-portfolio .customer-portfolio__stats {
+  grid-area: stats;
+  margin-top: 0;
+  gap: 16px 24px;
+}
+.customer-portfolio .customer-portfolio__stat {
+  padding-block: 8px;
+}
+.customer-portfolio .customer-portfolio__stat strong {
+  font: 500 24px/1.25 var(--customer-font);
+  font-variant-numeric: tabular-nums;
+}
+.customer-portfolio .customer-portfolio__stat span {
+  display: block;
+  margin-top: 4px;
+}
+.customer-portfolio .customer-portfolio__copy {
+  max-width: 56ch;
+  line-height: 1.6;
+}
+.customer-portfolio .customer-portfolio__heading {
+  font-size: 24px;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+.customer-portfolio .customer-portfolio__features svg {
+  flex: 0 0 16px;
+  margin-top: 4px;
+  color: var(--customer-muted);
+}
+.customer-portfolio .customer-portfolio__card-title {
+  margin-top: 0;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.customer-portfolio .customer-portfolio__card-copy,
+.customer-portfolio .customer-portfolio__testimonial blockquote {
+  line-height: 1.6;
+}
+.customer-portfolio .customer-surface {
+  border-radius: 12px;
+  border-color: var(--customer-hairline-soft);
+}
+.customer-portfolio .customer-portfolio__stars {
+  color: var(--customer-muted);
+  font-size: 16px;
+  line-height: 1.5;
+}
+.customer-portfolio .customer-portfolio__about-mosaic {
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+.customer-portfolio .customer-portfolio__about-mosaic .customer-image {
+  border-radius: 8px;
+}
+.customer-portfolio .customer-portfolio__about-facts {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  line-height: 20px;
+}
+.customer-portfolio .customer-portfolio__about-logo {
+  position: static;
+  width: 48px;
+  height: 48px;
+  transform: none;
+}
+.customer-portfolio .customer-portfolio__about-logo img {
+  display: block;
+  width: 48px;
+  height: 48px;
+}
+.customer-portfolio__about-caption {
+  display: grid;
+  gap: 4px;
+}
+@media (max-width: 743px) {
+  .customer-portfolio .customer-portfolio__band {
+    padding-block: 40px;
+  }
+  .customer-portfolio .customer-portfolio__container {
+    padding-inline: 20px;
+  }
+  .customer-portfolio .customer-portfolio__about-mosaic {
+    aspect-ratio: 1;
+  }
+}
+@media (min-width: 744px) {
+  .customer-portfolio .customer-portfolio__heading {
+    font-size: 28px;
+  }
+  .customer-portfolio .customer-portfolio__about-mosaic {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    aspect-ratio: 1;
+  }
+}
+@media (min-width: 1128px) {
+  .customer-portfolio .customer-portfolio__hero {
+    grid-template-areas: 'copy images' 'stats images';
+    gap: 32px 48px;
+  }
+  .customer-portfolio__hero-copy {
+    align-self: end;
+  }
+  .customer-portfolio .customer-portfolio__stats {
+    align-self: start;
   }
 }

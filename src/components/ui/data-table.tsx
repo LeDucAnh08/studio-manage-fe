@@ -172,7 +172,7 @@ export function DataTable<T>({
               data-align={col.align ?? 'left'}
               className={cn(
                 cellPad,
-                'font-semibold uppercase tracking-wide text-xs text-muted-foreground',
+                'font-medium text-xs text-muted-foreground',
                 alignClass[col.align ?? 'left'],
                 col.className,
               )}
@@ -190,6 +190,17 @@ export function DataTable<T>({
               key={keyExtractor(row, absoluteIndex)}
               className={cn(rowClassName?.(row, absoluteIndex), onRowClick && 'cursor-pointer')}
               style={rowStyle?.(row, absoluteIndex)}
+              tabIndex={onRowClick ? 0 : undefined}
+              onKeyDown={(event) => {
+                if (
+                  !onRowClick ||
+                  event.target !== event.currentTarget ||
+                  (event.key !== 'Enter' && event.key !== ' ')
+                )
+                  return;
+                event.preventDefault();
+                onRowClick(row, absoluteIndex);
+              }}
               onClick={(e) => {
                 if (!onRowClick) return;
                 const target = e.target as HTMLElement;

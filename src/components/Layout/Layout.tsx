@@ -12,6 +12,9 @@ const Layout = () => {
 
   return (
     <div className="staff-shell">
+      <a className="staff-skip-link" href="#staff-main-content">
+        Bỏ qua menu, đến nội dung
+      </a>
       <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} triggerRef={menuRef} />
 
       {/* Mobile top bar */}
@@ -32,7 +35,7 @@ const Layout = () => {
         <span>Yume Studio</span>
       </div>
 
-      <main className="staff-main">
+      <main id="staff-main-content" className="staff-main" tabIndex={-1}>
         <Breadcrumbs />
         <Outlet />
       </main>

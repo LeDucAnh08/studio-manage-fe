@@ -61,15 +61,7 @@ const LoginPage = () => {
     setError('');
     try {
       const user = await login(data.username, data.password);
-      navigate(
-        user.roles.includes(6)
-          ? returnTo
-            ? returnTo
-            : '/account/orders'
-          : user.roles.length === 1 && user.roles.includes(5)
-            ? '/manage/finance'
-            : '/',
-      );
+      navigate(user.roles.includes(6) ? (returnTo ? returnTo : '/account/orders') : '/');
     } catch (error) {
       const response = (error as { response?: { status?: number; data?: { message?: string } } })
         .response;

@@ -61,7 +61,7 @@ const ALL = '__all__';
 const FinancePage = () => {
   const { user } = useAuth();
   const isAdmin = user?.roles.some((r) => r === 0 || r === 1) ?? false;
-  const canRefund = user?.roles.some((r) => r === 5) ?? false;
+  const canRefund = isAdmin;
 
   const dispatch = useAppDispatch();
   const {
@@ -300,7 +300,7 @@ const FinancePage = () => {
       align: 'center',
       render: (t) => (
         <Checkbox
-          aria-label={`Kế toán đã hoàn tiền: ${transactionDescription(t)}`}
+          aria-label={`Đã hoàn tiền: ${transactionDescription(t)}`}
           checked={!!t.accountantRefunded}
           disabled={!canRefund}
           onCheckedChange={(c) => toggleRefund(t, !!c)}
@@ -764,7 +764,7 @@ const FinancePage = () => {
                         checked={!!field.value}
                         onCheckedChange={(c) => field.onChange(!!c)}
                       />
-                      <Label className="cursor-pointer">Kế toán đã hoàn tiền</Label>
+                      <Label className="cursor-pointer">Đã hoàn tiền</Label>
                     </label>
                   )}
                 />

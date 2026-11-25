@@ -1,4 +1,7 @@
-/* Staff-only theme. Customer/public surfaces keep their existing tokens. */
+/* Hallmark · checked: 2026-11-19 · genre: modern-minimal (inferred)
+ * built: the project · redesign: polish · scope: app · v2.0.0
+ * finish-review: subagent · 1 finding · 1 resolved · gap: none
+ * Preserves the approved staff palette and layouts; findings recorded in audit/ui-review-2026-11-19/REPORT.md. */
 html:root[data-app-surface='staff'] {
   --background: 220 20% 97.059%;
   --foreground: 225 12.5% 12.549%;
@@ -123,6 +126,28 @@ html:root[data-app-surface='staff'] {
 
 :root[data-app-surface='staff'] body {
   line-height: 1.57;
+}
+
+:root[data-app-surface='staff'],
+:root[data-app-surface='staff'] body {
+  overflow-x: clip;
+}
+
+.staff-skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 60;
+  padding: 12px 16px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  transform: translateY(calc(-100% - 16px));
+}
+
+.staff-skip-link:focus {
+  transform: translateY(0);
 }
 
 :root[data-app-surface='staff']::-webkit-scrollbar-thumb,
@@ -305,6 +330,11 @@ html:root[data-app-surface='staff'] {
   overflow-wrap: anywhere;
 }
 
+:root[data-app-surface='staff'] [data-ui='table'] tbody tr[tabindex='0']:focus-visible {
+  outline-offset: -2px;
+  background: var(--staff-selection);
+}
+
 :root[data-app-surface='staff'] [data-align='right'] {
   font-variant-numeric: tabular-nums;
 }
@@ -320,7 +350,7 @@ html:root[data-app-surface='staff'] {
 }
 
 :root[data-app-surface='staff'] [data-ui='dialog-content'] {
-  width: calc(100vw - 32px);
+  width: calc(100% - 32px);
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -350,7 +380,7 @@ html:root[data-app-surface='staff'] {
 }
 
 :root[data-app-surface='staff'] [data-ui='popover-content'] {
-  max-width: calc(100vw - 24px);
+  max-width: var(--radix-popover-content-available-width);
   max-height: var(--radix-popover-content-available-height);
   overflow-y: auto;
   border-radius: 8px;
@@ -666,6 +696,11 @@ html:root[data-app-surface='staff'] input[type='date']::-webkit-calendar-picker-
   padding: 24px;
 }
 
+.staff-main > * {
+  max-width: 1440px;
+  margin-inline: auto;
+}
+
 .staff-topbar {
   display: none;
 }
@@ -844,10 +879,23 @@ html:root[data-app-surface='staff'] input[type='date']::-webkit-calendar-picker-
 
 .staff-sidebar--mobile {
   z-index: 51;
-  width: min(320px, calc(100vw - 48px));
+  width: min(320px, calc(100% - 48px));
 }
 
 @media (max-width: 767px) {
+  :root[data-app-surface='staff'] :is([data-ui='button'], [data-ui='select-trigger']) {
+    min-height: 44px;
+  }
+
+  :root[data-app-surface='staff'] [data-ui='pagination'] [data-ui='button'] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  :root[data-app-surface='staff'] .staff-row-action {
+    min-width: 44px;
+    min-height: 44px;
+  }
   :root[data-app-surface='staff'] .staff-icon-action {
     width: 44px;
     height: 44px;

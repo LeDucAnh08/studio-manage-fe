@@ -1,5 +1,6 @@
 import api from './api';
 import type { ApiResponse } from '../types';
+import type { QueuedAlbum } from './backgroundJobService';
 
 export interface AlbumPhoto {
   id: string;
@@ -56,7 +57,7 @@ export function albumClient(staff: boolean, id: string, token = '', account = fa
     command: (operation: string, body: Record<string, unknown>, key: string) =>
       client
         .post<
-          ApiResponse<BookingAlbum>
+          ApiResponse<BookingAlbum | QueuedAlbum>
         >(`${base}/${operation}`, body, { headers: { ...headers, 'Idempotency-Key': key } })
         .then((r) => r.data.data),
     image: (photoId: string, thumbnail: boolean, signal: AbortSignal) =>

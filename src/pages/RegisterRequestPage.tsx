@@ -15,12 +15,7 @@ interface FormValues {
   note?: string;
 }
 
-const roles: { value: UserRole; label: string }[] = [
-  { value: 2, label: 'Sale' },
-  { value: 3, label: 'Thợ chụp ảnh' },
-  { value: 4, label: 'Cộng tác viên Sale' },
-  { value: 5, label: 'Kế toán' },
-];
+const roles: { value: UserRole; label: string }[] = [{ value: 3, label: 'Thợ chụp ảnh' }];
 
 const errorText = (error: unknown) =>
   (error as { response?: { data?: { message?: string } } }).response?.data?.message ??
@@ -34,7 +29,7 @@ const RegisterRequestPage = () => {
     handleSubmit,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ defaultValues: { requestedRole: 2 } });
+  } = useForm<FormValues>({ defaultValues: { requestedRole: 3 } });
   const password = watch('password');
 
   const onSubmit = async (data: FormValues) => {

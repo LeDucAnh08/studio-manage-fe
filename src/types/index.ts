@@ -1,13 +1,10 @@
-// 0: Superadmin | 1: Admin | 2: Sale | 3: Thợ chụp ảnh | 4: Cộng tác viên sale | 5: Kế toán
-export type UserRole = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+// Role IDs are stable: retired IDs 2, 4 and 5 must never be reassigned.
+export type UserRole = 0 | 1 | 3 | 6;
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   0: 'Superadmin',
   1: 'Admin',
-  2: 'Sale',
   3: 'Thợ chụp ảnh',
-  4: 'Cộng tác viên sale',
-  5: 'Kế toán',
   6: 'Khách hàng',
 };
 

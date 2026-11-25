@@ -1,3 +1,4 @@
+import type { QueuedAlbum } from './backgroundJobService';
 import api from './api';
 
 export interface Concept {
@@ -329,7 +330,7 @@ export const conceptService = {
   albumCommand: (id: string, operation: string, body: unknown, key: string) =>
     api
       .post<{
-        data: ConceptAlbum;
+        data: ConceptAlbum | QueuedAlbum;
       }>(`/concept-orders/${id}/album/${operation}`, body, { headers: { 'Idempotency-Key': key } })
       .then((r) => r.data.data),
   guestAlbum: (id: string, token: string, signal?: AbortSignal) =>

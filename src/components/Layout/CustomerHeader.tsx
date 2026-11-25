@@ -55,7 +55,8 @@ export default function CustomerHeader({ source = 'portfolio' }: { source?: stri
         (client &&
           item.to === '/account/orders' &&
           ((pathname.startsWith('/account/bookings/') && pathname !== '/account/bookings/new') ||
-            pathname.startsWith('/account/rentals/')))
+            pathname.startsWith('/account/rentals/') ||
+            pathname.startsWith('/account/concept-orders/')))
           ? 'page'
           : undefined
       }

@@ -8,21 +8,25 @@
 
 /* Token-only class can also be used on a toast or a portal content root. */
 .customer-tokens {
-  --customer-primary: #ff385c;
-  --customer-primary-active: #e00b41;
+  --customer-primary: #de2147;
+  --customer-primary-hover: #c91c41;
+  --customer-primary-active: #bc173c;
   --customer-primary-disabled: #ffd1da;
+  --customer-accent-soft: #fff1f4;
+  --customer-accent-border: #f4cbd5;
   --customer-error: #c13515;
   --customer-error-hover: #b32505;
   --customer-ink: #222222;
   --customer-body: #3f3f3f;
   --customer-muted: #6a6a6a;
-  --customer-muted-soft: #929292;
+  --customer-muted-soft: #6d6d6d;
   --customer-canvas: #ffffff;
   --customer-surface-soft: #f7f7f7;
   --customer-surface-strong: #f2f2f2;
   --customer-hairline: #dddddd;
   --customer-hairline-soft: #ebebeb;
   --customer-border-strong: #c1c1c1;
+  --customer-button-border: #8a8a8a;
   --customer-on-primary: #ffffff;
   --customer-font: 'Inter Customer', -apple-system, system-ui, Roboto, 'Helvetica Neue', sans-serif;
   --customer-space-2: 2px;
@@ -36,6 +40,9 @@
   --customer-space-64: 64px;
   --customer-radius-control: 8px;
   --customer-radius-card: 14px;
+  --customer-booking-width: 1248px;
+  --customer-page-heading-size: 32px;
+  --customer-section-heading-size: 22px;
   --customer-radius-pill: 9999px;
   --customer-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.02), 0 2px 6px rgba(0, 0, 0, 0.04), 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -154,8 +161,16 @@
   outline-offset: 3px;
 }
 
-.customer-button:active:not(:disabled):not([aria-disabled='true']) {
+.customer-button:where(:active:not(:disabled):not([aria-disabled='true'])) {
   background: var(--customer-primary-active);
+}
+
+.customer-button:where(
+  :not(.customer-button--secondary):not(.customer-button--text):hover:not(:active):not(
+      :disabled
+    ):not([aria-disabled='true'])
+) {
+  background: var(--customer-primary-hover);
 }
 
 .customer-button:disabled,
@@ -167,9 +182,12 @@
 
 .customer-button--secondary {
   padding: 13px 23px;
-  border: 1px solid var(--customer-ink);
+  border: 1px solid var(--customer-button-border);
   background: var(--customer-canvas);
   color: var(--customer-ink);
+}
+.customer-button--secondary:where(:hover:not(:active):not(:disabled):not([aria-disabled='true'])) {
+  background: var(--customer-surface-soft);
 }
 
 .customer-button--secondary:active:not(:disabled):not([aria-disabled='true']) {
@@ -194,6 +212,11 @@
 
 .customer-button--text:hover {
   text-decoration: underline;
+}
+.customer-button--text:disabled,
+.customer-button--text[aria-disabled='true'] {
+  background: transparent;
+  color: var(--customer-muted);
 }
 
 .customer-button--pill {

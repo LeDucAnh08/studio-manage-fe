@@ -209,6 +209,14 @@ function renderPage(page: ReactNode, url = '/') {
   );
 }
 beforeEach(() => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
   vi.resetAllMocks();
   mocks.roles = [0];
   mocks.stats.mockResolvedValue(stats);
@@ -320,16 +328,16 @@ describe('Dashboard, finance and reports rollout', () => {
     await screen.findByRole('alert');
     fireEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
     await screen.findByRole('heading', { level: 1 });
-    expect(mocks.stats).toHaveBeenLastCalledWith({ userId: undefined, season: 'season-1' });
+    expect(mocks.stats).toHaveBeenLastCalledWith({ userId: undefined });
   });
   it.each([
-    [0, false],
-    [5, true],
+    [0, true],
+    [1, true],
   ])('preserves refund edit permission for role %s', async (role, enabled) => {
     mocks.roles = [role];
     renderPage(<FinancePage />);
     const table = await screen.findByRole('table', { name: 'Danh sách giao dịch' });
-    const refund = within(table).getByRole('checkbox', { name: /Kế toán đã hoàn tiền/ });
+    const refund = within(table).getByRole('checkbox', { name: /Đã hoàn tiền/ });
     if (enabled) expect(refund).toBeEnabled();
     else expect(refund).toBeDisabled();
     expect(mocks.update).not.toHaveBeenCalled();

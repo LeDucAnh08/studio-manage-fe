@@ -11,6 +11,12 @@ const mocks = vi.hoisted(() => ({
   export: vi.fn(),
   act: vi.fn(),
   client: vi.fn(),
+  jobGet: vi.fn(),
+}));
+vi.mock('../services/backgroundJobService', () => ({
+  isQueuedAlbum: (value: unknown) =>
+    !!value && typeof value === 'object' && 'backgroundOperation' in value,
+  backgroundJobService: { latest: async () => null, get: mocks.jobGet },
 }));
 vi.mock('../services/bookingAlbumService', () => ({
   albumClient: (...args: unknown[]) => {
@@ -76,7 +82,36 @@ describe('Drive album UI', () => {
     URL.createObjectURL = vi.fn(() => 'blob:album-test');
     URL.revokeObjectURL = vi.fn();
   });
-  it('opens guest link without an account and confirms before locking selection', async () => {
+  it('keeps the current album while a queued sync runs and refreshes after completion', async () => {
+    mocks.command.mockResolvedValue({
+      backgroundOperation: {
+        id: 'queued-job',
+        orderId: 'booking',
+        service: 'yearbook',
+        status: 'pending',
+        message: '',
+      },
+    });
+    mocks.jobGet.mockResolvedValue({
+      id: 'queued-job',
+      orderId: 'booking',
+      service: 'yearbook',
+      status: 'succeeded',
+      message: '',
+    });
+    open(true);
+    await screen.findByLabelText('Tên album');
+    fireEvent.change(screen.getByLabelText('Tên album'), {
+      target: { value: 'Bản nháp đang nhập' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Cập nhật từ Drive' }));
+    await screen.findByText(/Đang chờ đồng bộ ảnh/);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Khoảnh khắc lớp mình');
+    expect(screen.getByLabelText('Tên album')).toHaveValue('Bản nháp đang nhập');
+    await waitFor(() => expect(mocks.get).toHaveBeenCalledTimes(2), { timeout: 3000 });
+    expect(screen.getByLabelText('Tên album')).toHaveValue('Bản nháp đang nhập');
+  });
+  it('opens a shared album and confirms before locking selection', async () => {
     mocks.command.mockResolvedValue({
       ...fixture(),
       version: 4,

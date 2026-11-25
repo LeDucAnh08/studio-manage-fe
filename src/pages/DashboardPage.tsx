@@ -42,8 +42,8 @@ import AdminDashboardPage from './AdminDashboardPage';
 const StaffDashboardPage = () => {
   const { user } = useAuth();
   const isAdmin = user?.roles.some((r) => r === 0 || r === 1) ?? false;
-  const showTotalCustomers = user?.roles.some((r) => r === 0 || r === 1 || r === 2) ?? false;
-  const showFinance = user?.roles.some((r) => r === 0 || r === 1 || r === 2 || r === 5) ?? false;
+  const showTotalCustomers = user?.roles.some((r) => r === 0 || r === 1) ?? false;
+  const showFinance = user?.roles.some((r) => r === 0 || r === 1) ?? false;
 
   const dispatch = useAppDispatch();
   const { stats, error } = useAppSelector((s) => s.dashboard);
