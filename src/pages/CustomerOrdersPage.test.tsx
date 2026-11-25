@@ -330,12 +330,12 @@ describe('Unified orders tabs', () => {
     mocks.workflow.mockResolvedValue(selected);
     open('?view=active');
     const list = await screen.findByRole('list', { name: 'Danh sách đơn chụp ảnh' });
-    expect(within(list).getByText('Đang thực hiện')).toBeInTheDocument();
+    expect(within(list).getByText('Đang chụp')).toBeInTheDocument();
     const preview = await screen.findByRole('region', { name: 'Ngoại cảnh' });
     expect(await within(preview).findByRole('region', { name: 'Tiến độ đơn' })).toHaveTextContent(
-      'Đang thực hiện',
+      'Đang chụp',
     );
-    expect(screen.getByRole('option', { name: 'Đang thực hiện' })).toHaveValue('active');
+    expect(screen.getByRole('option', { name: 'Đang chụp' })).toHaveValue('active');
     expect(screen.getAllByRole('option')).toHaveLength(10);
     fireEvent.change(screen.getByLabelText('Trạng thái'), {
       target: { value: 'awaiting_confirmation' },
@@ -367,9 +367,7 @@ describe('Unified orders tabs', () => {
       });
       expect(mocks.bookings).toHaveBeenCalledTimes(1);
       expect(
-        within(screen.getByRole('list', { name: 'Danh sách đơn chụp ảnh' })).getByText(
-          'Đang thực hiện',
-        ),
+        within(screen.getByRole('list', { name: 'Danh sách đơn chụp ảnh' })).getByText('Đang chụp'),
       ).toBeInTheDocument();
       await act(async () => {
         await vi.advanceTimersByTimeAsync(2000);
@@ -449,7 +447,7 @@ describe('Unified orders tabs', () => {
     ['intake', 'pending', 'Chờ duyệt'],
     ['quoting', 'awaiting_confirmation', 'Chờ chốt lịch'],
     ['confirmed', 'confirmed', 'Đã chốt lịch'],
-    ['shooting', 'active', 'Đang thực hiện'],
+    ['shooting', 'active', 'Đang chụp'],
     ['revision_requested', 'editing', 'Đang hậu kỳ'],
     ['delivered', 'delivered', 'Đã bàn giao'],
     ['accepted', 'delivered', 'Đã bàn giao'],
@@ -466,7 +464,7 @@ describe('Unified orders tabs', () => {
       'Chờ duyệt',
       'Chờ chốt lịch',
       'Đã chốt lịch',
-      'Đang thực hiện',
+      'Đang chụp',
       'Đang hậu kỳ',
       'Đã bàn giao',
       'Hoàn tất',
@@ -489,9 +487,9 @@ describe('Unified orders tabs', () => {
     try {
       expect(current()).toHaveTextContent('Đã chốt lịch');
       act(() => vi.advanceTimersByTime(1000));
-      expect(current()).toHaveTextContent('Đang thực hiện');
+      expect(current()).toHaveTextContent('Đang chụp');
       act(() => vi.advanceTimersByTime(1999));
-      expect(current()).toHaveTextContent('Đang thực hiện');
+      expect(current()).toHaveTextContent('Đang chụp');
       act(() => vi.advanceTimersByTime(1));
       expect(current()).toHaveTextContent('Đang hậu kỳ');
       // A second record with a later window must stay scheduled.
@@ -606,7 +604,7 @@ describe('Unified orders tabs', () => {
       open();
       await screen.findByText('Tiến độ đơn');
       const progress = screen.getByRole('region', { name: 'Tiến độ đơn' });
-      expect(within(progress).queryByText('Đang thực hiện')).not.toBeInTheDocument();
+      expect(within(progress).queryByText('Đang chụp')).not.toBeInTheDocument();
       expect(within(progress).queryByText('Hoàn tất')).not.toBeInTheDocument();
     },
   );

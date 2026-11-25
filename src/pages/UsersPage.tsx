@@ -198,11 +198,6 @@ const UsersPage = () => {
       render: (u) => <span className="text-muted-foreground">{u.name ?? '—'}</span>,
     },
     {
-      key: 'telegramId',
-      header: 'Telegram ID',
-      render: (u) => <span className="text-muted-foreground">{u.telegramId ?? '—'}</span>,
-    },
-    {
       key: 'roles',
       header: 'Vai trò',
       render: (u) => (

@@ -19,7 +19,6 @@ const mocks = vi.hoisted(() => ({
   updateProfile: vi.fn(),
   changePassword: vi.fn(),
   requestEmail: vi.fn(),
-  telegramStatus: vi.fn(),
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
   auth: {
     user: { username: 'customer.test', name: 'Khách thử', roles: [6] } as {
@@ -52,9 +51,6 @@ vi.mock('../services/authService', () => ({
 vi.mock('../services/emailService', () => ({
   emailService: { request: mocks.requestEmail },
   emailError: () => 'Chưa thể gửi email. Vui lòng thử lại.',
-}));
-vi.mock('../services/telegramService', () => ({
-  telegramService: { getStatus: mocks.telegramStatus },
 }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => mocks.auth }));
 vi.mock('react-toastify', () => ({ toast: mocks.toast }));
@@ -106,7 +102,6 @@ describe('Customer form presentation keeps submission contracts', () => {
     mocks.feedbackPost.mockResolvedValue(undefined);
     mocks.updateProfile.mockResolvedValue({ name: 'Tên mới' });
     mocks.changePassword.mockResolvedValue(undefined);
-    mocks.telegramStatus.mockResolvedValue({ linked: false, telegramUsername: null });
   });
 
   it('keeps intake validation, retry request ID and add-another reset', async () => {
@@ -240,10 +235,9 @@ describe('Customer form presentation keeps submission contracts', () => {
     expect(screen.getByLabelText(/Nhận xét về ekip/)).toHaveValue('');
   });
 
-  it('keeps customer profile update and password validation with hidden staff Telegram', async () => {
+  it('keeps customer profile update and password validation', async () => {
     renderPage(<ProfilePage />, '/account/profile', '/account/profile');
     expect(screen.queryByText('Liên kết Telegram')).not.toBeInTheDocument();
-    expect(mocks.telegramStatus).not.toHaveBeenCalled();
     expect(screen.getByLabelText('Tên đăng nhập')).toBeDisabled();
     fireEvent.change(screen.getByLabelText('Họ tên hiển thị'), { target: { value: 'Tên mới' } });
     fireEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }));
@@ -322,15 +316,13 @@ describe('Customer form presentation keeps submission contracts', () => {
     expect(screen.getByText('Email đã được xác minh.')).toBeInTheDocument();
   });
 
-  it('keeps staff Telegram visibility based on role rather than appearance', async () => {
-    mocks.auth.user.roles = [0];
-    const staff = renderPage(<ProfilePage />, '/profile', '/profile', false);
-    await screen.findByRole('button', { name: 'Liên kết Telegram' });
-    expect(mocks.telegramStatus).toHaveBeenCalledTimes(1);
-    staff.unmount();
-    renderPage(<ProfilePage />, '/account/profile', '/account/profile', true);
-    await screen.findByRole('button', { name: 'Liên kết Telegram' });
-    expect(mocks.telegramStatus).toHaveBeenCalledTimes(2);
+  it.each([0, 1, 3, 6])('keeps only account and password sections for role %i', (role) => {
+    mocks.auth.user.roles = [role];
+    renderPage(<ProfilePage />, '/profile', '/profile', false);
+    expect(screen.getByRole('heading', { name: 'Thông tin cá nhân' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Đổi mật khẩu' })).toBeInTheDocument();
+    expect(screen.queryByText(/telegram/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Tên đăng nhập')).toBeDisabled();
   });
 
   it('rejects whitespace names, invalid email and oversized UTF-8 passwords in the customer profile', async () => {

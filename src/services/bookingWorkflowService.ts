@@ -61,7 +61,7 @@ export const bookingOrderStageLabels = {
   pending: 'Chờ duyệt',
   awaiting_confirmation: 'Chờ chốt lịch',
   confirmed: 'Đã chốt lịch',
-  active: 'Đang thực hiện',
+  active: 'Đang chụp',
   editing: 'Đang hậu kỳ',
   delivered: 'Đã bàn giao',
   completed: 'Hoàn tất',

@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
-import { Send, Link2, Link2Off, KeyRound, User as UserIcon, ExternalLink } from 'lucide-react';
+import { KeyRound, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/authService';
-import { telegramService, type TelegramStatus } from '../services/telegramService';
 import { ROLE_LABELS } from '../types';
 import { Button, FormField, Input, PageHeader, Spinner } from '@/components/ui';
 import { useCustomerAppearance } from '@/components/customer/CustomerAppearance';
@@ -269,136 +268,6 @@ function PasswordSection() {
   );
 }
 
-// ── Telegram section ──────────────────────────────────────────────────────────
-
-function TelegramSection() {
-  const [status, setStatus] = useState<TelegramStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [linking, setLinking] = useState(false);
-  const [unlinking, setUnlinking] = useState(false);
-
-  const fetchStatus = async () => {
-    try {
-      const data = await telegramService.getStatus();
-      setStatus(data);
-    } catch {
-      /* ignore */
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void fetchStatus();
-  }, []);
-
-  const handleLink = async () => {
-    setLinking(true);
-    try {
-      const res = await telegramService.generateLinkToken();
-      // Open Telegram deeplink in new tab
-      window.open(res.url, '_blank', 'noopener,noreferrer');
-      toast.info(
-        'Mở Telegram và bấm "Start" để hoàn tất liên kết. Token có hiệu lực trong 15 phút.',
-      );
-      // Poll for link completion every 3s for up to 60s
-      let attempts = 0;
-      const poll = setInterval(async () => {
-        attempts++;
-        try {
-          const updated = await telegramService.getStatus();
-          if (updated.linked) {
-            setStatus(updated);
-            clearInterval(poll);
-            toast.success(`Đã liên kết Telegram thành công!`);
-          }
-        } catch {
-          /* ignore */
-        }
-        if (attempts >= 20) clearInterval(poll);
-      }, 3000);
-    } catch {
-      toast.error('Không thể tạo liên kết, vui lòng thử lại');
-    } finally {
-      setLinking(false);
-    }
-  };
-
-  const handleUnlink = async () => {
-    setUnlinking(true);
-    try {
-      await telegramService.unlink();
-      setStatus({ linked: false, telegramUsername: null });
-      toast.success('Đã huỷ liên kết Telegram');
-    } catch {
-      toast.error('Có lỗi xảy ra, vui lòng thử lại');
-    } finally {
-      setUnlinking(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-faint)' }}>
-        <Spinner className="h-4 w-4" /> Đang tải...
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {/* Status badge */}
-      <div className="flex items-center gap-3">
-        <div
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium"
-          style={
-            status?.linked
-              ? {
-                  background: 'rgba(34,197,94,0.12)',
-                  color: '#16a34a',
-                  border: '1px solid rgba(34,197,94,0.25)',
-                }
-              : {
-                  background: 'rgba(148,163,184,0.12)',
-                  color: 'var(--text-secondary)',
-                  border: '1px solid var(--card-border)',
-                }
-          }
-        >
-          <Send className="w-4 h-4" />
-          {status?.linked
-            ? status.telegramUsername
-              ? `Đã liên kết: @${status.telegramUsername}`
-              : 'Đã liên kết Telegram'
-            : 'Chưa liên kết'}
-        </div>
-      </div>
-
-      <p className="text-sm" style={{ color: 'var(--text-faint)' }}>
-        {status?.linked
-          ? 'Bạn sẽ nhận thông báo Telegram khi có lịch chụp mới hoặc cập nhật trạng thái.'
-          : 'Liên kết tài khoản Telegram để nhận thông báo lịch chụp và giao dịch trực tiếp trên điện thoại.'}
-      </p>
-
-      {status?.linked ? (
-        <Button variant="outline" onClick={handleUnlink} disabled={unlinking}>
-          {unlinking ? <Spinner className="mr-2 h-4 w-4" /> : <Link2Off className="mr-2 w-4 h-4" />}
-          Huỷ liên kết
-        </Button>
-      ) : (
-        <Button onClick={handleLink} disabled={linking}>
-          {linking ? (
-            <Spinner className="mr-2 h-4 w-4" />
-          ) : (
-            <ExternalLink className="mr-2 w-4 h-4" />
-          )}
-          Liên kết Telegram
-        </Button>
-      )}
-    </div>
-  );
-}
-
 // ── Card wrapper ──────────────────────────────────────────────────────────────
 
 function SectionCard({
@@ -470,11 +339,6 @@ const ProfilePage = () => {
         <SectionCard icon={KeyRound} title="Đổi mật khẩu">
           <PasswordSection />
         </SectionCard>
-        {!user?.roles.includes(6) && (
-          <SectionCard icon={Link2} title="Liên kết Telegram">
-            <TelegramSection />
-          </SectionCard>
-        )}
       </div>
     </div>
   );

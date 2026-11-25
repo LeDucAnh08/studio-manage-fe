@@ -16,7 +16,6 @@ export interface User {
   emailVerifiedAt?: string | null;
   roles: UserRole[];
   isActive: boolean;
-  telegramId?: string;
   createdAt?: string;
 }
 
