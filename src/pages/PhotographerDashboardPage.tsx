@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { useAuth } from '../context/AuthContext';
-import { useAppSelector } from '../store';
 import { conceptBookingEnabled } from '../config/features';
 import { vietnamCalendarDate, vietnamDisplayDate } from '../utils/vietnamCalendarDate';
 import { bookingOrderStageLabels } from '../services/bookingWorkflowService';
@@ -49,7 +48,6 @@ const roles = { lead: 'Thợ chính', support: 'Thợ phụ', editor: 'Hậu k�
 export default function PhotographerDashboardPage() {
   const { user } = useAuth();
   const location = useLocation();
-  const { selectedSeasonId } = useAppSelector((state) => state.seasons);
   const [params, setParams] = useSearchParams();
   const requestedPeriod = params.get('period') || 'month';
   const period = (
@@ -77,7 +75,7 @@ export default function PhotographerDashboardPage() {
     data?: PhotographerStats;
     error?: boolean;
   } | null>(null);
-  const key = `${user?._id}:${selectedSeasonId}:${period}:${service}:${metric}:${group}:${page}:${reload}`;
+  const key = `${user?._id}:${period}:${service}:${metric}:${group}:${page}:${reload}`;
   const loading = result?.key !== key,
     data = !loading ? result?.data : undefined;
   const error = !loading && result?.error;
@@ -89,7 +87,6 @@ export default function PhotographerDashboardPage() {
         {
           period,
           service,
-          season: selectedSeasonId || undefined,
           metric: metric || undefined,
           group: metric === 'group' ? group : undefined,
           page,
@@ -108,7 +105,7 @@ export default function PhotographerDashboardPage() {
       active = false;
       controller.abort();
     };
-  }, [key, selectedSeasonId, period, service, metric, group, page]);
+  }, [key, period, service, metric, group, page]);
   useEffect(() => {
     const refresh = () => setReload((value) => value + 1);
     window.addEventListener('focus', refresh);

@@ -100,14 +100,14 @@ describe('Sidebar navigation', () => {
     expect(screen.getByRole('heading', { name: 'Đăng nhập chung' })).toBeInTheDocument();
   });
 
-  it('labels the season control and preserves the photographer navigation', () => {
+  it('removes the season control and preserves the photographer navigation', () => {
     mocks.roles = [3];
     render(
       <MemoryRouter>
         <Sidebar isOpen={false} onClose={vi.fn()} />
       </MemoryRouter>,
     );
-    expect(screen.getByRole('combobox', { name: 'Mùa chụp' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Mùa chụp' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Lịch chụp' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Quản lý' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Đơn thuê' })).not.toBeInTheDocument();

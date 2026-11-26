@@ -55,7 +55,7 @@ test('all staff lists use the same scrollable tables on desktop and mobile', asy
     const pkg = await model('Package').findOne();
     pkg.costumes = [type._id];
     await pkg.save();
-    const customer = await model('Customer').create({
+    const customer = await model('Class').create({
       className: '12A Bảng',
       school: 'Trường kiểm tra',
       contactName: 'Người liên hệ',

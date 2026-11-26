@@ -806,23 +806,6 @@ html:root[data-app-surface='staff'] input[type='date']::-webkit-calendar-picker-
   font-weight: 600;
 }
 
-.staff-season {
-  margin-bottom: 12px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--sidebar-border);
-}
-
-.staff-season select {
-  appearance: none;
-  width: 100%;
-  min-height: 36px;
-  padding: 6px 32px 6px 10px;
-  border: 1px solid var(--input-border);
-  border-radius: 6px;
-  background-color: var(--input-bg);
-  color: var(--input-color);
-}
-
 .staff-sidebar__user {
   border-top: 1px solid var(--user-border);
 }
@@ -991,7 +974,6 @@ html:root[data-app-surface='staff'] input[type='date']::-webkit-calendar-picker-
 
   .staff-icon-button,
   .staff-nav-item,
-  .staff-season select,
   .staff-logout {
     min-height: 44px;
   }

@@ -32,7 +32,6 @@ export const photographerDashboardService = {
     params: {
       period: PhotographerPeriod;
       service: string;
-      season?: string;
       metric?: string;
       group?: number;
       page: number;

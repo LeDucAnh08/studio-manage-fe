@@ -359,7 +359,6 @@ interface ScheduleFormValues {
   leadPhotographer?: string;
   bookedBy?: string;
   notes?: string;
-  season?: string | null;
 }
 
 const StaffSchedulesPage = () => {
@@ -387,7 +386,6 @@ const StaffSchedulesPage = () => {
   const { list: customers } = useAppSelector((s) => s.customers);
   const { list: packages } = useAppSelector((s) => s.packages);
   const { photographers, coordinators: coordinatorUsers } = useAppSelector((s) => s.users);
-  const { list: seasons, selectedSeasonId } = useAppSelector((s) => s.seasons);
   const [filter, setFilter] = useState<FilterState>(defaultFilter);
   const [appliedFilter, setAppliedFilter] = useState<FilterState>(defaultFilter);
   const [page, setPage] = useState(1);
@@ -432,7 +430,6 @@ const StaffSchedulesPage = () => {
     if (f.dateFrom) params.dateFrom = f.dateFrom;
     if (f.dateTo) params.dateTo = f.dateTo;
     if (f.customer) params.customer = f.customer;
-    if (selectedSeasonId) params.season = selectedSeasonId;
     return params;
   };
 
@@ -449,14 +446,12 @@ const StaffSchedulesPage = () => {
 
   useEffect(() => {
     dispatch(fetchSchedules(buildFilterParams(appliedFilter, page, pageSize)));
-    dispatch(
-      fetchCustomers(selectedSeasonId ? { limit: 200, season: selectedSeasonId } : { limit: 200 }),
-    );
+    dispatch(fetchCustomers({ limit: 200 }));
     dispatch(fetchPackages());
     dispatch(fetchPhotographers());
     dispatch(fetchCoordinators());
     costumeService.getAll().then(setAllCostumes);
-  }, [dispatch, appliedFilter, page, pageSize, selectedSeasonId]);
+  }, [dispatch, appliedFilter, page, pageSize]);
 
   const openCreate = () => {
     setEditing(null);
@@ -464,7 +459,7 @@ const StaffSchedulesPage = () => {
     setSelectedCostumes([]);
     setReservationRows([]);
     setCostumeTouched(false);
-    reset({ status: 'pending', season: selectedSeasonId || null });
+    reset({ status: 'pending' });
     setModalOpen(true);
   };
 
@@ -1185,29 +1180,6 @@ const StaffSchedulesPage = () => {
                 </div>
               </FormField>
             )}
-            <FormField label="Mùa chụp" htmlFor="schedule-season">
-              <Controller
-                name="season"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value ?? ''}
-                    onValueChange={(v) => field.onChange(v || null)}
-                  >
-                    <SelectTrigger id="schedule-season">
-                      <SelectValue placeholder="-- Chọn mùa --" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {seasons.map((s) => (
-                        <SelectItem key={s._id} value={s._id}>
-                          {s.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </FormField>
             <FormField label="Ghi chú" htmlFor="notes" className="lg:col-span-3">
               <Textarea id="notes" rows={2} {...register('notes')} />
             </FormField>

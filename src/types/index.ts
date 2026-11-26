@@ -30,7 +30,6 @@ export interface Customer {
   totalMale?: number;
   totalFemale?: number;
   notes?: string;
-  season?: string | null;
   createdAt?: string;
 }
 
@@ -163,7 +162,6 @@ export interface Schedule {
   bookedBy: string | null;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   notes?: string;
-  season?: string | null;
   contractUrl?: string;
   driveFolderUrl?: string;
   driveFolderId?: string;
@@ -214,7 +212,6 @@ export interface Transaction {
   date: string;
   createdBy: string | null;
   accountantRefunded?: boolean;
-  season?: string | null;
   createdAt?: string;
 }
 
@@ -282,14 +279,6 @@ export interface Feedback {
 /** Populated Feedback returned by GET endpoints. */
 export interface FeedbackResponse extends Omit<Feedback, 'customer'> {
   customer: Customer | null;
-}
-
-export interface Season {
-  _id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  createdAt?: string;
 }
 
 /**

@@ -7,11 +7,7 @@ import {
   type PhotographerStats,
 } from '../services/photographerDashboardService';
 const auth = vi.hoisted(() => ({ user: { _id: 'photo-1', name: 'Lê Minh Đức', roles: [3] } }));
-const season = vi.hoisted(() => ({ selectedSeasonId: '' }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => auth }));
-vi.mock('../store', () => ({
-  useAppSelector: (select: (state: unknown) => unknown) => select({ seasons: season }),
-}));
 vi.mock('../config/features', () => ({ conceptBookingEnabled: true }));
 vi.mock('../services/photographerDashboardService', async (original) => ({
   ...(await original<typeof import('../services/photographerDashboardService')>()),
@@ -63,7 +59,6 @@ function open(path = '/') {
 }
 beforeEach(() => {
   vi.resetAllMocks();
-  season.selectedSeasonId = '';
   auth.user = { _id: 'photo-1', name: 'Lê Minh Đức', roles: [3] };
   vi.mocked(photographerDashboardService.get).mockResolvedValue(fixture);
 });
@@ -79,7 +74,7 @@ describe('photographer statistics', () => {
     expect(screen.getByText('Chưa có hạn bàn giao')).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Loại dịch vụ' })).toBeInTheDocument();
   });
-  it('filters period, service and the globally selected season at the server', async () => {
+  it('filters period and service at the server without a season', async () => {
     open();
     await screen.findByText('Chân dung cá nhân');
     fireEvent.change(screen.getByRole('combobox', { name: 'Loại dịch vụ' }), {

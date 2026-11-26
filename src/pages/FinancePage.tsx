@@ -74,7 +74,6 @@ const FinancePage = () => {
   const { list: customers } = useAppSelector((s) => s.customers);
   const { list: categories } = useAppSelector((s) => s.categories);
   const { list: users } = useAppSelector((s) => s.users);
-  const { list: seasons, selectedSeasonId } = useAppSelector((s) => s.seasons);
   const [filter, setFilter] = useState<FilterState>(defaultFilter);
   const [appliedFilter, setAppliedFilter] = useState<FilterState>(defaultFilter);
   const [page, setPage] = useState(1);
@@ -106,13 +105,12 @@ const FinancePage = () => {
     if (f.createdBy) params.createdBy = f.createdBy;
     if (f.dateFrom) params.dateFrom = f.dateFrom;
     if (f.dateTo) params.dateTo = f.dateTo;
-    if (selectedSeasonId) params.season = selectedSeasonId;
     return params;
   };
 
   useEffect(() => {
     dispatch(fetchTransactions(buildListParams(appliedFilter, page, pageSize)));
-  }, [dispatch, appliedFilter, page, pageSize, selectedSeasonId]);
+  }, [dispatch, appliedFilter, page, pageSize]);
 
   useEffect(() => {
     dispatch(
@@ -124,19 +122,16 @@ const FinancePage = () => {
   }, [dispatch, appliedFilter.dateFrom, appliedFilter.dateTo]);
 
   useEffect(() => {
-    dispatch(
-      fetchCustomers(selectedSeasonId ? { limit: 200, season: selectedSeasonId } : { limit: 200 }),
-    );
+    dispatch(fetchCustomers({ limit: 200 }));
     dispatch(fetchCategories());
     if (canRefund) dispatch(fetchUsers());
-  }, [dispatch, canRefund, selectedSeasonId]);
+  }, [dispatch, canRefund]);
 
   const openCreate = () => {
     setEditing(null);
     reset({
       type: 'income',
       date: new Date().toISOString().slice(0, 10),
-      season: selectedSeasonId || undefined,
     });
     setModalOpen(true);
   };
@@ -727,29 +722,6 @@ const FinancePage = () => {
                 />
               </FormField>
             )}
-            <FormField label="Mùa chụp" htmlFor="finance-season">
-              <Controller
-                name="season"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value ?? ''}
-                    onValueChange={(v) => field.onChange(v || null)}
-                  >
-                    <SelectTrigger id="finance-season">
-                      <SelectValue placeholder="-- Chọn mùa --" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {seasons.map((s) => (
-                        <SelectItem key={s._id} value={s._id}>
-                          {s.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </FormField>
             <FormField label="Mô tả" htmlFor="description" className="sm:col-span-2">
               <Textarea id="description" rows={2} {...register('description')} />
             </FormField>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { ChevronRight, Sun, Moon, Monitor, UserCircle, X } from 'lucide-react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
@@ -15,8 +15,6 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from '../ui/dropdown-menu';
-import { useAppDispatch, useAppSelector } from '../../store';
-import { fetchSeasons, setSelectedSeason } from '../../store/slices/seasonsSlice';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -32,19 +30,12 @@ const Sidebar = ({ isOpen, onClose, triggerRef }: SidebarProps) => {
   const { themeMode, resolvedTheme, setThemeMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const dispatch = useAppDispatch();
-  const { list: seasons, selectedSeasonId } = useAppSelector((s) => s.seasons);
   const navRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const seasonId = useId();
   const [mobile, setMobile] = useState(() => window.matchMedia(mobileQuery).matches);
   const [openGroup, setOpenGroup] = useState<string | null>(() =>
     getNavigationGroupForPath(location.pathname),
   );
-
-  useEffect(() => {
-    dispatch(fetchSeasons({ selectCurrent: !isAdmin }));
-  }, [dispatch, isAdmin]);
 
   useEffect(() => {
     const media = window.matchMedia(mobileQuery);
@@ -232,25 +223,6 @@ const Sidebar = ({ isOpen, onClose, triggerRef }: SidebarProps) => {
         )}
       </div>
       <nav ref={navRef} className="staff-sidebar__nav" aria-label="Chức năng nội bộ">
-        {!isAdmin && (
-          <div className="staff-season">
-            <label htmlFor={seasonId} className="staff-nav-label">
-              Mùa chụp
-            </label>
-            <select
-              id={seasonId}
-              value={selectedSeasonId}
-              onChange={(e) => dispatch(setSelectedSeason(e.target.value))}
-            >
-              <option value="">Tất cả mùa</option>
-              {seasons.map((season) => (
-                <option key={season._id} value={season._id}>
-                  {season.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
         {navItems.map(renderNavItem)}
         {!isAdmin &&
           user?.roles?.some((role) =>

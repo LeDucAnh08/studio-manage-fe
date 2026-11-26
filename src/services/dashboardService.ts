@@ -34,6 +34,6 @@ export interface DashboardStats {
 }
 
 export const dashboardService = {
-  getStats: (params?: { userId?: string; months?: number; season?: string }) =>
+  getStats: (params?: { userId?: string; months?: number }) =>
     api.get<ApiResponse<DashboardStats>>('/dashboard', { params }).then((r) => r.data.data),
 };

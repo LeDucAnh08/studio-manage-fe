@@ -192,14 +192,6 @@ function renderPage(page: ReactNode, url = '/') {
       customers: customersReducer,
       categories: categoriesReducer,
       users: usersReducer,
-      seasons: () => ({
-        list: [
-          { _id: 'season-1', name: 'Mùa thu', startDate: '2026-09-01', endDate: '2026-10-31' },
-        ],
-        selectedSeasonId: 'season-1',
-        loading: false,
-        error: null,
-      }),
     },
   });
   return render(

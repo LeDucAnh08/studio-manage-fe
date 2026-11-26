@@ -103,12 +103,6 @@ function renderPage(page: React.ReactNode) {
       packages: packagesReducer,
       categories: categoriesReducer,
       users: usersReducer,
-      seasons: () => ({
-        list: [{ _id: 'season-1', name: 'Mùa thu' }],
-        selectedSeasonId: 'season-1',
-        loading: false,
-        error: null,
-      }),
     },
   });
   return render(
@@ -170,7 +164,6 @@ describe('Schedule and inventory rollout', () => {
       expect(mocks.schedules).toHaveBeenLastCalledWith({
         page: 1,
         limit: 20,
-        season: 'season-1',
         dateFrom: '2026-10-01',
         dateTo: '2026-10-31',
       }),
@@ -187,9 +180,7 @@ describe('Schedule and inventory rollout', () => {
       ),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Xoá lọc' }));
-    await waitFor(() =>
-      expect(mocks.schedules).toHaveBeenLastCalledWith({ page: 1, limit: 20, season: 'season-1' }),
-    );
+    await waitFor(() => expect(mocks.schedules).toHaveBeenLastCalledWith({ page: 1, limit: 20 }));
   });
   it('exposes detail and contract fields without creating a document or changing a schedule', async () => {
     renderPage(<SchedulesPage />);

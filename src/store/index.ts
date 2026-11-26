@@ -7,7 +7,6 @@ import packagesReducer from './slices/packagesSlice';
 import transactionsReducer from './slices/transactionsSlice';
 import usersReducer from './slices/usersSlice';
 import dashboardReducer from './slices/dashboardSlice';
-import seasonsReducer from './slices/seasonsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -18,7 +17,6 @@ export const store = configureStore({
     transactions: transactionsReducer,
     users: usersReducer,
     dashboard: dashboardReducer,
-    seasons: seasonsReducer,
   },
 });
 

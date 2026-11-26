@@ -48,7 +48,6 @@ const StaffDashboardPage = () => {
   const dispatch = useAppDispatch();
   const { stats, error } = useAppSelector((s) => s.dashboard);
   const { list: users } = useAppSelector((s) => s.users);
-  const { selectedSeasonId, list: seasons } = useAppSelector((s) => s.seasons);
 
   const [scheduleViewMode, setScheduleViewMode] = useState<'table' | 'calendar'>('table');
   const [filterUserId, setFilterUserId] = useState('');
@@ -64,19 +63,12 @@ const StaffDashboardPage = () => {
     return () => media.removeEventListener('change', update);
   }, []);
 
-  const selectedSeason = useMemo(
-    () => seasons.find((s) => s._id === selectedSeasonId),
-    [seasons, selectedSeasonId],
-  );
-
-  // Re-fetch whenever season or user filter changes
   useEffect(() => {
-    const params: { userId?: string; season?: string } = {};
+    const params: { userId?: string } = {};
     if (filterUserId) params.userId = filterUserId;
-    if (selectedSeasonId) params.season = selectedSeasonId;
     dispatch(fetchDashboardStats(params));
     if (isAdmin) dispatch(fetchUsers());
-  }, [dispatch, isAdmin, filterUserId, selectedSeasonId]);
+  }, [dispatch, isAdmin, filterUserId]);
 
   const calendarItems = useMemo(
     () =>
@@ -99,7 +91,6 @@ const StaffDashboardPage = () => {
     dispatch(
       fetchDashboardStats({
         userId: filterUserId || undefined,
-        season: selectedSeasonId || undefined,
       }),
     );
   if (!stats)
@@ -286,20 +277,6 @@ const StaffDashboardPage = () => {
           })}
         </p>
       </div>
-
-      {/* Season banner */}
-      {selectedSeason ? (
-        <div className="rounded-lg border bg-card px-4 py-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="text-sm font-semibold">{selectedSeason.name}</span>
-          <span className="text-xs text-muted-foreground">
-            {formatDate(selectedSeason.startDate)} – {formatDate(selectedSeason.endDate)}
-          </span>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
-          Chưa chọn mùa chụp — đang hiển thị dữ liệu 12 tháng gần đây.
-        </div>
-      )}
 
       {/* Admin user filter */}
       {isAdmin && (

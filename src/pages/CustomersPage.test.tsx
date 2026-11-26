@@ -26,7 +26,6 @@ const customer: Customer = {
   totalMale: 20,
   totalFemale: 20,
   notes: 'Liên hệ trước khi tới',
-  season: 'season-1',
 };
 function LocationProbe() {
   const location = useLocation();
@@ -36,12 +35,6 @@ function renderPage(path = '/customers') {
   const store = configureStore({
     reducer: {
       customers: customersReducer,
-      seasons: () => ({
-        list: [{ _id: 'season-1', name: 'Mùa thu 2026' }],
-        selectedSeasonId: 'season-1',
-        loading: false,
-        error: null,
-      }),
     },
   });
   return render(
@@ -69,7 +62,6 @@ describe('Class list pilot', () => {
     expect(mocks.getAll).toHaveBeenLastCalledWith({
       page: 2,
       limit: 20,
-      season: 'season-1',
       search: '12A',
     });
     expect(screen.getByRole('textbox', { name: 'Tìm kiếm lớp hoặc trường' })).toHaveValue('12A');
@@ -81,7 +73,7 @@ describe('Class list pilot', () => {
       '"classListReturnTo":"/customers?search=12A&page=2&limit=20"',
     );
   });
-  it('searches on Enter, clears search and retains server pagination and season', async () => {
+  it('searches on Enter, clears search and retains server pagination without a season filter', async () => {
     renderPage();
     await screen.findByRole('table', { name: 'Danh sách lớp học' });
     expect(
@@ -94,7 +86,6 @@ describe('Class list pilot', () => {
       expect(mocks.getAll).toHaveBeenLastCalledWith({
         page: 1,
         limit: 20,
-        season: 'season-1',
         search: '12A',
       }),
     );
@@ -105,14 +96,11 @@ describe('Class list pilot', () => {
       expect(mocks.getAll).toHaveBeenLastCalledWith({
         page: 2,
         limit: 20,
-        season: 'season-1',
         search: '12A',
       }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Xoá tìm kiếm' }));
-    await waitFor(() =>
-      expect(mocks.getAll).toHaveBeenLastCalledWith({ page: 1, limit: 20, season: 'season-1' }),
-    );
+    await waitFor(() => expect(mocks.getAll).toHaveBeenLastCalledWith({ page: 1, limit: 20 }));
     expect(search).toHaveFocus();
   });
 
@@ -122,9 +110,7 @@ describe('Class list pilot', () => {
     fireEvent.click(screen.getByRole('button', { name: '+ Thêm lớp' }));
     const dialog = screen.getByRole('dialog', { name: 'Thêm lớp mới' });
     expect(within(dialog).getByRole('spinbutton', { name: 'Sĩ số' })).toHaveValue(0);
-    expect(within(dialog).getByRole('combobox', { name: 'Mùa chụp' })).toHaveTextContent(
-      'Mùa thu 2026',
-    );
+    expect(within(dialog).queryByRole('combobox', { name: 'Mùa chụp' })).not.toBeInTheDocument();
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Người liên hệ' }), {
       target: { value: 'Giữ giá trị này' },
     });

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
 import { customerService } from '../services/customerService';
 import { useAppDispatch, useAppSelector } from '../store';
@@ -15,11 +15,6 @@ import {
   Modal,
   PageHeader,
   SearchInput,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   TableSkeleton,
   Textarea,
 } from '@/components/ui';
@@ -33,7 +28,6 @@ const CustomersPage = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { list: customers, total, loading, error } = useAppSelector((s) => s.customers);
-  const { list: seasons, selectedSeasonId } = useAppSelector((s) => s.seasons);
   const [params, setParams] = useSearchParams();
   const appliedSearch = params.get('search') || '';
   const [search, setSearch] = useState(appliedSearch);
@@ -68,7 +62,6 @@ const CustomersPage = () => {
     register,
     handleSubmit,
     reset,
-    control,
     formState: { isSubmitting, errors },
   } = useForm<FormValues>();
 
@@ -76,10 +69,9 @@ const CustomersPage = () => {
     (s: string, p: number, l: number): Record<string, string | number> => {
       const params: Record<string, string | number> = { page: p, limit: l };
       if (s) params.search = s;
-      if (selectedSeasonId) params.season = selectedSeasonId;
       return params;
     },
-    [selectedSeasonId],
+    [],
   );
 
   useEffect(() => {
@@ -98,7 +90,6 @@ const CustomersPage = () => {
       totalMale: 0,
       totalFemale: 0,
       notes: '',
-      season: selectedSeasonId || undefined,
     });
     setModalOpen(true);
   };
@@ -438,31 +429,6 @@ const CustomersPage = () => {
                 id="contactAddress"
                 {...register('contactAddress', { required: 'Vui lòng nhập địa chỉ' })}
               />
-            </FormField>
-            <FormField label="Mùa chụp" htmlFor="season" className="col-span-2 sm:col-span-3">
-              {(controlProps) => (
-                <Controller
-                  name="season"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      value={field.value ?? ''}
-                      onValueChange={(v) => field.onChange(v || null)}
-                    >
-                      <SelectTrigger {...controlProps} ref={field.ref} onBlur={field.onBlur}>
-                        <SelectValue placeholder="-- Chọn mùa --" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {seasons.map((s) => (
-                          <SelectItem key={s._id} value={s._id}>
-                            {s.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              )}
             </FormField>
             <FormField label="Ghi chú" htmlFor="notes" className="col-span-2 sm:col-span-6">
               <Textarea id="notes" rows={2} {...register('notes')} />
