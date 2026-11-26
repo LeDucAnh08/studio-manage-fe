@@ -24,6 +24,8 @@ interface Props {
   orderId: string;
   subtitle?: string;
   status: string;
+  initialTab?: string;
+  onTabChange?: (tab: string) => void;
   step: number;
   completed?: boolean;
   schedule: { label: string; date: string; hours?: string; location?: string };
@@ -40,6 +42,8 @@ export function PhotographerOrder({
   orderId,
   subtitle,
   status,
+  initialTab = 'overview',
+  onTabChange,
   step,
   completed = false,
   schedule,
@@ -49,7 +53,8 @@ export function PhotographerOrder({
   scheduleDetails,
   delivery,
 }: Props) {
-  const [tab, setTab] = useState('overview');
+  const [tab, setTab] = useState(initialTab);
+  const [deliveryVisited, setDeliveryVisited] = useState(initialTab === 'delivery');
   const latest = events[0];
   const shoot = (
     <section className="admin-order__card photographer-order__shoot" aria-label="Lịch chụp và ekip">
@@ -119,7 +124,11 @@ export function PhotographerOrder({
       <AdminOrderTabs
         labels={tabs}
         value={tab}
-        onChange={setTab}
+        onChange={(value) => {
+          setTab(value);
+          if (value === 'delivery') setDeliveryVisited(true);
+          onTabChange?.(value);
+        }}
         overview={(openTab) => (
           <div className="admin-order__overview photographer-order__overview">
             {shoot}
@@ -163,7 +172,7 @@ export function PhotographerOrder({
               {scheduleDetails}
             </>
           ),
-          delivery,
+          delivery: service === 'concept' || deliveryVisited ? delivery : null,
           history: (
             <section className="admin-order__card">
               <h2>Lịch sử xử lý</h2>

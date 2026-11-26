@@ -47,7 +47,11 @@ vi.mock('./pages/PublicDiscoveryPage', async () => {
   };
 });
 vi.mock('./pages/CustomerOrdersPage', () => ({ default: () => <h1>Đơn của tôi</h1> }));
-vi.mock('./pages/BookingWorkflowDetailPage', () => ({ default: () => <h1>Chi tiết chụp ảnh</h1> }));
+vi.mock('./pages/BookingWorkflowDetailPage', () => ({
+  default: ({ openDelivery }: { openDelivery?: boolean }) => (
+    <h1>{openDelivery ? 'Hồ sơ thợ và các bước bàn giao' : 'Chi tiết chụp ảnh'}</h1>
+  ),
+}));
 vi.mock('./pages/BookingDeliveryPage', () => ({ default: () => <h1>Bàn giao ảnh hợp nhất</h1> }));
 vi.mock('./pages/RentalDetailPage', () => ({ default: () => <h1>Chi tiết thuê</h1> }));
 vi.mock('./pages/LoginPage', () => ({
@@ -81,6 +85,16 @@ describe('Public discovery and customer workspace', () => {
     expect(window.location.pathname).toBe('/workflow-bookings/booking-1/delivery');
     expect(new URLSearchParams(window.location.search).get('tab')).toBe('selection');
     expect(new URLSearchParams(window.location.search).get('version')).toBe('2');
+  });
+  it('opens the photographer delivery link inside the order and preserves the version query', async () => {
+    mocks.auth.user = { _id: 'photographer', roles: [3], username: 'photo.test' } as User;
+    open('/workflow-bookings/booking-1/album?version=2');
+    expect(
+      await screen.findByRole('heading', { name: 'Hồ sơ thợ và các bước bàn giao' }),
+    ).toBeVisible();
+    expect(window.location.pathname).toBe('/workflow-bookings/booking-1/delivery');
+    expect(new URLSearchParams(window.location.search).get('version')).toBe('2');
+    expect(screen.queryByRole('heading', { name: 'Bàn giao ảnh hợp nhất' })).toBeNull();
   });
   beforeEach(() => {
     mocks.auth.user = null;

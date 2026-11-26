@@ -66,6 +66,47 @@
   height: 2px;
 }
 
+.photographer-order--yearbook {
+  gap: 16px;
+}
+
+.photographer-order--yearbook .admin-order__progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 0;
+}
+
+.photographer-order--yearbook .admin-order__progress li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  font-size: 0.9rem;
+}
+
+.photographer-order--yearbook .admin-order__marker {
+  width: 21px;
+  height: 21px;
+}
+
+.photographer-order--yearbook .admin-order__marker svg {
+  width: 12px;
+  height: 12px;
+}
+
+.photographer-order--yearbook .admin-order__progress li:not(:last-child)::after {
+  position: static;
+  width: 24px;
+  height: 1px;
+  margin-left: 10px;
+  background: hsl(var(--muted-foreground) / 0.45);
+}
+
+.photographer-order--yearbook .admin-order__panel {
+  margin-top: 20px;
+}
+
 .photographer-order__overview {
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   align-items: start;
@@ -213,5 +254,29 @@
   .photographer-order .admin-order__progress li:not(:last-child)::after {
     top: 12px;
     height: 1px;
+  }
+}
+
+@media (max-width: 680px) {
+  .photographer-order--yearbook .admin-order__progress {
+    gap: 4px 14px;
+  }
+
+  .photographer-order--yearbook .admin-order__progress li {
+    gap: 5px;
+    font-size: 0.8rem;
+  }
+
+  .photographer-order--yearbook .admin-order__marker {
+    width: 17px;
+    height: 17px;
+  }
+
+  .photographer-order--yearbook .admin-order__progress li:not(:last-child)::after {
+    content: none;
+  }
+
+  .photographer-order--yearbook .admin-order__tabs button {
+    padding-inline: 10px;
   }
 }

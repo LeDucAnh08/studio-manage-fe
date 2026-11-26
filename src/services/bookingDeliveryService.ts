@@ -7,6 +7,7 @@ export interface DeliveryPhoto {
   name: string;
   width: number;
   height: number;
+  originalPhotoId?: string;
 }
 const base = (id: string) => `/bookings/${id}/delivery/photos`;
 export const bookingDeliveryService = {
@@ -14,13 +15,13 @@ export const bookingDeliveryService = {
     api
       .get<ApiResponse<DeliveryPhoto[]>>(base(id), { signal })
       .then((response) => response.data.data),
-  upload: (id: string, file: File, key: string, signal?: AbortSignal) => {
+  upload: (id: string, file: File, key: string, signal?: AbortSignal, originalPhotoId?: string) => {
     const body = new FormData();
     body.append('photo', file);
     return api
       .post<
         ApiResponse<DeliveryPhoto>
-      >(base(id), body, { headers: { 'Idempotency-Key': key }, signal })
+      >(base(id), body, { headers: { 'Idempotency-Key': key }, signal, params: { originalPhotoId } })
       .then((response) => response.data.data);
   },
   remove: (id: string, photo: string) => api.delete(base(id) + '/' + photo),

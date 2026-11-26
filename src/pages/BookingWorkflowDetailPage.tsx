@@ -46,6 +46,7 @@ import {
 } from '../services/bookingWorkflowService';
 import { AdminYearbookOrder } from '../components/AdminYearbookOrder';
 import { PhotographerOrder } from '../components/PhotographerOrder';
+import { PhotographerDeliveryWorkspace } from '../components/PhotographerDeliveryWorkspace';
 import { isPersonalPhotographer } from '../utils/staffRole';
 import { BookingPhotographer } from '../components/BookingPhotographer';
 import { PhotographerAvailabilityPicker } from '../components/PhotographerAvailabilityPicker';
@@ -264,7 +265,9 @@ function PaymentInstructionsPanel({ instructions }: { instructions: PaymentInstr
   );
 }
 
-export default function BookingWorkflowDetailPage() {
+export default function BookingWorkflowDetailPage({
+  openDelivery = false,
+}: { openDelivery?: boolean } = {}) {
   const navigate = useNavigate();
   const now = useCurrentTime();
   const location = useLocation();
@@ -278,6 +281,7 @@ export default function BookingWorkflowDetailPage() {
   const canSeeFinancials = isAdmin || isClient;
   const photographerWorkspace = isPersonalPhotographer(user) && !canSeeFinancials && !customer;
   const [record, setRecord] = useState<BookingWorkflowDto | null>(null);
+  const [albumReload, setAlbumReload] = useState(0);
   const [adminTab, setAdminTab] = useState({ orderId: '', value: 'overview' });
   const [legacyBooking, setLegacyBooking] = useState<Booking | null>(null);
   const [allocationAvailability, setAllocationAvailability] = useState<AvailabilityResult | null>(
@@ -318,7 +322,12 @@ export default function BookingWorkflowDetailPage() {
     setError('');
     try {
       const detail = await bookingWorkflowService.get(id);
-      setRecord(detail);
+      setRecord((current) =>
+        current?.booking._id === detail.booking._id &&
+        current.workflow.version > detail.workflow.version
+          ? current
+          : detail,
+      );
       setReviewError('');
       if (isAdmin || isClient) {
         const legacy = await bookingService.get(id).catch(() => null);
@@ -2512,7 +2521,6 @@ export default function BookingWorkflowDetailPage() {
     </Button>
   );
   const deliveryPath = `${customer ? '/account/bookings' : '/workflow-bookings'}/${id}/delivery`;
-  const deliveryState = photographerWorkspace ? { bookingOrdersReturnTo: backPath } : undefined;
   const deliveryPanel = (
     <>
       {(isClient || isAdmin || isPhotographer) && workflow.progress && (
@@ -2537,9 +2545,7 @@ export default function BookingWorkflowDetailPage() {
           </div>
           <div className="space-y-2">
             <Button asChild>
-              <Link to={deliveryPath} state={deliveryState}>
-                Xem ảnh bàn giao
-              </Link>
+              <Link to={deliveryPath}>Xem ảnh bàn giao</Link>
             </Button>
             <p className="text-sm text-muted-foreground">
               Chọn ảnh, xem ảnh đã chỉnh và theo dõi phản hồi trong cùng một màn.
@@ -2727,14 +2733,16 @@ export default function BookingWorkflowDetailPage() {
     const proposed = workflow.proposedSchedule ?? workflow.quote?.proposedSchedule;
     const shoot = confirmed ?? proposed;
     const terminal = stage === 'cancelled' || stage === 'rejected';
+    const orderQuery = new URLSearchParams(location.search);
+    const requestedTab = orderQuery.get('tab');
+    const orderTab =
+      requestedTab && ['schedule', 'delivery', 'history'].includes(requestedTab)
+        ? requestedTab
+        : 'overview';
+    const showDelivery = !terminal && booking.status === 'approved' && !!workflow.progress;
+    const legacyAlbumTab = openDelivery ? requestedTab : null;
+    const legacyAlbumVersion = openDelivery ? Number(orderQuery.get('version')) || 0 : 0;
     const deadline = workflow.quote?.delivery?.targetDate;
-    const link = workflow.progress && !terminal && (
-      <Button asChild>
-        <Link to={deliveryPath} state={deliveryState}>
-          Xem ảnh bàn giao
-        </Link>
-      </Button>
-    );
     const task = terminal
       ? { title: bookingOrderStageLabels[stage] }
       : progressUpdate
@@ -2749,7 +2757,7 @@ export default function BookingWorkflowDetailPage() {
           ? {
               title: 'Bàn giao ảnh',
               detail: deadline ? `Hạn bàn giao · ${formatDateOnly(deadline)}` : undefined,
-              action: link,
+              openDelivery: showDelivery,
             }
           : {
               title:
@@ -2758,7 +2766,7 @@ export default function BookingWorkflowDetailPage() {
                   : stage === 'delivered'
                     ? 'Ảnh đã bàn giao'
                     : 'Theo dõi lịch chụp',
-              action: link,
+              openDelivery: showDelivery,
             };
     const crew = [
       ...(workflow.assignedPhotographer
@@ -2787,7 +2795,14 @@ export default function BookingWorkflowDetailPage() {
               ? 'Đơn chụp ảnh'
               : backLabel.replace('← ', '')}
           </Link>
-          <Button variant="ghost" disabled={loading || busy !== ''} onClick={() => void load()}>
+          <Button
+            variant="ghost"
+            disabled={loading || busy !== ''}
+            onClick={() => {
+              void load();
+              if (showDelivery) setAlbumReload((count) => count + 1);
+            }}
+          >
             Tải lại hồ sơ
           </Button>
         </div>
@@ -2797,12 +2812,29 @@ export default function BookingWorkflowDetailPage() {
           </p>
         )}
         <PhotographerOrder
-          key={booking._id}
+          key={`${booking._id}:${openDelivery}`}
           service="yearbook"
           title={title}
           orderId={booking._id}
           subtitle={booking.school}
           status={bookingOrderStageLabels[stage]}
+          initialTab={openDelivery ? 'delivery' : orderTab}
+          onTabChange={
+            openDelivery
+              ? undefined
+              : (tab) => {
+                  if (tab === 'overview') orderQuery.delete('tab');
+                  else orderQuery.set('tab', tab);
+                  navigate(
+                    {
+                      pathname: location.pathname,
+                      search: orderQuery.toString(),
+                      hash: location.hash,
+                    },
+                    { replace: true, state: location.state, preventScrollReset: true },
+                  );
+                }
+          }
           step={photographerMilestone[stage] ?? -1}
           completed={stage === 'completed' || stage === 'delivered'}
           schedule={{
@@ -2845,8 +2877,34 @@ export default function BookingWorkflowDetailPage() {
             </>
           }
           delivery={
-            workflow.progress ? (
-              deliveryPanel
+            showDelivery && record ? (
+              <>
+                {progressUpdate && workflow.lifecycle !== 'revision_requested' && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    {progressButton}
+                    {missingMembers && (
+                      <p className="text-sm text-muted-foreground">
+                        Cần đủ danh sách thành viên trước khi bắt đầu buổi chụp.
+                      </p>
+                    )}
+                  </div>
+                )}
+                <PhotographerDeliveryWorkspace
+                  key={`${booking._id}:${user?._id}:${legacyAlbumTab}:${legacyAlbumVersion}`}
+                  record={record}
+                  requestedTab={legacyAlbumTab}
+                  requestedVersion={legacyAlbumVersion}
+                  reloadCount={albumReload}
+                  onWorkflowChange={(next) =>
+                    setRecord((current) =>
+                      current?.booking._id === next.booking._id &&
+                      current.workflow.version <= next.workflow.version
+                        ? next
+                        : current,
+                    )
+                  }
+                />
+              </>
             ) : (
               <p className="text-sm text-muted-foreground">Chưa có thông tin bàn giao.</p>
             )

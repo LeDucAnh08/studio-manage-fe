@@ -50,6 +50,7 @@ import ConceptPhotographerPage from './pages/ConceptPhotographerPage';
 import PhotographerPublicPage from './pages/PhotographerPublicPage';
 import ConceptOrderPage from './pages/ConceptOrderPage';
 import { GuestConceptAlbumPage } from './pages/ConceptAlbumPanel';
+import { isPersonalPhotographer } from './utils/staffRole';
 
 function PageTitleManager() {
   usePageTitle();
@@ -87,7 +88,26 @@ function AlbumRedirect() {
   const location = useLocation();
   const query = new URLSearchParams(location.search);
   query.set('tab', 'selection');
-  return <Navigate to={`/workflow-bookings/${id}/delivery?${query}`} replace />;
+  return (
+    <Navigate
+      to={{
+        pathname: `/workflow-bookings/${id}/delivery`,
+        search: query.toString(),
+        hash: location.hash,
+      }}
+      state={location.state}
+      replace
+    />
+  );
+}
+
+function StaffYearbookDelivery() {
+  const { user } = useAuth();
+  return isPersonalPhotographer(user) && !user?.roles.includes(6) ? (
+    <BookingWorkflowDetailPage openDelivery />
+  ) : (
+    <BookingDeliveryPage />
+  );
 }
 
 function PortfolioEntry() {
@@ -407,7 +427,7 @@ function App() {
                         path="workflow-bookings/:id/delivery"
                         element={
                           <ProtectedRoute allowedRoles={[0, 1, 3]}>
-                            <BookingDeliveryPage />
+                            <StaffYearbookDelivery />
                           </ProtectedRoute>
                         }
                       />

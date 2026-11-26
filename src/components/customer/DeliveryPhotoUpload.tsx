@@ -34,7 +34,9 @@ export function DeliveryPhotoUpload({
   const values = useRef<DeliveryPhoto[]>([]),
     alive = useRef(true),
     controller = useRef<AbortController>();
-  const base = useRef(previous.filter((photo) => photo.source !== 'drive'));
+  const [base] = useState(() =>
+    previous.filter((photo) => photo.source !== 'drive' && !photo.originalPhotoId),
+  );
   const apply = (next: DeliveryPhoto[]) => {
     values.current = next;
     setPhotos(next);
@@ -51,8 +53,8 @@ export function DeliveryPhotoUpload({
       .then((drafts) => {
         if (!active) return;
         const merged = [
-          ...base.current,
-          ...drafts.filter((photo) => !base.current.some((old) => old.id === photo.id)),
+          ...base,
+          ...drafts.filter((photo) => !base.some((old) => old.id === photo.id)),
         ];
         values.current = merged;
         setPhotos(merged);
@@ -75,7 +77,7 @@ export function DeliveryPhotoUpload({
       controller.current?.abort();
       refs.current.onBusy(false);
     };
-  }, [bookingId]);
+  }, [bookingId, base]);
   const upload = async (items: Array<{ file: File; key: string }>) => {
     setBusy(true);
     refs.current.onBusy(true);
@@ -144,7 +146,7 @@ export function DeliveryPhotoUpload({
         {busy ? 'Đang tải ảnh… ' : ''}
         {photos.length} ảnh đã tải{pending.length > 0 ? ` · ${pending.length} ảnh đang chờ` : ''}
       </p>
-      {previous.length > 0 && (
+      {base.length > 0 && (
         <OrderButton
           variant="outline"
           disabled={busy || restoring}

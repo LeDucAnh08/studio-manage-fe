@@ -1,140 +1,20 @@
-import { isQueuedAlbum } from '../services/backgroundJobService';
-import { useAlbumOperation } from '../hooks/useAlbumOperation';
+import { useBookingAlbum } from '../hooks/useBookingAlbum';
+import { AlbumImage } from '../components/BookingAlbumImage';
+import { CustomerDriveAlbum } from '@/components/customer/CustomerDriveAlbum';
 import { CustomerTextarea } from '@/components/customer/CustomerFields';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  Heart,
-  Image as ImageIcon,
-  X,
-} from 'lucide-react';
-import {
-  albumClient,
-  albumError,
-  type BookingAlbum,
-  type AlbumPhoto,
-} from '@/services/bookingAlbumService';
-import { bookingWorkflowService, createWorkflowRequestId } from '@/services/bookingWorkflowService';
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Heart, X } from 'lucide-react';
+import { albumClient, type BookingAlbum } from '@/services/bookingAlbumService';
 import '../styles/booking-album.css';
 
-type Client = ReturnType<typeof albumClient>;
-function AlbumImage({
-  client,
-  photo,
-  thumbnail = false,
-  onUrl,
-}: {
-  client: Client;
-  photo: AlbumPhoto;
-  thumbnail?: boolean;
-  onUrl?: (url: string) => void;
-}) {
-  const element = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(!thumbnail);
-  const [attempt, setAttempt] = useState(0);
-  const [result, setResult] = useState({ key: '', url: '', error: '' });
-  const key = `${photo.id}:${photo.sourceVersion || ''}:${thumbnail}`;
-  useEffect(() => {
-    if (!thumbnail || !window.IntersectionObserver) {
-      setVisible(true);
-      return;
-    }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '200px' },
-    );
-    if (element.current) observer.observe(element.current);
-    return () => observer.disconnect();
-  }, [thumbnail]);
-  useEffect(() => {
-    if (!visible || !photo.available) return;
-    const controller = new AbortController();
-    let alive = true,
-      url = '';
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    setResult({ key, url: '', error: '' });
-    onUrl?.('');
-    const load = async (retry = 0) => {
-      try {
-        const blob = await client.image(photo.id, thumbnail, controller.signal);
-        if (!alive) return;
-        url = URL.createObjectURL(blob);
-        setResult({ key, url, error: '' });
-        onUrl?.(url);
-      } catch (error) {
-        if (!alive) return;
-        const response = (error as { response?: { status: number; data: Blob } }).response;
-        if (response?.status === 429 && retry < 4) {
-          timer = setTimeout(() => void load(retry + 1), 1200 * (retry + 1));
-          return;
-        }
-        let message = 'Không tải được ảnh. Thử lại.';
-        if (response?.data instanceof Blob) {
-          try {
-            message = JSON.parse(await response.data.text()).message || message;
-          } catch {
-            /* use fallback */
-          }
-        }
-        if (alive) setResult({ key, url: '', error: message });
-      }
-    };
-    void load();
-    return () => {
-      alive = false;
-      controller.abort();
-      clearTimeout(timer);
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [client, photo.id, photo.available, thumbnail, visible, key, attempt, onUrl]);
-  return (
-    <div ref={element} className={`album-image ${thumbnail ? 'album-image--thumb' : ''}`}>
-      {!photo.available ? (
-        <span>Ảnh không còn trong thư mục</span>
-      ) : result.key === key && result.url ? (
-        <img src={result.url} alt={photo.name} />
-      ) : result.key === key && result.error ? (
-        <div role="status">
-          <p>{result.error}</p>
-          {!thumbnail && (
-            <button type="button" onClick={() => setAttempt((v) => v + 1)}>
-              Thử tải lại
-            </button>
-          )}
-        </div>
-      ) : (
-        <span role="status">Đang tải ảnh…</span>
-      )}
-    </div>
-  );
-}
 const splitFolders = (text: string) =>
   text
     .split(/\r?\n/)
     .map((s) => s.trim())
     .filter(Boolean);
 
-export default function BookingAlbumPage({
-  staff = false,
-  account = false,
-  embedded = false,
-  section,
-  deliveryVersion = 0,
-  canCommentDelivery,
-  workflowVersion,
-  lifecycle,
-  onAlbumChange,
-}: {
+type AlbumPageProps = {
   staff?: boolean;
   account?: boolean;
   embedded?: boolean;
@@ -144,21 +24,43 @@ export default function BookingAlbumPage({
   canCommentDelivery?: boolean;
   workflowVersion?: number;
   lifecycle?: string;
-}) {
+};
+
+export default function BookingAlbumPage(props: AlbumPageProps) {
+  const { staff = false, account = false, embedded = false } = props;
   const { id = '', publicId = '' } = useParams();
   const location = useLocation();
   const token = new URLSearchParams(location.hash.slice(1)).get('access') || '';
-  const identity = staff || account ? id : `${publicId}:${token}`;
   const client = useMemo(
     () =>
       account ? albumClient(false, id, '', true) : albumClient(staff, staff ? id : publicId, token),
     [staff, account, id, publicId, token],
   );
-  const [album, setAlbum] = useState<BookingAlbum | null>(null);
-  const [loaded, setLoaded] = useState(false),
-    [error, setError] = useState(''),
-    [notice, setNotice] = useState(''),
-    [saving, setBusy] = useState(false);
+  if (staff) return <StaffBookingAlbum {...props} client={client} id={id} />;
+  return (
+    <CustomerDriveAlbum
+      key={`${account ? id : publicId}:${token}`}
+      client={client}
+      account={account}
+      embedded={embedded}
+      section={props.section}
+      deliveryVersion={props.deliveryVersion}
+      canCommentDelivery={props.canCommentDelivery}
+      onAlbumChange={props.onAlbumChange}
+    />
+  );
+}
+
+function StaffBookingAlbum({
+  client,
+  id,
+  embedded = false,
+  section,
+  deliveryVersion = 0,
+  workflowVersion,
+  lifecycle,
+  onAlbumChange,
+}: AlbumPageProps & { client: ReturnType<typeof albumClient>; id: string }) {
   const [title, setTitle] = useState(''),
     [limit, setLimit] = useState('0'),
     [folders, setFolders] = useState(''),
@@ -169,160 +71,53 @@ export default function BookingAlbumPage({
     [shown, setShown] = useState(60);
   const [selectedId, setSelectedId] = useState(''),
     [imageUrl, setImageUrl] = useState('');
-  const [drafts, setDrafts] = useState<Record<string, string>>({}),
-    [confirm, setConfirm] = useState(false),
-    [shareUrl, setShareUrl] = useState('');
-  const [exportText, setExportText] = useState(''),
-    [extension, setExtension] = useState(true),
-    [revisionNote, setRevisionNote] = useState('');
-  const inflight = useRef(false),
-    keys = useRef(new Map<string, string>()),
-    currentIdentity = useRef(identity);
-  useLayoutEffect(() => {
-    currentIdentity.current = identity;
-  }, [identity]);
-  const callback = useRef(onAlbumChange);
-  useLayoutEffect(() => {
-    callback.current = onAlbumChange;
-  }, [onAlbumChange]);
-  const apply = useCallback((next: BookingAlbum | null) => {
-    setAlbum(next);
-    callback.current?.(next);
-  }, []);
+  const [revisionNote, setRevisionNote] = useState('');
+  const {
+    album,
+    loaded,
+    error,
+    notice,
+    shareUrl,
+    busy,
+    background,
+    refresh,
+    command,
+    workflowAction: saveWorkflow,
+    extension,
+    setExtension,
+    exportText,
+    exportNames,
+    copy,
+    downloadText,
+  } = useBookingAlbum(client, id, {
+    onLoad(next) {
+      setTitle(next?.title || 'Album chọn ảnh');
+      setLimit(String(next?.limit || 0));
+      setFolders(
+        next?.folders
+          .map((f) => f.url || `https://drive.google.com/drive/folders/${f.id}`)
+          .join('\n') || '',
+      );
+      setTab(
+        next?.latestDeliveryVersion && next.deliveryVersions.includes(next.latestDeliveryVersion)
+          ? next.latestDeliveryVersion
+          : 0,
+      );
+    },
+    onChange: onAlbumChange,
+  });
   useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-    setLoaded(false);
-    setAlbum(null);
-    setError('');
-    setShareUrl('');
-    setDrafts({});
     setSelectedId('');
-    keys.current.clear();
-    void client
-      .get(controller.signal)
-      .then((next) => {
-        if (!active) return;
-        apply(next);
-        setTitle(next?.title || 'Album chọn ảnh');
-        setLimit(String(next?.limit || 0));
-        setFolders(
-          next?.folders
-            .map((f) => f.url || `https://drive.google.com/drive/folders/${f.id}`)
-            .join('\n') || '',
-        );
-        setTab(
-          next?.latestDeliveryVersion && next.deliveryVersions.includes(next.latestDeliveryVersion)
-            ? next.latestDeliveryVersion
-            : 0,
-        );
-      })
-      .catch((e) => {
-        if (active) setError(albumError(e));
-      })
-      .finally(() => {
-        if (active) setLoaded(true);
-      });
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [client, apply]);
+  }, [client]);
   useEffect(() => {
     if (embedded && loaded) setTab(section === 'selection' ? 0 : deliveryVersion || -1);
   }, [embedded, section, deliveryVersion, loaded]);
-  const refresh = async () => {
-    try {
-      const next = await client.get();
-      if (currentIdentity.current === identity) {
-        apply(next);
-        setError('');
-      }
-    } catch (e) {
-      setError(albumError(e));
-    }
-  };
-  const background = useAlbumOperation('yearbook', id, staff, refresh);
-  const busy = saving || background.pending;
-  const command = async (operation: string, data: Record<string, unknown> = {}) => {
-    if (inflight.current || background.pending) return;
-    if (
-      operation === 'photo' &&
-      data.note !== undefined &&
-      (typeof data.note !== 'string' || data.note.length > 2000)
-    ) {
-      setError('Ghi chú cho studio tối đa 2.000 ký tự.');
-      return;
-    }
-    inflight.current = true;
-    setBusy(true);
-    setError('');
-    setNotice('');
-    const payload = { ...data, expectedVersion: album?.version || 0 };
-    const signature = JSON.stringify([operation, payload]);
-    if (!keys.current.has(signature)) keys.current.set(signature, createWorkflowRequestId());
-    try {
-      const next = await client.command(operation, payload, keys.current.get(signature)!);
-      if (currentIdentity.current !== identity) return;
-      if (isQueuedAlbum(next)) {
-        background.watch(next.backgroundOperation);
-        keys.current.delete(signature);
-        return;
-      }
-      apply(next);
-      keys.current.delete(signature);
-      setNotice('Đã lưu.');
-      if (next.token)
-        setShareUrl(`${window.location.origin}/albums/${next.publicId}#access=${next.token}`);
-      if (operation === 'revoke') setShareUrl('');
-      if (operation === 'photo' && typeof data.photoId === 'string' && data.note !== undefined)
-        setDrafts((d) => {
-          const copy = { ...d };
-          if (copy[data.photoId as string] === data.note) delete copy[data.photoId as string];
-          return copy;
-        });
-      if (operation === 'finalize') setConfirm(false);
-    } catch (e) {
-      if (currentIdentity.current === identity) setError(albumError(e));
-    } finally {
-      inflight.current = false;
-      if (currentIdentity.current === identity) setBusy(false);
-    }
-  };
   const workflowAction = async (
-    type: 'progress.update' | 'delivery.revision.start',
+    action: 'progress.update' | 'delivery.revision.start',
     data: Record<string, unknown>,
   ) => {
-    if (!album || album.workflowVersion === undefined || inflight.current) return;
-    const expectedVersion = Math.max(workflowVersion ?? 0, album.workflowVersion);
-    inflight.current = true;
-    setBusy(true);
-    setError('');
-    const signature = JSON.stringify([type, expectedVersion, data]);
-    if (!keys.current.has(signature)) keys.current.set(signature, createWorkflowRequestId());
-    try {
-      await bookingWorkflowService.act(
-        id,
-        expectedVersion,
-        type,
-        data,
-        keys.current.get(signature),
-      );
-      keys.current.delete(signature);
-      await refresh();
-      setNotice(
-        type === 'progress.update' && data.status === 'editing'
-          ? 'Đã chuyển sang hậu kỳ. Bạn có thể chuẩn bị bản bàn giao mới.'
-          : type === 'progress.update'
-            ? 'Đã gửi bản bàn giao mới trên cùng link album.'
-            : 'Đã ghi nhận bắt đầu chỉnh lại. Chuyển sang hậu kỳ để chuẩn bị bản mới.',
-      );
-    } catch (e) {
-      setError(albumError(e));
-    } finally {
-      inflight.current = false;
-      setBusy(false);
-    }
+    if (album?.workflowVersion === undefined) return;
+    await saveWorkflow(workflowVersion ?? 0, action, data);
   };
   const allPhotos = album?.photos.filter((p) => p.deliveryVersion === tab) || [];
   const filtered = allPhotos.filter(
@@ -331,43 +126,22 @@ export default function BookingAlbumPage({
       (filter === 'selected' ? p.selected : filter === 'notes' ? !!p.note : true),
   );
   const selected = allPhotos.find((p) => p.id === selectedId);
-  const canSelect = !staff && album?.canSelect && tab === 0;
-  const canNote =
-    canSelect ||
-    (!staff &&
-      tab > 0 &&
-      tab === album?.latestDeliveryVersion &&
-      (canCommentDelivery ?? album.canCommentDelivery));
   const chosen =
     album?.photos.filter((p) => p.deliveryVersion === 0 && p.available && p.selected).length || 0;
-  const pendingDrafts = Object.keys(drafts).some(
-    (photoId) => drafts[photoId] !== album?.photos.find((p) => p.id === photoId)?.note,
-  );
-  const cover = album?.photos.find(
-    (p) => p.deliveryVersion === 0 && p.driveId === album.coverId && p.available,
-  );
   useEffect(() => {
     setShown(60);
     setFolder('');
     setFilter('all');
     setSelectedId('');
   }, [tab]);
-  useEffect(() => {
-    if (!selected) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSelectedId('');
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [selected]);
   const setModalUrl = useCallback((url: string) => setImageUrl(url), []);
-  const dialogOpen = !!selectedId || confirm;
+  const dialogOpen = !!selectedId;
   useEffect(() => {
     if (!dialogOpen) return;
     const previous = document.activeElement as HTMLElement | null;
     const overflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const dialog = document.querySelector<HTMLElement>('.album-confirm, .album-viewer');
+    const dialog = document.querySelector<HTMLElement>('.album-viewer');
     const elements = () =>
       Array.from(
         dialog?.querySelectorAll<HTMLElement>(
@@ -378,7 +152,6 @@ export default function BookingAlbumPage({
     const trap = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setSelectedId('');
-        setConfirm(false);
       }
       if (event.key !== 'Tab') return;
       const items = elements();
@@ -399,50 +172,22 @@ export default function BookingAlbumPage({
       previous?.focus();
     };
   }, [dialogOpen]);
-  const exportNames = async (round?: number) => {
-    setError('');
-    try {
-      setExportText((await client.export(extension, round)).text);
-    } catch (e) {
-      setError(albumError(e));
-    }
-  };
-  const copy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setNotice('Đã sao chép.');
-    } catch {
-      setError('Chưa sao chép được. Bạn có thể chọn và sao chép nội dung trong ô.');
-    }
-  };
-  const downloadText = () => {
-    const url = URL.createObjectURL(new Blob([exportText], { type: 'text/plain;charset=utf-8' }));
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = 'anh-da-chon.txt';
-    anchor.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
   const Container = embedded ? 'section' : 'main';
   return (
     <Container className={`album-page${embedded ? ' album-page--embedded' : ''}`}>
       {!embedded && (
         <header className="album-header">
           <div>
-            <span className="album-eyebrow">
-              {staff ? 'Không gian làm việc của studio' : 'Bộ ảnh dành cho bạn'}
-            </span>
+            <span className="album-eyebrow">Không gian làm việc của studio</span>
             <h1>{album?.title || 'Album ảnh'}</h1>
             <p>Chọn khoảnh khắc bạn muốn giữ lại.</p>
           </div>
-          {staff && (
-            <Link
-              className="app-back-link album-button album-button--quiet"
-              to={`/workflow-bookings/${id}`}
-            >
-              <ArrowLeft size={16} /> Hồ sơ đơn
-            </Link>
-          )}
+          <Link
+            className="app-back-link album-button album-button--quiet"
+            to={`/workflow-bookings/${id}`}
+          >
+            <ArrowLeft size={16} /> Hồ sơ đơn
+          </Link>
         </header>
       )}
       <div className="album-messages" aria-live="polite">
@@ -458,269 +203,240 @@ export default function BookingAlbumPage({
       </div>
       {!loaded ? (
         <p role="status">Đang mở album…</p>
-      ) : !staff && !album ? (
-        embedded && section === 'delivery' ? null : (
-          <div className="album-empty">
-            <ImageIcon />
-            <h2>{account ? 'Studio chưa mở album chọn ảnh' : 'Album chưa khả dụng'}</h2>
-            <p>
-              {account
-                ? 'Ảnh sẽ xuất hiện ở đây khi studio mở cho bạn lựa chọn.'
-                : 'Kiểm tra lại link đầy đủ hoặc liên hệ studio.'}
-            </p>
-          </div>
-        )
       ) : (
         <>
-          {staff && (
-            <section className="album-management" aria-label="Quản lý album">
-              {(!embedded || section === 'selection') && (
-                <>
-                  <div className="album-panel">
-                    <h2>Album chọn ảnh</h2>
-                    <label>
-                      Tên album
-                      <input
-                        value={title}
-                        maxLength={160}
-                        onChange={(e) => setTitle(e.target.value)}
-                      />
-                    </label>
-                    <label>
-                      Thư mục Drive · mỗi link một dòng
-                      <textarea
-                        value={folders}
-                        onChange={(e) => setFolders(e.target.value)}
-                        placeholder="https://drive.google.com/drive/folders/..."
-                        rows={3}
-                      />
-                    </label>
-                    <p className="album-hint">
-                      Bật “Bất kỳ ai có đường liên kết” trên Drive. Chỉ ảnh trực tiếp trong từng thư
-                      mục được đưa vào album.
-                    </p>
-                    <label>
-                      Số ảnh được chọn · 0 là không giới hạn
-                      <input
-                        type="number"
-                        min={0}
-                        max={10000}
-                        value={limit}
-                        onChange={(e) => setLimit(e.target.value)}
-                      />
-                    </label>
-                    <div className="album-actions">
-                      <button
-                        disabled={busy}
-                        onClick={() =>
-                          void command('configure', {
-                            title,
-                            limit: Number(limit),
-                            folders: splitFolders(folders),
-                          })
-                        }
-                      >
-                        Lưu và lấy ảnh
-                      </button>
-                      {album && (
-                        <button disabled={busy} onClick={() => void command('sync')}>
-                          Cập nhật từ Drive
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  {album && (
-                    <div className="album-panel">
-                      <h2>Chia sẻ và lựa chọn</h2>
-                      <p>
-                        {album.status === 'draft'
-                          ? 'Bản nháp · khách chưa xem được'
-                          : album.status === 'open'
-                            ? 'Đang mở chọn ảnh'
-                            : 'Đã khóa lựa chọn'}
-                      </p>
-                      <div className="album-actions">
-                        <button
-                          disabled={busy || album.status === 'open'}
-                          onClick={() =>
-                            void command(album.status === 'draft' ? 'publish' : 'reopen')
-                          }
-                        >
-                          {album.status === 'draft' ? 'Xuất bản album' : 'Mở lại lựa chọn'}
-                        </button>
-                        <button
-                          disabled={busy || album.status !== 'open'}
-                          onClick={() => void command('close')}
-                        >
-                          Đóng lựa chọn
-                        </button>
-                        <button disabled={busy} onClick={() => void command('share')}>
-                          {album.shared ? 'Tạo link mới (thu hồi link cũ)' : 'Tạo link cho khách'}
-                        </button>
-                        <button
-                          disabled={busy || !album.shared}
-                          onClick={() => void command('revoke')}
-                        >
-                          Thu hồi link
-                        </button>
-                      </div>
-                      {shareUrl && (
-                        <label>
-                          Link khách · lưu lại để gửi
-                          <input readOnly value={shareUrl} />
-                          <button onClick={() => void copy(shareUrl)}>Sao chép link</button>
-                        </label>
-                      )}
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={extension}
-                          onChange={(e) => setExtension(e.target.checked)}
-                        />{' '}
-                        Giữ đuôi file
-                      </label>
-                      <button disabled={busy} onClick={() => void exportNames()}>
-                        Lấy tên file đã chọn
-                      </button>
-                      {exportText && (
-                        <>
-                          <textarea
-                            aria-label="Tên file đã chọn"
-                            readOnly
-                            value={exportText}
-                            rows={4}
-                          />
-                          <div className="album-actions">
-                            <button onClick={() => void copy(exportText)}>
-                              Sao chép danh sách
-                            </button>
-                            <button onClick={downloadText}>Tải TXT</button>
-                          </div>
-                        </>
-                      )}
-                      {!!album.skipped?.length && (
-                        <details>
-                          <summary>{album.skipped.length} tệp được bỏ qua</summary>
-                          <ul>
-                            {album.skipped.map((name, index) => (
-                              <li key={index}>{name}</li>
-                            ))}
-                          </ul>
-                        </details>
-                      )}
-                      {!!album.selectionHistory?.length && (
-                        <details>
-                          <summary>Lịch sử chốt ({album.selectionHistory.length})</summary>
-                          {album.selectionHistory.map((entry, index) => (
-                            <div key={index}>
-                              <p>
-                                {new Date(entry.at).toLocaleString('vi-VN')} · {entry.count} ảnh
-                              </p>
-                              <button disabled={busy} onClick={() => void exportNames(entry.round)}>
-                                Lấy tên file lần chốt {entry.round}
-                              </button>
-                            </div>
-                          ))}
-                        </details>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-              {album && (!embedded || section === 'delivery') && (
+          <section className="album-management" aria-label="Quản lý album">
+            {(!embedded || section === 'selection') && (
+              <>
                 <div className="album-panel">
-                  <h2>Giao ảnh đã chỉnh</h2>
+                  <h2>Album chọn ảnh</h2>
                   <label>
-                    Thư mục bản bàn giao · mỗi link một dòng
+                    Tên album
+                    <input
+                      value={title}
+                      maxLength={160}
+                      onChange={(e) => setTitle(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Thư mục Drive · mỗi link một dòng
                     <textarea
-                      value={deliveryFolders}
-                      onChange={(e) => setDeliveryFolders(e.target.value)}
+                      value={folders}
+                      onChange={(e) => setFolders(e.target.value)}
+                      placeholder="https://drive.google.com/drive/folders/..."
                       rows={3}
                     />
                   </label>
                   <p className="album-hint">
-                    Dùng thư mục riêng cho mỗi phiên bản. Giữ nguyên ảnh đã giao để khách xem lại.
+                    Bật “Bất kỳ ai có đường liên kết” trên Drive. Chỉ ảnh trực tiếp trong từng thư
+                    mục được đưa vào album.
                   </p>
+                  <label>
+                    Số ảnh được chọn · 0 là không giới hạn
+                    <input
+                      type="number"
+                      min={0}
+                      max={10000}
+                      value={limit}
+                      onChange={(e) => setLimit(e.target.value)}
+                    />
+                  </label>
                   <div className="album-actions">
                     <button
                       disabled={busy}
                       onClick={() =>
-                        void command('delivery-sync', { folders: splitFolders(deliveryFolders) })
-                      }
-                    >
-                      Lấy ảnh đã chỉnh
-                    </button>
-                    <button
-                      disabled={
-                        busy || !album.photos.some((p) => p.deliveryVersion === -1 && p.available)
-                      }
-                      onClick={() => setTab(-1)}
-                    >
-                      Xem bản chuẩn bị giao
-                    </button>
-                    <button
-                      disabled={
-                        busy ||
-                        (lifecycle ?? album.lifecycle) !== 'editing' ||
-                        !album.photos.some((p) => p.deliveryVersion === -1 && p.available)
-                      }
-                      onClick={() =>
-                        void workflowAction('progress.update', {
-                          status: 'delivered',
-                          driveAlbum: true,
-                          albumVersion: album.version,
+                        void command('configure', {
+                          title,
+                          limit: Number(limit),
+                          folders: splitFolders(folders),
                         })
                       }
                     >
-                      Gửi bản bàn giao mới
+                      Lưu và lấy ảnh
                     </button>
+                    {album && (
+                      <button disabled={busy} onClick={() => void command('sync')}>
+                        Cập nhật từ Drive
+                      </button>
+                    )}
                   </div>
-                  {(lifecycle ?? album.lifecycle) === 'delivered' && (
-                    <>
-                      <label>
-                        Lý do bắt đầu chỉnh lại
-                        <textarea
-                          value={revisionNote}
-                          maxLength={2000}
-                          onChange={(e) => setRevisionNote(e.target.value)}
-                        />
-                      </label>
+                </div>
+                {album && (
+                  <div className="album-panel">
+                    <h2>Chia sẻ và lựa chọn</h2>
+                    <p>
+                      {album.status === 'draft'
+                        ? 'Bản nháp · khách chưa xem được'
+                        : album.status === 'open'
+                          ? 'Đang mở chọn ảnh'
+                          : 'Đã khóa lựa chọn'}
+                    </p>
+                    <div className="album-actions">
                       <button
-                        disabled={busy || !revisionNote.trim()}
+                        disabled={busy || album.status === 'open'}
                         onClick={() =>
-                          void workflowAction('delivery.revision.start', {
-                            deliveryVersion: album.latestDeliveryVersion,
-                            note: revisionNote,
-                          })
+                          void command(album.status === 'draft' ? 'publish' : 'reopen')
                         }
                       >
-                        Bắt đầu chỉnh lại
+                        {album.status === 'draft' ? 'Xuất bản album' : 'Mở lại lựa chọn'}
                       </button>
-                    </>
-                  )}
+                      <button
+                        disabled={busy || album.status !== 'open'}
+                        onClick={() => void command('close')}
+                      >
+                        Đóng lựa chọn
+                      </button>
+                      <button disabled={busy} onClick={() => void command('share')}>
+                        {album.shared ? 'Tạo link mới (thu hồi link cũ)' : 'Tạo link cho khách'}
+                      </button>
+                      <button
+                        disabled={busy || !album.shared}
+                        onClick={() => void command('revoke')}
+                      >
+                        Thu hồi link
+                      </button>
+                    </div>
+                    {shareUrl && (
+                      <label>
+                        Link khách · lưu lại để gửi
+                        <input readOnly value={shareUrl} />
+                        <button onClick={() => void copy(shareUrl)}>Sao chép link</button>
+                      </label>
+                    )}
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={extension}
+                        onChange={(e) => setExtension(e.target.checked)}
+                      />{' '}
+                      Giữ đuôi file
+                    </label>
+                    <button disabled={busy} onClick={() => void exportNames()}>
+                      Lấy tên file đã chọn
+                    </button>
+                    {exportText && (
+                      <>
+                        <textarea
+                          aria-label="Tên file đã chọn"
+                          readOnly
+                          value={exportText}
+                          rows={4}
+                        />
+                        <div className="album-actions">
+                          <button onClick={() => void copy(exportText)}>Sao chép danh sách</button>
+                          <button onClick={downloadText}>Tải TXT</button>
+                        </div>
+                      </>
+                    )}
+                    {!!album.skipped?.length && (
+                      <details>
+                        <summary>{album.skipped.length} tệp được bỏ qua</summary>
+                        <ul>
+                          {album.skipped.map((name, index) => (
+                            <li key={index}>{name}</li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                    {!!album.selectionHistory?.length && (
+                      <details>
+                        <summary>Lịch sử chốt ({album.selectionHistory.length})</summary>
+                        {album.selectionHistory.map((entry, index) => (
+                          <div key={index}>
+                            <p>
+                              {new Date(entry.at).toLocaleString('vi-VN')} · {entry.count} ảnh
+                            </p>
+                            <button disabled={busy} onClick={() => void exportNames(entry.round)}>
+                              Lấy tên file lần chốt {entry.round}
+                            </button>
+                          </div>
+                        ))}
+                      </details>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+            {album && (!embedded || section === 'delivery') && (
+              <div className="album-panel">
+                <h2>Giao ảnh đã chỉnh</h2>
+                <label>
+                  Thư mục bản bàn giao · mỗi link một dòng
+                  <textarea
+                    value={deliveryFolders}
+                    onChange={(e) => setDeliveryFolders(e.target.value)}
+                    rows={3}
+                  />
+                </label>
+                <p className="album-hint">
+                  Dùng thư mục riêng cho mỗi phiên bản. Giữ nguyên ảnh đã giao để khách xem lại.
+                </p>
+                <div className="album-actions">
+                  <button
+                    disabled={busy}
+                    onClick={() =>
+                      void command('delivery-sync', { folders: splitFolders(deliveryFolders) })
+                    }
+                  >
+                    Lấy ảnh đã chỉnh
+                  </button>
+                  <button
+                    disabled={
+                      busy || !album.photos.some((p) => p.deliveryVersion === -1 && p.available)
+                    }
+                    onClick={() => setTab(-1)}
+                  >
+                    Xem bản chuẩn bị giao
+                  </button>
+                  <button
+                    disabled={
+                      busy ||
+                      (lifecycle ?? album.lifecycle) !== 'editing' ||
+                      !album.photos.some((p) => p.deliveryVersion === -1 && p.available)
+                    }
+                    onClick={() =>
+                      void workflowAction('progress.update', {
+                        status: 'delivered',
+                        driveAlbum: true,
+                        albumVersion: album.version,
+                      })
+                    }
+                  >
+                    Gửi bản bàn giao mới
+                  </button>
                 </div>
-              )}
-            </section>
-          )}
+                {(lifecycle ?? album.lifecycle) === 'delivered' && (
+                  <>
+                    <label>
+                      Lý do bắt đầu chỉnh lại
+                      <textarea
+                        value={revisionNote}
+                        maxLength={2000}
+                        onChange={(e) => setRevisionNote(e.target.value)}
+                      />
+                    </label>
+                    <button
+                      disabled={busy || !revisionNote.trim()}
+                      onClick={() =>
+                        void workflowAction('delivery.revision.start', {
+                          deliveryVersion: album.latestDeliveryVersion,
+                          note: revisionNote,
+                        })
+                      }
+                    >
+                      Bắt đầu chỉnh lại
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </section>
           {album &&
             (!embedded ||
               section === 'selection' ||
               tab === -1 ||
               album.deliveryVersions.includes(tab)) && (
               <>
-                {!staff && cover && tab === 0 && (
-                  <div className="album-cover">
-                    <AlbumImage client={client} photo={cover} thumbnail />
-                    <div>
-                      <span>ALBUM CỦA BẠN</span>
-                      <h2>{album.title}</h2>
-                      <p>
-                        {allPhotos.filter((p) => p.available).length} khoảnh khắc · cùng bạn chọn
-                        ảnh
-                      </p>
-                    </div>
-                  </div>
-                )}
                 {!embedded && (
                   <nav className="album-tabs" aria-label="Các phần ảnh">
                     <button aria-pressed={tab === 0} onClick={() => setTab(0)}>
@@ -731,7 +447,7 @@ export default function BookingAlbumPage({
                         Ảnh đã chỉnh · Bản {v}
                       </button>
                     ))}
-                    {staff && album.photos.some((p) => p.deliveryVersion === -1) && (
+                    {album.photos.some((p) => p.deliveryVersion === -1) && (
                       <button aria-pressed={tab === -1} onClick={() => setTab(-1)}>
                         Bản chuẩn bị giao
                       </button>
@@ -819,20 +535,14 @@ export default function BookingAlbumPage({
                             className="album-heart"
                             aria-label={`${photo.selected ? 'Bỏ chọn' : 'Chọn'} ${photo.name}`}
                             aria-pressed={photo.selected}
-                            disabled={!canSelect || busy || !photo.available}
-                            onClick={() =>
-                              void command('photo', {
-                                photoId: photo.id,
-                                selected: !photo.selected,
-                              })
-                            }
+                            disabled
                           >
                             <Heart size={18} fill={photo.selected ? 'currentColor' : 'none'} />
                           </button>
                         )}
                       </div>
                       {photo.note && <p className="album-card__note">{photo.note}</p>}
-                      {staff && tab === 0 && photo.available && (
+                      {tab === 0 && photo.available && (
                         <button
                           className="album-cover-button"
                           disabled={busy}
@@ -849,53 +559,6 @@ export default function BookingAlbumPage({
                   <button className="album-more" onClick={() => setShown((v) => v + 60)}>
                     Xem thêm ảnh ({filtered.length - shown})
                   </button>
-                )}
-                {canSelect && (
-                  <footer className="album-bottom">
-                    <div>
-                      <strong>{chosen} ảnh đã chọn</strong>
-                      <span>
-                        {pendingDrafts
-                          ? 'Bạn còn ghi chú chưa lưu'
-                          : busy
-                            ? 'Đang lưu…'
-                            : 'Lựa chọn đã lưu trên album'}
-                      </span>
-                    </div>
-                    <button
-                      disabled={busy || !chosen || pendingDrafts}
-                      onClick={() => setConfirm(true)}
-                    >
-                      <Check size={18} /> Hoàn tất lựa chọn
-                    </button>
-                  </footer>
-                )}
-                {confirm && (
-                  <div
-                    className="album-confirm"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="album-confirm-title"
-                  >
-                    <div>
-                      <h2 id="album-confirm-title">Chốt {chosen} ảnh đã chọn?</h2>
-                      <p>
-                        Sau khi gửi, danh sách chọn và ghi chú ảnh ban đầu sẽ được khóa. Studio có
-                        thể mở lại khi bạn cần.
-                      </p>
-                      <div className="album-actions">
-                        <button disabled={busy} onClick={() => setConfirm(false)}>
-                          Chọn tiếp
-                        </button>
-                        <button
-                          disabled={busy || pendingDrafts}
-                          onClick={() => void command('finalize')}
-                        >
-                          Xác nhận gửi lựa chọn
-                        </button>
-                      </div>
-                    </div>
-                  </div>
                 )}
                 {selected && (
                   <div
@@ -949,15 +612,7 @@ export default function BookingAlbumPage({
                         )}
                       </div>
                       {tab === 0 && (
-                        <button
-                          disabled={!canSelect || busy || !selected.available}
-                          onClick={() =>
-                            void command('photo', {
-                              photoId: selected.id,
-                              selected: !selected.selected,
-                            })
-                          }
-                        >
+                        <button disabled>
                           <Heart size={16} />{' '}
                           {selected.selected ? 'Đã chọn · Bỏ chọn' : 'Chọn ảnh này'}
                         </button>
@@ -968,43 +623,10 @@ export default function BookingAlbumPage({
                           aria-label="Ghi chú cho studio"
                           rows={5}
                           maxLength={2000}
-                          value={drafts[selected.id] ?? selected.note}
-                          readOnly={!canNote || !selected.available}
-                          onChange={(e) =>
-                            setDrafts((d) => ({ ...d, [selected.id]: e.target.value }))
-                          }
+                          value={selected.note}
+                          readOnly
                         />
                       </label>
-                      {canNote && selected.available && (
-                        <button
-                          disabled={
-                            busy || (drafts[selected.id] ?? selected.note) === selected.note
-                          }
-                          onClick={() =>
-                            void command('photo', {
-                              photoId: selected.id,
-                              note: drafts[selected.id],
-                            })
-                          }
-                        >
-                          {busy ? 'Đang lưu…' : 'Lưu ghi chú'}
-                        </button>
-                      )}
-                      {drafts[selected.id] !== undefined &&
-                        drafts[selected.id] !== selected.note && (
-                          <button
-                            disabled={busy}
-                            onClick={() =>
-                              setDrafts((d) => {
-                                const next = { ...d };
-                                delete next[selected.id];
-                                return next;
-                              })
-                            }
-                          >
-                            Bỏ thay đổi ghi chú
-                          </button>
-                        )}
                       {error && (
                         <p role="alert" className="album-error">
                           {error}
@@ -1017,11 +639,7 @@ export default function BookingAlbumPage({
                       <button disabled={busy} onClick={() => void refresh()}>
                         Tải lại album · giữ ghi chú đang viết
                       </button>
-                      {staff && (
-                        <p className="album-hint">
-                          Góp ý của khách được gắn đúng ảnh và phiên bản.
-                        </p>
-                      )}
+                      <p className="album-hint">Góp ý của khách được gắn đúng ảnh và phiên bản.</p>
                     </aside>
                   </div>
                 )}

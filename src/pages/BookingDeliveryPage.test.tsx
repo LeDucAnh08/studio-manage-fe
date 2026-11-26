@@ -230,7 +230,67 @@ describe('Private delivery album and customer feedback', () => {
       screen.queryByRole('button', { name: 'Xác nhận ảnh đã đạt yêu cầu' }),
     ).not.toBeInTheDocument();
   });
-  it('lets the booking owner select and finalize before delivery in the same screen', async () => {
+  it('opens the full customer album with the published correction in the original photo slot', async () => {
+    const record = fixture();
+    const replacement = {
+      id: 'corrected',
+      name: 'new-filename.png',
+      source: 'local' as const,
+      originalPhotoId: 'proof',
+      width: 120,
+      height: 100,
+      available: true,
+      deliveryVersion: 2,
+    };
+    record.workflow.progress!.photos = [replacement];
+    mocks.get.mockResolvedValue(record);
+    const proof = {
+      id: 'proof',
+      driveId: 'drive-proof',
+      source: 'drive' as const,
+      folderId: 'folder',
+      name: 'proof.png',
+      width: 100,
+      height: 80,
+      deliveryVersion: 0,
+      selected: true,
+      note: 'Tăng sáng',
+      available: true,
+    };
+    const album: BookingAlbum = {
+      publicId: 'album-public',
+      title: 'Album lớp',
+      version: 3,
+      status: 'closed',
+      limit: 2,
+      canSelect: false,
+      canCommentDelivery: true,
+      latestDeliveryVersion: 2,
+      deliveryVersions: [],
+      folders: [],
+      photos: [{ ...proof, id: 'other', name: 'other.jpg', selected: false, note: '' }, proof],
+      replacements: [replacement],
+    };
+    mocks.albumGet.mockResolvedValue(album);
+    open();
+    await screen.findByText('Đã chỉnh');
+    expect(screen.getByRole('tab', { name: 'Album ảnh' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: 'Tất cả (2)' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Xem other.jpg' })).toBeVisible();
+    expect(mocks.albumImage.mock.calls.map(([id]) => id)).toEqual(['other', 'local-corrected']);
+    fireEvent.click(screen.getByRole('button', { name: 'Xem proof.png' }));
+    expect(await screen.findByRole('link', { name: 'Tải ảnh' })).toHaveAttribute(
+      'download',
+      'proof.jpg',
+    );
+    expect(mocks.albumImage).toHaveBeenLastCalledWith(
+      'local-corrected',
+      false,
+      expect.any(AbortSignal),
+    );
+    expect(screen.getByText('Ảnh 2 / 2')).toBeVisible();
+  });
+  it('lets the booking owner send an original-photo edit request before delivery', async () => {
     const workflow = fixture('editing');
     workflow.workflow.progress!.deliveryVersion = 0;
     workflow.workflow.progress!.photos = [];
@@ -270,26 +330,30 @@ describe('Private delivery album and customer feedback', () => {
       photos: [{ ...album.photos[0], selected: true }],
     });
     open();
-    await screen.findByRole('button', { name: 'Chọn proof.jpg' });
-    expect(screen.getByRole('tab', { name: 'Ảnh chọn' })).toHaveAttribute('aria-selected', 'true');
+    const editRequest = await screen.findByRole('button', { name: 'Yêu cầu chỉnh sửa proof.jpg' });
+    expect(screen.getByRole('tab', { name: 'Ảnh gốc' })).toHaveAttribute('aria-selected', 'true');
     expect(mocks.albumClient).toHaveBeenCalledWith(false, 'booking', '', true);
     expect(screen.queryByLabelText('Thư mục Drive · mỗi link một dòng')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Chọn proof.jpg' }));
+    fireEvent.click(editRequest);
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm yêu cầu' }));
     await waitFor(() =>
       expect(mocks.albumCommand).toHaveBeenCalledWith(
         'photo',
-        { photoId: 'proof', selected: true, expectedVersion: 2 },
+        { photoId: 'proof', selected: true, note: '', expectedVersion: 2 },
         'delivery-request-key',
       ),
     );
-    fireEvent.click(await screen.findByRole('button', { name: 'Hoàn tất lựa chọn' }));
+    await screen.findByText('Đã thêm yêu cầu', { exact: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Quay lại album' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Gửi yêu cầu chỉnh sửa' }));
     mocks.albumCommand.mockResolvedValue({
       ...album,
       version: 4,
       status: 'closed',
       canSelect: false,
+      finalizedAt: '2026-11-26T01:00:00Z',
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận gửi lựa chọn' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu' }));
     await waitFor(() =>
       expect(mocks.albumCommand).toHaveBeenLastCalledWith(
         'finalize',
@@ -297,10 +361,15 @@ describe('Private delivery album and customer feedback', () => {
         'delivery-request-key',
       ),
     );
+    const original = await screen.findByRole('img', { name: 'proof.jpg' });
+    const imageRequests = mocks.albumImage.mock.calls.length;
     fireEvent.click(screen.getByRole('tab', { name: 'Ảnh đã chỉnh' }));
     expect(
       screen.getByText('Studio chưa bàn giao ảnh. Vui lòng quay lại sau.'),
     ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Ảnh gốc' }));
+    expect(screen.getByRole('img', { name: 'proof.jpg' })).toBe(original);
+    expect(mocks.albumImage).toHaveBeenCalledTimes(imageRequests);
   });
   it('keeps Drive setup and delivery tools in their respective tabs for studio staff', async () => {
     const record = fixture('editing');

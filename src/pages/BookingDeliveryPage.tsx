@@ -79,10 +79,17 @@ export default function BookingDeliveryPage() {
           setRecord(value);
           setRecordIdentity(identity);
           setSelectedVersion(requestedVersion);
+          const progress = value.workflow.progress;
+          const openPhotoAlbum =
+            requestedTab === 'selection' ||
+            (customer &&
+              !requestedTab &&
+              !requestedVersion &&
+              progress?.photos?.some((photo) => photo.originalPhotoId));
           setPhotoSection(
-            requestedTab === 'selection'
+            openPhotoAlbum
               ? 'selection'
-              : requestedTab === 'delivery' || value.workflow.progress?.deliveryVersion
+              : requestedTab === 'delivery' || progress?.deliveryVersion
                 ? 'delivery'
                 : 'selection',
           );
@@ -99,10 +106,15 @@ export default function BookingDeliveryPage() {
       active = false;
       alive.current = false;
     };
-  }, [id, requestedVersion, requestedTab, identity]);
+  }, [id, requestedVersion, requestedTab, identity, customer]);
   const current = record?.booking._id === id && recordIdentity === identity ? record : null;
   const progress = current?.workflow.progress;
   const latest = progress?.deliveryVersion || 0;
+  const hasReplacements =
+    progress?.photos?.some((photo) => photo.originalPhotoId) ||
+    current?.workflow.deliveryHistory.some((entry) =>
+      entry.photos?.some((photo) => photo.originalPhotoId),
+    );
   const version =
     selectedVersion === latest ||
     current?.workflow.deliveryHistory.some((entry) => entry.version === selectedVersion)
@@ -113,6 +125,10 @@ export default function BookingDeliveryPage() {
       ? progress
       : current?.workflow.deliveryHistory.find((entry) => entry.version === version);
   const back = customer ? `/account/bookings/${id}` : `/workflow-bookings/${id}`;
+  const customerDriveAlbum =
+    customer &&
+    (photoSection === 'selection' ||
+      (hasDrive !== false && selected?.photos?.some((photo) => photo.source === 'drive')));
   const canRespond =
     customer &&
     user?.roles.includes(6) &&
@@ -200,7 +216,9 @@ export default function BookingDeliveryPage() {
               </h1>
               <p className="mt-2 text-sm text-muted-foreground">
                 {current.booking.className || current.booking.packageName}
-                {selected?.photos?.length ? ` · ${selected.photos.length} ảnh` : ''}
+                {selected?.photos?.length && (photoSection === 'delivery' || !hasReplacements)
+                  ? ` · ${selected.photos.length} ảnh`
+                  : ''}
                 {selected?.deliveredAt &&
                   ` · Bàn giao ${new Date(selected.deliveredAt).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`}
               </p>
@@ -230,7 +248,11 @@ export default function BookingDeliveryPage() {
               </label>
             )}
           </header>
-          <div className="delivery-page__tabs" role="tablist" aria-label="Các phần album">
+          <div
+            className={`delivery-page__tabs${customer ? ' delivery-page__tabs--customer' : ''}`}
+            role="tablist"
+            aria-label="Các phần album"
+          >
             <button
               id="delivery-selection-tab"
               type="button"
@@ -239,7 +261,7 @@ export default function BookingDeliveryPage() {
               aria-controls="delivery-content"
               onClick={() => setPhotoSection('selection')}
             >
-              Ảnh chọn
+              {customer ? (hasReplacements ? 'Album ảnh' : 'Ảnh gốc') : 'Ảnh chọn'}
             </button>
             <button
               id="delivery-edited-tab"
@@ -268,7 +290,7 @@ export default function BookingDeliveryPage() {
             aria-labelledby={
               photoSection === 'selection' ? 'delivery-selection-tab' : 'delivery-edited-tab'
             }
-            className="delivery-page__layout"
+            className={`delivery-page__layout${customerDriveAlbum ? ' delivery-page__layout--customer-drive' : ''}`}
           >
             <section className="delivery-page__album" aria-label="Album ảnh bàn giao">
               <BookingAlbumPage
@@ -352,7 +374,9 @@ export default function BookingDeliveryPage() {
                 className="delivery-page__feedback space-y-4"
                 aria-labelledby="delivery-feedback-title"
               >
-                <h2 id="delivery-feedback-title">Phản hồi về bộ ảnh</h2>
+                <h2 id="delivery-feedback-title">
+                  {customerDriveAlbum ? 'Phản hồi chung về bộ ảnh' : 'Phản hồi về bộ ảnh'}
+                </h2>
                 {version !== latest ? (
                   <p className="text-sm">
                     Bạn đang xem bản cũ. Chọn bản mới nhất để gửi phản hồi hoặc xác nhận ảnh đạt yêu
