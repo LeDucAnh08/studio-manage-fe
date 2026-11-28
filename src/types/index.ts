@@ -225,6 +225,16 @@ export interface TransactionResponse extends Omit<
   createdBy: User | null;
 }
 
+export interface TransactionTotals {
+  income: number;
+  incomeCount: number;
+  expense: number;
+  expenseCount: number;
+  profit: number;
+  unrefundedAmount: number;
+  unrefundedCount: number;
+}
+
 export interface TransactionSummaryRow {
   _id: string | null;
   customer?: Customer;

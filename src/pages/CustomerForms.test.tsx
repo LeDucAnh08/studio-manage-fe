@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   updateProfile: vi.fn(),
   changePassword: vi.fn(),
   requestEmail: vi.fn(),
+  emailVerification: false,
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
   auth: {
     user: { username: 'customer.test', name: 'Khách thử', roles: [6] } as {
@@ -51,6 +52,13 @@ vi.mock('../services/authService', () => ({
 vi.mock('../services/emailService', () => ({
   emailService: { request: mocks.requestEmail },
   emailError: () => 'Chưa thể gửi email. Vui lòng thử lại.',
+}));
+vi.mock('../config/features', () => ({
+  conceptBookingEnabled: true,
+  clientPortalEnabled: true,
+  get customerEmailVerificationEnabled() {
+    return mocks.emailVerification;
+  },
 }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => mocks.auth }));
 vi.mock('react-toastify', () => ({ toast: mocks.toast }));
@@ -264,7 +272,15 @@ describe('Customer form presentation keeps submission contracts', () => {
     );
     expect(mocks.toast.success).toHaveBeenCalledWith('Đổi mật khẩu thành công');
   });
+  it('hides customer email verification on ProfilePage when disabled', () => {
+    mocks.emailVerification = false;
+    renderPage(<ProfilePage />, '/account/profile', '/account/profile');
+    expect(screen.getByLabelText('Họ tên hiển thị')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Email chưa được xác minh|Email đã được xác minh/)).not.toBeInTheDocument();
+  });
   it('saves name and email through the shared profile submit button', async () => {
+    mocks.emailVerification = true;
     mocks.requestEmail.mockResolvedValue({ email: 'customer@example.test', emailVerifiedAt: null });
     renderPage(<ProfilePage />, '/account/profile', '/account/profile');
     fireEvent.change(screen.getByLabelText('Họ tên hiển thị'), { target: { value: 'Tên mới' } });
@@ -287,6 +303,7 @@ describe('Customer form presentation keeps submission contracts', () => {
   });
 
   it('keeps the entered email and allows retry when verification fails after saving name', async () => {
+    mocks.emailVerification = true;
     mocks.requestEmail.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({
       email: 'customer@example.test',
       emailVerifiedAt: null,
@@ -307,6 +324,7 @@ describe('Customer form presentation keeps submission contracts', () => {
   });
 
   it('does not resend verification when saving an unchanged verified email', async () => {
+    mocks.emailVerification = true;
     mocks.auth.user.email = 'customer@example.test';
     mocks.auth.user.emailVerifiedAt = '2026-11-10T00:00:00.000Z';
     renderPage(<ProfilePage />, '/account/profile', '/account/profile');
@@ -326,6 +344,7 @@ describe('Customer form presentation keeps submission contracts', () => {
   });
 
   it('rejects whitespace names, invalid email and oversized UTF-8 passwords in the customer profile', async () => {
+    mocks.emailVerification = true;
     renderPage(<ProfilePage />, '/account/profile', '/account/profile');
     fireEvent.change(screen.getByLabelText('Họ tên hiển thị'), { target: { value: ' ' } });
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'bad@localhost' } });

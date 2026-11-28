@@ -108,6 +108,7 @@ describe('Sidebar navigation', () => {
     );
     expect(screen.queryByRole('combobox', { name: 'Mùa chụp' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Lịch chụp' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Quản lý thợ' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Quản lý' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Đơn thuê' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Chụp concept' })).not.toBeInTheDocument();
@@ -139,6 +140,14 @@ describe('Sidebar navigation', () => {
     expect(screen.queryByRole('link', { name: 'Chụp concept' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Quản lý concept' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Đơn chụp ảnh' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Quản lý thợ' })).toHaveAttribute(
+      'href',
+      '/staff/photographers',
+    );
+    expect(screen.getByRole('link', { name: 'Tài chính' })).toHaveAttribute(
+      'href',
+      '/manage/finance',
+    );
     expect(screen.queryByRole('link', { name: 'Portfolio của tôi' })).not.toBeInTheDocument();
   });
   it.each([0, 1])('opens wardrobe management as its own group for admin role %s', (role) => {

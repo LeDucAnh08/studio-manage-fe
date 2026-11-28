@@ -28,6 +28,7 @@ import PublicDiscoveryPage from './pages/PublicDiscoveryPage';
 import PublicPackageDetailPage from './pages/PublicPackageDetailPage';
 import PackageContentPage from './pages/PackageContentPage';
 import BookingWorkflowDetailPage from './pages/BookingWorkflowDetailPage';
+import PhotographerManageDetailPage from './pages/PhotographerManageDetailPage';
 import { navItems, adminItems, type NavItem } from './config/navItems';
 import type { UserRole } from './types';
 import StudentFormPage from './pages/StudentFormPage';
@@ -49,6 +50,7 @@ import ConceptPackageDetailPage from './pages/ConceptPackageDetailPage';
 import ConceptPhotographerPage from './pages/ConceptPhotographerPage';
 import PhotographerPublicPage from './pages/PhotographerPublicPage';
 import ConceptOrderPage from './pages/ConceptOrderPage';
+import ConceptDeliveryPage from './pages/ConceptDeliveryPage';
 import { GuestConceptAlbumPage } from './pages/ConceptAlbumPanel';
 import { isPersonalPhotographer } from './utils/staffRole';
 
@@ -281,6 +283,10 @@ function App() {
                       <Route path="orders" element={<CustomerOrdersPage />} />
                       <Route path="concept-orders/:id" element={<ConceptOrderPage />} />
                       <Route
+                        path="concept-orders/:id/delivery"
+                        element={<ConceptDeliveryPage />}
+                      />
+                      <Route
                         path="bookings"
                         element={<Navigate to="/account/orders?tab=bookings" replace />}
                       />
@@ -370,10 +376,26 @@ function App() {
                       }
                     />
                     <Route
+                      path="concept-orders/:id/delivery"
+                      element={
+                        <ProtectedRoute allowedRoles={[0, 1, 3]}>
+                          <ConceptDeliveryPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
                       path="settings/packages/:id/content"
                       element={
                         <ProtectedRoute allowedRoles={[0, 1]}>
                           <PackageContentPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="staff/photographers/:id"
+                      element={
+                        <ProtectedRoute allowedRoles={[0, 1]}>
+                          <PhotographerManageDetailPage />
                         </ProtectedRoute>
                       }
                     />

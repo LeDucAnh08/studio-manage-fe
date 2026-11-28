@@ -6,7 +6,12 @@ import type {
   Transaction,
   TransactionResponse,
   TransactionSummaryRow,
+  TransactionTotals,
 } from '../types';
+
+export interface TransactionListResponse extends PaginatedResponse<TransactionResponse> {
+  totals?: TransactionTotals;
+}
 
 export const transactionService = {
   getAll: (params?: Record<string, string | number>) =>
@@ -14,7 +19,10 @@ export const transactionService = {
       .get<PaginatedApiResponse<TransactionResponse>>('/transactions', { params })
       .then(
         (r) =>
-          ({ data: r.data.data, ...r.data.pagination }) as PaginatedResponse<TransactionResponse>,
+          ({
+            data: r.data.data,
+            ...r.data.pagination,
+          }) as TransactionListResponse,
       ),
   getOne: (id: string) =>
     api.get<ApiResponse<TransactionResponse>>(`/transactions/${id}`).then((r) => r.data.data),

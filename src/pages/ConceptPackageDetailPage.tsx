@@ -47,6 +47,8 @@ export default function ConceptPackageDetailPage() {
         ? {
             startAt: '',
             photographerId: '',
+            photographerName: '',
+            availablePhotographers: undefined,
             costumes: [],
             people: Math.min(draft.people, pkg.maxPeople),
           }

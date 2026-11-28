@@ -351,6 +351,53 @@ describe('Dashboard, finance and reports rollout', () => {
       ).toHaveAccessibleDescription('Vui lòng chọn danh mục.'),
     );
   });
+  it('supports KPI unrefunded quick filter, description search, and type pills on FinancePage', async () => {
+    mocks.transactions.mockResolvedValue({
+      data: [
+        {
+          _id: 'tx-2',
+          date: '2026-11-26',
+          type: 'expense',
+          amount: 130000,
+          categoryId: { _id: 'cat-2', name: 'Chi phục vụ ekip' },
+          customer: null,
+          createdBy: { name: 'Nguyễn Hiếu' },
+          description: 'mua nước cho đội mẫu ảnh',
+          accountantRefunded: false,
+        },
+      ],
+      total: 1,
+      totals: {
+        income: 5485000,
+        incomeCount: 8,
+        expense: 14905002,
+        expenseCount: 28,
+        profit: -9420002,
+        unrefundedAmount: 7290002,
+        unrefundedCount: 8,
+      },
+    });
+    renderPage(<FinancePage />);
+    await screen.findByRole('table', { name: 'Danh sách giao dịch' });
+    expect(screen.getByText('5.485.000 ₫')).toBeInTheDocument();
+    expect(screen.getByText('7.290.002 ₫')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Chưa hoàn tiền/ }));
+    await waitFor(() =>
+      expect(mocks.transactions).toHaveBeenLastCalledWith(
+        expect.objectContaining({ refundStatus: 'unrefunded', page: 1 }),
+      ),
+    );
+
+    const searchBox = screen.getByRole('textbox', { name: 'Tìm mô tả' });
+    fireEvent.change(searchBox, { target: { value: 'ekip' } });
+    fireEvent.submit(searchBox.closest('form')!);
+    await waitFor(() =>
+      expect(mocks.transactions).toHaveBeenLastCalledWith(
+        expect.objectContaining({ search: 'ekip', page: 1 }),
+      ),
+    );
+  });
   it('preserves report money values, URL date range, service filter, reference links and pagination', async () => {
     renderPage(<ReportsPage />, '/reports?from=2026-10-01&to=2026-10-31');
     const totals = await screen.findByRole('table', { name: 'So sánh dịch vụ trong kỳ' });

@@ -19,6 +19,8 @@ export interface PersonalSchedule {
   service: 'concept' | 'yearbook';
   title: string;
   role: 'lead' | 'support';
+  workflowBooking?: string;
+  conceptOrder?: string;
 }
 
 export const scheduleService = {
@@ -28,6 +30,17 @@ export const scheduleService = {
         params: { from, to },
         signal,
       })
+      .then((r) => r.data.data),
+  photographerCalendar: (
+    photographerId: string,
+    from: string,
+    to: string,
+    signal?: AbortSignal,
+  ) =>
+    api
+      .get<
+        ApiResponse<PersonalSchedule[]>
+      >(`/schedules/photographer/${encodeURIComponent(photographerId)}/calendar`, { params: { from, to }, signal })
       .then((r) => r.data.data),
   getAll: (params?: Record<string, string | number>) =>
     api

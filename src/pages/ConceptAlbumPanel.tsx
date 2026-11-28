@@ -2,7 +2,8 @@ import { isQueuedAlbum } from '../services/backgroundJobService';
 import { useAlbumOperation } from '../hooks/useAlbumOperation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import { ConceptLocalGallery, ConceptPhotoImage } from '../components/ConceptAlbumMedia';
 import {
   ConceptAlbum,
   ConceptOrder,
@@ -42,36 +43,14 @@ function Image({
   token: string;
   large?: boolean;
 }) {
-  const [url, setUrl] = useState(''),
-    [error, setError] = useState('');
-  useEffect(() => {
-    const abort = new AbortController();
-    let objectUrl = '';
-    setUrl('');
-    setError('');
-    conceptService
-      .image(id, photo.id, { thumb: !large, guest, token, signal: abort.signal })
-      .then((blob) => {
-        if (!abort.signal.aborted) {
-          objectUrl = URL.createObjectURL(blob);
-          setUrl(objectUrl);
-        }
-      })
-      .catch(() => {
-        if (!abort.signal.aborted)
-          setError('Không tải được ảnh. Kiểm tra nguồn Drive hoặc thử lại.');
-      });
-    return () => {
-      abort.abort();
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [id, photo.id, guest, token, large]);
-  return error ? (
-    <span role="status">{error}</span>
-  ) : url ? (
-    <img src={url} alt={photo.name} />
-  ) : (
-    <span role="status">Đang tải ảnh…</span>
+  return (
+    <ConceptPhotoImage
+      orderId={id}
+      photo={photo}
+      guest={guest}
+      token={token}
+      thumbnail={!large}
+    />
   );
 }
 function Gallery({
@@ -93,17 +72,24 @@ function Gallery({
   busy: boolean;
   onError: (error: string) => void;
 }) {
-  const [version, setVersion] = useState(0),
+  const [version, setVersion] = useState(album.deliveryVersion > 0 ? album.deliveryVersion : 0),
     [limit, setLimit] = useState(16),
     [view, setView] = useState<string | null>(null),
     [zoom, setZoom] = useState(false),
     [notes, setNotes] = useState<Record<string, string>>({});
   const photos = album.photos.filter((p) => p.version === version);
-  const current = photos.find((p) => p.id === view);
-  const index = photos.findIndex((p) => p.id === view);
+  const localPhotos = photos.filter((p) => p.source === 'local');
+  const drivePhotos = photos.filter((p) => p.source !== 'local');
+  const gridPhotos = version > 0 && !guest ? drivePhotos : photos;
+  const current = gridPhotos.find((p) => p.id === view);
+  const index = gridPhotos.findIndex((p) => p.id === view);
   const download = async (photo: ConceptPhoto) => {
     try {
-      saveBlob(await conceptService.image(id, photo.id, { download: true }), photo.name);
+      const blob =
+        photo.source === 'local'
+          ? await conceptService.deliveryImage(id, photo.id, { download: true })
+          : await conceptService.image(id, photo.id, { download: true });
+      saveBlob(blob, photo.name);
     } catch (e) {
       onError(conceptError(e));
     }
@@ -147,8 +133,17 @@ function Gallery({
           Tải toàn bộ bản v{version} (ZIP)
         </Button>
       )}
+      {version > 0 && !guest && !!localPhotos.length && (
+        <ConceptLocalGallery
+          key={`${id}:${version}`}
+          orderId={id}
+          photos={localPhotos}
+          allowDownload={album.allowDownload}
+          onDownload={(photo) => void download(photo)}
+        />
+      )}
       <div className="concept-photo-grid">
-        {photos.slice(0, limit).map((photo) => (
+        {gridPhotos.slice(0, limit).map((photo) => (
           <article className="concept-photo" key={photo.id}>
             <Button
               aria-label={`Xem ảnh ${photo.name}`}
@@ -195,7 +190,7 @@ function Gallery({
           </article>
         ))}
       </div>
-      {photos.length > limit && <Button onClick={() => setLimit(limit + 16)}>Xem thêm ảnh</Button>}
+      {gridPhotos.length > limit && <Button onClick={() => setLimit(limit + 16)}>Xem thêm ảnh</Button>}
       <Dialog.Root
         open={!!current}
         onOpenChange={(open) => {
@@ -207,14 +202,14 @@ function Gallery({
           <Dialog.Content
             className="concept-dialog concept-workspace"
             onKeyDown={(e) => {
-              if (e.key === 'ArrowRight' && index < photos.length - 1)
-                setView(photos[index + 1].id);
-              if (e.key === 'ArrowLeft' && index > 0) setView(photos[index - 1].id);
+              if (e.key === 'ArrowRight' && index < gridPhotos.length - 1)
+                setView(gridPhotos[index + 1].id);
+              if (e.key === 'ArrowLeft' && index > 0) setView(gridPhotos[index - 1].id);
             }}
           >
             <Dialog.Title>{current?.name}</Dialog.Title>
             <Dialog.Description>
-              Ảnh {index + 1} trên {photos.length}. Dùng phím mũi tên để chuyển ảnh.
+              Ảnh {index + 1} trên {gridPhotos.length}. Dùng phím mũi tên để chuyển ảnh.
             </Dialog.Description>
             <Dialog.Close>Đóng ảnh</Dialog.Close>
             {current && (
@@ -223,13 +218,13 @@ function Gallery({
               </figure>
             )}
             <div className="concept-actions">
-              <Button disabled={index <= 0} onClick={() => setView(photos[index - 1].id)}>
+              <Button disabled={index <= 0} onClick={() => setView(gridPhotos[index - 1].id)}>
                 Ảnh trước
               </Button>
               <Button onClick={() => setZoom(!zoom)}>{zoom ? 'Thu nhỏ' : 'Phóng to'}</Button>
               <Button
-                disabled={index >= photos.length - 1}
-                onClick={() => setView(photos[index + 1].id)}
+                disabled={index >= gridPhotos.length - 1}
+                onClick={() => setView(gridPhotos[index + 1].id)}
               >
                 Ảnh sau
               </Button>
@@ -351,7 +346,26 @@ export default function ConceptAlbumPanel({
     .map(([photoId, note]) => ({ photoId, note }));
   return (
     <section className={customer ? 'customer-order-surface concept-order-album' : undefined}>
-      <h2 className={customer ? 'customer-section-title' : undefined}>Album và hậu kỳ</h2>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className={customer ? 'customer-section-title' : undefined}>Album và hậu kỳ</h2>
+        </div>
+        {!!album?.deliveryVersion && (
+          <span className={customer ? 'customer-status' : 'rounded-full bg-muted px-3 py-1 text-sm'}>
+            Bản bàn giao {album.deliveryVersion}
+          </span>
+        )}
+      </div>
+      {order.isOwner && (
+        <div className="space-y-2">
+          <Button asChild>
+            <Link to={`/account/concept-orders/${id}/delivery`}>Xem ảnh bàn giao</Link>
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            Chọn ảnh, xem ảnh đã chỉnh và theo dõi phản hồi trong cùng một màn.
+          </p>
+        </div>
+      )}
       {error && (
         <p role="alert" className="concept-error">
           {error}{' '}
@@ -542,6 +556,14 @@ export default function ConceptAlbumPanel({
                 Mỗi lần gửi là một vòng tổng hợp cho toàn bộ ảnh. Ghi góp ý dưới những ảnh cần
                 chỉnh.
               </p>
+              <label>
+                Phản hồi chung về bộ ảnh
+                <Textarea
+                  maxLength={2000}
+                  value={feedback.general || ''}
+                  onChange={(e) => setFeedback((f) => ({ ...f, general: e.target.value }))}
+                />
+              </label>
               {album.photos
                 .filter((p) => p.version === album.deliveryVersion)
                 .map((p) => (
@@ -587,10 +609,13 @@ export default function ConceptAlbumPanel({
                   <p>
                     Vòng {round.round} · bản v{round.version} · {vnTime(round.at)}
                   </p>
-                  {round.items.map((item) => (
-                    <div key={item.photoId}>
+                  {round.items.map((item, idx) => (
+                    <div key={item.photoId || `general-${idx}`}>
                       <p>
-                        {album.photos.find((p) => p.id === item.photoId)?.name}: {item.note}
+                        {!item.photoId || item.photoId === 'general'
+                          ? 'Phản hồi chung về bộ ảnh'
+                          : album.photos.find((p) => p.id === item.photoId)?.name}
+                        : {item.note}
                       </p>
                       <p>{item.resolved ? 'Đã xử lý' : 'Chờ xử lý'}</p>
                       {order.canEdit && album.status === 'revising' && (
@@ -634,9 +659,12 @@ export default function ConceptAlbumPanel({
                       )[r.status]
                     }
                   </p>
-                  {r.items.map((i) => (
-                    <p key={i.photoId}>
-                      {album.photos.find((p) => p.id === i.photoId)?.name}: {i.note}
+                  {r.items.map((i, idx) => (
+                    <p key={i.photoId || `general-${idx}`}>
+                      {!i.photoId || i.photoId === 'general'
+                        ? 'Phản hồi chung về bộ ảnh'
+                        : album.photos.find((p) => p.id === i.photoId)?.name}
+                      : {i.note}
                       {order.canEdit && r.status === 'processing' && (
                         <Button
                           disabled={busy}

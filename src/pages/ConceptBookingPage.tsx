@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, CalendarDays, Clock3, Coins, UserRound } from 'lucide-react';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import PublicSiteLayout from '../components/Layout/PublicSiteLayout';
@@ -15,6 +15,7 @@ import {
   validateCustomerContainer,
 } from '../utils/customerValidation';
 import { useAuth } from '../context/AuthContext';
+import { customerEmailVerificationEnabled } from '../config/features';
 import {
   Catalog,
   Slot,
@@ -97,12 +98,34 @@ export default function ConceptBookingPage() {
     [availabilityRetry, setAvailabilityRetry] = useState(0);
   const preparationRef = useRef<HTMLFormElement>(null);
   const [accepted, setAccepted] = useState(false);
+  const [fallbackPhotographerName, setFallbackPhotographerName] = useState('');
   const loadedMonths = useRef<Record<string, number>>({});
   const pkg = catalog?.packages.find((p) => p._id === draft.packageId);
-  const slot = Object.values(days)
-    .flat()
-    .find((s) => s.startAt === draft.startAt);
-  const photographer = slot?.photographers.find((p) => p._id === draft.photographerId);
+  const slot = useMemo(() => {
+    const live = Object.values(days)
+      .flat()
+      .find((s) => s.startAt === draft.startAt);
+    if (live) return live;
+    if (step === 2 || !pkg || !draft.startAt || !Array.isArray(draft.availablePhotographers)) {
+      return undefined;
+    }
+    return {
+      startAt: draft.startAt,
+      endAt: new Date(Date.parse(draft.startAt) + pkg.durationMinutes * 60000).toISOString(),
+      photographers: draft.availablePhotographers,
+    };
+  }, [days, draft.startAt, draft.availablePhotographers, pkg, step]);
+  const photographer = useMemo(() => {
+    const fromSlot = slot?.photographers.find((p) => p._id === draft.photographerId);
+    if (fromSlot?.name) return fromSlot;
+    if (draft.photographerId && (draft.photographerName || fallbackPhotographerName)) {
+      return {
+        _id: draft.photographerId,
+        name: draft.photographerName || fallbackPhotographerName,
+      };
+    }
+    return fromSlot;
+  }, [slot, draft.photographerId, draft.photographerName, fallbackPhotographerName]);
   const packageImage =
     pkg?.imageUrl || catalog?.concepts.find((c) => c._id === pkg?.concept)?.coverUrl;
   const validContact =
@@ -111,11 +134,6 @@ export default function ConceptBookingPage() {
     Number.isInteger(draft.people) &&
     draft.people >= 1 &&
     draft.people <= (pkg?.maxPeople || 1);
-  const availabilityDay =
-    step === 2 || !Number.isFinite(Date.parse(draft.startAt)) ? '' : studioDay(draft.startAt);
-  const checkingReviewAvailability =
-    loadingDays ||
-    (!Object.prototype.hasOwnProperty.call(days, availabilityDay) && !availabilityError);
   const update = (patch: Partial<Draft>) => {
     setDraft((d) => ({ ...d, ...patch, key: crypto.randomUUID() }));
     setAccepted(false);
@@ -153,10 +171,12 @@ export default function ConceptBookingPage() {
     writeConceptDraft({ ...draft, step });
   }, [draft, step]);
   useEffect(() => {
-    if (!pkg) return;
+    if (!pkg || step !== 2) {
+      setLoadingDays(false);
+      return;
+    }
     const cacheKey = pkg._id + ':' + month;
     if (
-      step === 2 &&
       loadedMonths.current[cacheKey] &&
       Date.now() - loadedMonths.current[cacheKey] < 30000
     ) {
@@ -167,17 +187,11 @@ export default function ConceptBookingPage() {
     const abort = new AbortController();
     setLoadingDays(true);
     setAvailabilityError('');
-    const pending =
-      step === 2
-        ? calendarDays(month).filter(
-            (date) =>
-              date >= today() && date <= addDay(today(), catalog?.settings.horizonDays || 90),
-          )
-        : availabilityDay
-          ? [availabilityDay]
-          : [];
+    const pending = calendarDays(month).filter(
+      (date) => date >= today() && date <= addDay(today(), catalog?.settings.horizonDays || 90),
+    );
     const results: Record<string, Slot[]> = {};
-    // Bound concurrent requests to the existing per-day availability endpoint.
+    // Check photographer availability once on the date/time step.
     Promise.all(
       Array.from({ length: Math.min(4, pending.length) }, async () => {
         while (pending.length && !abort.signal.aborted) {
@@ -191,7 +205,7 @@ export default function ConceptBookingPage() {
       .then(() => {
         if (!abort.signal.aborted) {
           setDays((current) => ({ ...current, ...results }));
-          if (step === 2) loadedMonths.current[cacheKey] = Date.now();
+          loadedMonths.current[cacheKey] = Date.now();
         }
       })
       .catch((e) => {
@@ -201,9 +215,26 @@ export default function ConceptBookingPage() {
         if (!abort.signal.aborted) setLoadingDays(false);
       });
     return () => abort.abort();
-  }, [pkg, month, step, availabilityDay, availabilityRetry, catalog?.settings.horizonDays]);
+  }, [pkg, month, step, availabilityRetry, catalog?.settings.horizonDays]);
+  useEffect(() => {
+    if (step <= 3 || !draft.photographerId || photographer?.name) return;
+    const abort = new AbortController();
+    conceptService
+      .photographer(draft.photographerId, abort.signal)
+      .then((profile) => {
+        if (!abort.signal.aborted && profile.name) setFallbackPhotographerName(profile.name);
+      })
+      .catch(() => {});
+    return () => abort.abort();
+  }, [step, draft.photographerId, photographer?.name]);
   const next = () => {
-    if (step <= 3 && draft.startAt && Date.parse(draft.startAt) <= Date.now()) {
+    if (step === 2 && draft.startAt && Date.parse(draft.startAt) <= Date.now()) {
+      update({
+        startAt: '',
+        photographerId: '',
+        photographerName: '',
+        availablePhotographers: undefined,
+      });
       setError('Khung giờ đã qua. Vui lòng chọn khung giờ khác.');
       loadedMonths.current = {};
       setAvailabilityRetry((value) => value + 1);
@@ -212,7 +243,7 @@ export default function ConceptBookingPage() {
     if (
       !pkg ||
       (step === 2 && (!slot || loadingDays || !!availabilityError)) ||
-      (step === 3 && (loadingDays || !!availabilityError || !photographer))
+      (step === 3 && !photographer)
     ) {
       setError('Hoàn tất lựa chọn trước khi tiếp tục.');
       return;
@@ -235,7 +266,10 @@ export default function ConceptBookingPage() {
       return;
     }
     const nextStep = Math.min(5, step + 1);
-    update({ step: nextStep });
+    update({
+      step: nextStep,
+      ...(step === 2 && slot ? { availablePhotographers: slot.photographers } : {}),
+    });
     navigate(conceptBookingPath(draft.packageId, conceptScreens[nextStep - 2]));
   };
   const submit = async () => {
@@ -243,17 +277,12 @@ export default function ConceptBookingPage() {
       navigate('/login', { state: { from: location.pathname } });
       return;
     }
-    if (!user.emailVerifiedAt || !pkg) return;
+    if ((customerEmailVerificationEnabled && !user.emailVerifiedAt) || !pkg) return;
     if (!accepted) {
       setError('Vui lòng xác nhận đồng ý điều khoản đặt chụp trước khi gửi.');
       return;
     }
-    if (
-      checkingReviewAvailability ||
-      availabilityError ||
-      !photographer ||
-      Date.parse(draft.startAt) <= Date.now()
-    ) {
+    if (!draft.photographerId || Date.parse(draft.startAt) <= Date.now()) {
       setError(
         'Khung giờ hoặc thợ chụp không còn khả dụng. Vui lòng chọn lại thời gian hoặc thợ; các thông tin đã nhập vẫn được giữ.',
       );
@@ -373,9 +402,26 @@ export default function ConceptBookingPage() {
             onDay={(value) => {
               setDay(value);
               if (!Number.isFinite(Date.parse(draft.startAt)) || studioDay(draft.startAt) !== value)
-                update({ startAt: '', photographerId: '', costumes: [] });
+                update({
+                  startAt: '',
+                  photographerId: '',
+                  photographerName: '',
+                  availablePhotographers: undefined,
+                  costumes: [],
+                });
             }}
-            onSlot={(startAt) => update({ startAt, photographerId: '', costumes: [] })}
+            onSlot={(startAt) => {
+              const selectedSlot = Object.values(days)
+                .flat()
+                .find((s) => s.startAt === startAt);
+              update({
+                startAt,
+                photographerId: '',
+                photographerName: '',
+                availablePhotographers: selectedSlot?.photographers ?? [],
+                costumes: [],
+              });
+            }}
             onRetry={() => {
               loadedMonths.current = {};
               setAvailabilityRetry((value) => value + 1);
@@ -389,9 +435,9 @@ export default function ConceptBookingPage() {
             startAt={draft.startAt}
             slot={slot}
             selectedId={draft.photographerId}
-            loading={loadingDays}
-            error={availabilityError}
-            onRetry={() => setAvailabilityRetry((value) => value + 1)}
+            loading={false}
+            error=""
+            onRetry={() => navigate(conceptBookingPath(pkg._id, 'date'))}
             onNext={next}
           />
         )}
@@ -610,13 +656,7 @@ export default function ConceptBookingPage() {
                       <span className="sr-only">Thợ chụp</span>
                     </dt>
                     <dd>
-                      {photographer?.name ||
-                        (loadingDays ? 'Đang kiểm tra lịch…' : 'Chưa tải được thông tin thợ')}
-                      {!photographer && !loadingDays && (
-                        <Link to={conceptBookingPath(draft.packageId, 'photographer')}>
-                          Kiểm tra lại lịch
-                        </Link>
-                      )}
+                      {photographer?.name || 'Đang tải thông tin thợ…'}
                     </dd>
                   </div>
                   <div>
@@ -668,10 +708,7 @@ export default function ConceptBookingPage() {
                     </div>
                     <div>
                       <dt>Thợ chụp</dt>
-                      <dd>
-                        {photographer?.name ||
-                          (loadingDays ? 'Đang tải…' : 'Chưa tải được thông tin thợ')}
-                      </dd>
+                      <dd>{photographer?.name || 'Đang tải thông tin thợ…'}</dd>
                     </div>
                     <div>
                       <dt>Số người</dt>
@@ -763,7 +800,7 @@ export default function ConceptBookingPage() {
                   </p>
                   {!user ? (
                     <button onClick={() => void submit()}>Đăng nhập để tiếp tục</button>
-                  ) : !user.emailVerifiedAt ? (
+                  ) : customerEmailVerificationEnabled && !user.emailVerifiedAt ? (
                     <p>
                       Xác thực email trước khi đặt cọc.{' '}
                       <Link to="/account/profile">Cập nhật và xác thực email</Link>. Thông tin buổi
@@ -771,22 +808,6 @@ export default function ConceptBookingPage() {
                     </p>
                   ) : (
                     <>
-                      {(checkingReviewAvailability || availabilityError || !photographer) && (
-                        <p role={checkingReviewAvailability ? 'status' : 'alert'}>
-                          {checkingReviewAvailability
-                            ? 'Đang kiểm tra lại lịch trống…'
-                            : availabilityError ||
-                              'Khung giờ hoặc thợ chụp đã chọn không còn khả dụng.'}
-                          {!checkingReviewAvailability && (
-                            <>
-                              {' '}
-                              <Link to={conceptBookingPath(draft.packageId)}>
-                                Chọn lại thời gian hoặc thợ
-                              </Link>
-                            </>
-                          )}
-                        </p>
-                      )}
                       <label className="concept-check">
                         <input
                           type="checkbox"
@@ -797,9 +818,7 @@ export default function ConceptBookingPage() {
                       </label>
                       <button
                         className="concept-checkout-next"
-                        disabled={
-                          busy || checkingReviewAvailability || !!availabilityError || !photographer
-                        }
+                        disabled={busy || !draft.photographerId}
                         onClick={() => void submit()}
                       >
                         {busy ? 'Đang chuyển đến thanh toán…' : 'Tiếp theo'}

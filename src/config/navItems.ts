@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import {
   Banknote,
+  Camera,
   Image,
   BarChart3,
   Calendar,
@@ -37,6 +38,7 @@ import ConceptManagePage from '../pages/ConceptManagePage';
 import RentalListPage from '../pages/RentalListPage';
 import ReportsPage from '../pages/ReportsPage';
 import SePayReceiptsPage from '../pages/SePayReceiptsPage';
+import PhotographersManagePage from '../pages/PhotographersManagePage';
 
 export type NavIcon = ComponentType<{ className?: string }>;
 
@@ -144,6 +146,14 @@ export const navItems: NavItem[] = [
     icon: Calendar,
     iconClassName: 'text-indigo-300',
     component: SchedulesPage,
+  },
+  {
+    to: '/staff/photographers',
+    label: 'Quản lý thợ',
+    icon: Camera,
+    iconClassName: 'text-amber-300',
+    allowedRoles: [0, 1],
+    component: PhotographersManagePage,
   },
   {
     to: '/settings/costumes',

@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { CustomerConceptOrders } from '../components/customer/CustomerConceptOrders';
+import { customerEmailVerificationEnabled } from '../config/features';
 import { CustomerBookingOrders } from '../components/customer/CustomerBookingOrders';
 import { CustomerRentalOrders } from '../components/customer/CustomerRentalOrders';
 import '../styles/customer-orders-workspace.css';
@@ -32,7 +33,7 @@ export default function CustomerOrdersPage() {
           <p className="customer-copy">Theo dõi yêu cầu chụp ảnh và thuê trang phục của bạn.</p>
         </div>
       </header>
-      {!user?.emailVerifiedAt && (
+      {customerEmailVerificationEnabled && !user?.emailVerifiedAt && (
         <p className="customer-order-notice">
           Bổ sung và xác minh email để nhận thông báo khi studio duyệt đơn.{' '}
           <Link className="customer-link" to="/account/profile">

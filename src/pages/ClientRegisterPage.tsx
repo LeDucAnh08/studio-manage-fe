@@ -8,6 +8,7 @@ import { CustomerAuthLayout } from '@/components/customer/CustomerAuthLayout';
 import api from '../services/api';
 import { toast } from 'react-toastify';
 import { safeBookingReturnTo } from '../utils/returnTo';
+import { customerEmailVerificationEnabled } from '../config/features';
 
 export default function ClientRegisterPage() {
   const [error, setError] = useState('');
@@ -89,7 +90,11 @@ export default function ClientRegisterPage() {
         <CustomerFormField
           label="Email nhận thông báo (không bắt buộc)"
           htmlFor="email"
-          hint="Sau khi đăng nhập, xác minh email trong hồ sơ để nhận thông báo duyệt đơn."
+          hint={
+            customerEmailVerificationEnabled
+              ? 'Sau khi đăng nhập, xác minh email trong hồ sơ để nhận thông báo duyệt đơn.'
+              : undefined
+          }
           error={errors.email?.message}
         >
           <CustomerInput

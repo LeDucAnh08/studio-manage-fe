@@ -1,10 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { transactionService } from '../../services/transactionService';
-import type { TransactionResponse, TransactionSummaryRow } from '../../types';
+import type { TransactionResponse, TransactionSummaryRow, TransactionTotals } from '../../types';
 
 interface TransactionsState {
   list: TransactionResponse[];
   total: number;
+  totals: TransactionTotals | null;
   summary: TransactionSummaryRow[];
   loading: boolean;
   error: string | null;
@@ -13,6 +14,7 @@ interface TransactionsState {
 const initialState: TransactionsState = {
   list: [],
   total: 0,
+  totals: null,
   summary: [],
   loading: false,
   error: null,
@@ -53,6 +55,7 @@ const transactionsSlice = createSlice({
         state.loading = false;
         state.list = action.payload.data;
         state.total = action.payload.total;
+        state.totals = action.payload.totals ?? null;
       })
       .addCase(fetchTransactions.rejected, (state, action) => {
         state.loading = false;

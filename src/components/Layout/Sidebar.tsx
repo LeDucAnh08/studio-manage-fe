@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { ChevronRight, Sun, Moon, Monitor, UserCircle, X } from 'lucide-react';
+import { Banknote, ChevronRight, Sun, Moon, Monitor, UserCircle, X } from 'lucide-react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme, type ThemeMode } from '../../context/ThemeContext';
@@ -224,6 +224,14 @@ const Sidebar = ({ isOpen, onClose, triggerRef }: SidebarProps) => {
       </div>
       <nav ref={navRef} className="staff-sidebar__nav" aria-label="Chức năng nội bộ">
         {navItems.map(renderNavItem)}
+        {isAdmin && (
+          <NavLink to="/manage/finance" onClick={onClose} className="staff-nav-item">
+            <span aria-hidden="true">
+              <Banknote className="h-4 w-4 shrink-0" />
+            </span>
+            Tài chính
+          </NavLink>
+        )}
         {!isAdmin &&
           user?.roles?.some((role) =>
             adminItems.some((item) => item.allowedRoles?.includes(role)),

@@ -598,14 +598,14 @@ html:root[data-app-surface='staff'] {
   max-width: 360px;
 }
 .staff-finance-table table {
-  min-width: 1040px;
+  min-width: 980px;
 }
 .staff-finance-table :is(th, td):nth-child(1) {
-  min-width: 108px;
+  min-width: 96px;
   white-space: nowrap;
 }
 .staff-finance-table :is(th, td):nth-child(2) {
-  min-width: 64px;
+  min-width: 150px;
   white-space: nowrap;
 }
 .staff-finance [data-ui='table'] tfoot :is(td, th) {

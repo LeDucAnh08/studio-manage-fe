@@ -26,6 +26,7 @@ import {
 } from '../services/conceptService';
 import { paymentService } from '../services/paymentService';
 import ConceptAlbumPanel from './ConceptAlbumPanel';
+import { ConceptDeliveryWorkspace } from '../components/ConceptDeliveryWorkspace';
 import '../styles/concept.css';
 import { PaymentCountdown } from '../components/customer/PaymentCountdown';
 import { usePaymentClock } from '../components/customer/usePaymentClock';
@@ -542,9 +543,7 @@ export default function ConceptOrderPage() {
           scheduleDetails={<div className="concept-workspace">{shootDetails}</div>}
           delivery={
             albumAvailable ? (
-              <div className="concept-workspace">
-                <ConceptAlbumPanel order={order} onOrderChange={() => void load()} />
-              </div>
+              <ConceptDeliveryWorkspace order={order} onOrderChange={() => void load()} />
             ) : (
               <p className="text-sm text-muted-foreground">Chưa có thông tin bàn giao.</p>
             )
@@ -826,9 +825,24 @@ export default function ConceptOrderPage() {
           </Button>
         </section>
       )}
-      {['shot', 'completed'].includes(order.status) && (order.isOwner || order.canEdit) && (
-        <ConceptAlbumPanel order={order} onOrderChange={() => void load()} />
-      )}
+      {['shot', 'completed'].includes(order.status) &&
+        (order.isOwner ? (
+          <ConceptAlbumPanel order={order} onOrderChange={() => void load()} />
+        ) : (
+          order.canEdit && (
+            <section className="concept-card space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2>Bàn giao ảnh</h2>
+                <Button asChild variant="outline">
+                  <Link to={`/concept-orders/${id}/delivery`} state={location.state}>
+                    Xem ảnh bàn giao
+                  </Link>
+                </Button>
+              </div>
+              <ConceptDeliveryWorkspace order={order} onOrderChange={() => void load()} />
+            </section>
+          )
+        ))}
       {order.canAccount && (
         <details className={customer ? 'customer-order-surface' : 'concept-card'}>
           <summary>Đối soát chứng từ SePay</summary>

@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
 import { KeyRound, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { customerEmailVerificationEnabled } from '../config/features';
 import { authService } from '../services/authService';
 import { ROLE_LABELS } from '../types';
 import { Button, FormField, Input, PageHeader, Spinner } from '@/components/ui';
@@ -54,7 +55,7 @@ function ProfileSection() {
   const ProfileInput = isCustomer ? CustomerInput : Input;
   const ProfileButton = isCustomer ? CustomerButton : Button;
   const { user, updateUser } = useAuth();
-  const canEditEmail = !!user?.roles.includes(6);
+  const canEditEmail = !!user?.roles.includes(6) && customerEmailVerificationEnabled;
   const [notice, setNotice] = useState('');
   const {
     register,

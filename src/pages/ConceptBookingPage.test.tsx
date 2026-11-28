@@ -225,7 +225,7 @@ describe('concept booking contract', () => {
     expect(onNext).toHaveBeenCalledOnce();
     expect(conceptService.checkout).not.toHaveBeenCalled();
   });
-  it('restores a concept review, rechecks availability and keeps edits after reload', async () => {
+  it('restores a concept review without rechecking availability and keeps edits after reload', async () => {
     const withWardrobe = structuredClone(catalog);
     withWardrobe.packages[0].costumeCount = 1;
     vi.mocked(conceptService.catalog).mockResolvedValue(withWardrobe);
@@ -246,6 +246,7 @@ describe('concept booking contract', () => {
     await waitFor(() => expect(screen.getByText('Thợ An')).toBeInTheDocument());
     expect(screen.getByText(/Người 1.*Size M.*165 cm.*50 kg/)).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /Tôi đồng ý giá gói/ })).not.toBeChecked();
+    expect(conceptService.availability).not.toHaveBeenCalled();
     expect(conceptService.checkout).not.toHaveBeenCalled();
     const saved = JSON.parse(sessionStorage.getItem(CONCEPT_DRAFT_KEY)!);
     writeConceptDraft({ ...saved, brief: 'Đã sửa ý tưởng', key: 'fresh-retry-key' });
@@ -253,18 +254,9 @@ describe('concept booking contract', () => {
     page = renderWizard('/concept-booking/packages/pkg-1/book/review', { conceptDraft });
     expect(await screen.findByText('Đã sửa ý tưởng')).toBeInTheDocument();
     expect(JSON.parse(sessionStorage.getItem(CONCEPT_DRAFT_KEY)!).key).toBe('fresh-retry-key');
-    page.unmount();
-    vi.mocked(conceptService.availability).mockResolvedValue({
-      day: '2026-11-14',
-      available: true,
-      slots: [],
-    });
-    page = renderWizard('/concept-booking/packages/pkg-1/book/review', { conceptDraft });
-    expect(
-      await screen.findByRole('link', { name: 'Chọn lại thời gian hoặc thợ' }),
-    ).toBeInTheDocument();
+    expect(conceptService.availability).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('checkbox', { name: /Tôi đồng ý giá gói/ }));
-    expect(screen.getByRole('button', { name: 'Tiếp theo' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Tiếp theo' })).toBeEnabled();
     expect(conceptService.checkout).not.toHaveBeenCalled();
     page.unmount();
   });
@@ -568,7 +560,7 @@ describe('concept booking contract', () => {
     ).not.toBeInTheDocument();
     expect(conceptService.availability).not.toHaveBeenCalled();
   });
-  it('rechecks the photographer before selection and preserves the draft if they become busy', async () => {
+  it('hides portfolio when photographer is not available for selected slot and skips later availability checks', async () => {
     sessionStorage.setItem(
       CONCEPT_DRAFT_KEY,
       JSON.stringify({
@@ -577,22 +569,45 @@ describe('concept booking contract', () => {
         step: 3,
         startAt: '2026-11-14T10:00:00.000Z',
         photographerId: '',
+        availablePhotographers: [{ _id: 'photo-2', name: 'Thợ Bình', portfolio: [] }],
         costumes: [],
       }),
     );
-    renderWizard('/concept-booking/packages/pkg-1/photographers/photo-1');
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Chọn Thợ An' })).toBeEnabled());
-    vi.mocked(conceptService.availability).mockResolvedValue({
-      day: '2026-11-14',
-      available: false,
-      slots: [],
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Chọn Thợ An' }));
-    await screen.findByText(
-      'Thợ không còn trống ở khung giờ này. Bạn vui lòng chọn lại thời gian hoặc thợ khác.',
+    const busyView = renderWizard('/concept-booking/packages/pkg-1/photographers/photo-1');
+    expect(
+      await screen.findByRole('heading', { name: 'Thợ chưa có lịch trống cho khung giờ này' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Chỉ các thợ còn trống ở khung giờ đã chọn mới hiển thị portfolio để đặt lịch.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Thợ An' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Chọn Thợ An' })).not.toBeInTheDocument();
+    expect(conceptService.availability).not.toHaveBeenCalled();
+    busyView.unmount();
+
+    sessionStorage.clear();
+    renderWizard();
+    fireEvent.click(await screen.findByRole('link', { name: 'Xem chi tiết Gói riêng' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Chọn gói này' }));
+    await waitFor(() =>
+      expect(screen.queryByText('Đang kiểm tra lịch trống…')).not.toBeInTheDocument(),
     );
-    expect(JSON.parse(sessionStorage.getItem(CONCEPT_DRAFT_KEY) || '{}').photographerId).toBe('');
-    expect(screen.getByRole('button', { name: 'Chọn Thợ An' })).toBeDisabled();
+    expect(conceptService.availability).toHaveBeenCalled();
+    fireEvent.click(document.querySelector('.concept-month-grid button:not(:disabled)')!);
+    fireEvent.click(screen.getByRole('button', { name: /17:00/ }));
+    vi.mocked(conceptService.availability).mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
+    fireEvent.click(await screen.findByRole('link', { name: 'Xem hồ sơ Thợ An' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Chọn Thợ An' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Chọn Thợ An' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Tiếp tục' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
+    await screen.findByRole('heading', { name: 'Thông tin buổi chụp' });
+    fireEvent.change(screen.getByLabelText('Họ tên liên hệ'), { target: { value: 'Khách An' } });
+    fireEvent.change(screen.getByLabelText('Số điện thoại'), { target: { value: '0901234567' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }));
+    await screen.findByRole('heading', { name: 'Kiểm tra trước khi đặt cọc' });
+    expect(conceptService.availability).not.toHaveBeenCalled();
     expect(conceptService.checkout).not.toHaveBeenCalled();
   });
   it('reports an unavailable public profile without offering a selection', async () => {
@@ -687,16 +702,16 @@ describe('concept booking contract', () => {
     ).toBeInTheDocument();
     expect(conceptService.checkout).not.toHaveBeenCalled();
   });
-  it('preserves the draft but blocks QR creation for an unverified account', async () => {
+  it('allows an unverified account to proceed when customer email verification is hidden', async () => {
     auth.user = { _id: 'client-1', roles: [6] };
+    vi.mocked(conceptService.checkout).mockResolvedValueOnce({ _id: 'new-order' } as ConceptOrder);
     renderWizard();
     await fillWizard();
-    expect(screen.getByRole('link', { name: 'Cập nhật và xác thực email' })).toHaveAttribute(
-      'href',
-      '/account/profile',
-    );
-    expect(screen.queryByRole('button', { name: 'Tiếp theo' })).not.toBeInTheDocument();
-    expect(conceptService.checkout).not.toHaveBeenCalled();
+    expect(screen.queryByRole('link', { name: 'Cập nhật và xác thực email' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp theo' }));
+    await screen.findByText('Thanh toán cọc mới');
+    expect(conceptService.checkout).toHaveBeenCalledTimes(1);
   });
   it('submits the agreed package version without trusting client prices and reuses retry identity', async () => {
     vi.mocked(conceptService.checkout)

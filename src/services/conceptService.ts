@@ -170,6 +170,11 @@ export interface ConceptOrder {
 }
 export interface ConceptPhoto {
   id: string;
+  source?: 'drive' | 'local';
+  driveId?: string;
+  sourceVersion?: string;
+  folderId?: string;
+  originalPhotoId?: string;
   name: string;
   version: number;
   width: number;
@@ -179,7 +184,7 @@ export interface ConceptPhoto {
   note?: string;
 }
 export interface FeedbackItem {
-  photoId: string;
+  photoId?: string;
   note: string;
   resolved: boolean;
 }
@@ -201,18 +206,21 @@ export interface ConceptAlbum {
   title: string;
   version: number;
   status: string;
+  limit?: number;
+  coverId?: string;
   selectionRound: number;
   deliveryVersion: number;
   extraAmount: number;
   allowDownload: boolean;
   freeRoundsUsed: number;
   photos: ConceptPhoto[];
+  replacements?: ConceptPhoto[];
   selections: {
     round: number;
     extra: number;
     photos: { photoId: string; name: string; note: string }[];
   }[];
-  deliveries: { version: number; at: string }[];
+  deliveries: { version: number; at: string; source?: 'drive' | 'local' }[];
   feedbackRounds: FeedbackRound[];
   paidRequests: PaidRequest[];
   folders?: string[];
@@ -364,6 +372,46 @@ export const conceptService = {
             headers: options.guest ? { 'X-Album-Token': options.token } : {},
           },
         )
+        .then((r) => r.data),
+    ),
+  deliveryDrafts: (id: string, signal?: AbortSignal) =>
+    api
+      .get<{ data: ConceptPhoto[] }>(`/concept-orders/${id}/delivery/photos`, { signal })
+      .then((r) => r.data.data),
+  uploadDeliveryPhoto: (
+    id: string,
+    file: File,
+    key: string,
+    signal?: AbortSignal,
+    originalPhotoId?: string,
+  ) => {
+    const form = new FormData();
+    form.append('photo', file, file.name);
+    return api
+      .post<{ data: ConceptPhoto }>(`/concept-orders/${id}/delivery/photos`, form, {
+        params: originalPhotoId ? { originalPhotoId } : undefined,
+        headers: { 'Idempotency-Key': key },
+        signal,
+      })
+      .then((r) => r.data.data);
+  },
+  deleteDeliveryPhoto: (id: string, photoId: string) =>
+    api.delete(`/concept-orders/${id}/delivery/photos/${photoId}`).then(() => undefined),
+  deliveryImage: (
+    id: string,
+    photoId: string,
+    options: { thumb?: boolean; download?: boolean; signal?: AbortSignal } = {},
+  ) =>
+    imageRequest(() =>
+      api
+        .get<Blob>(`/concept-orders/${id}/delivery/photos/${photoId}`, {
+          params: {
+            size: options.thumb ? 'thumb' : undefined,
+            download: options.download ? 'true' : undefined,
+          },
+          responseType: 'blob',
+          signal: options.signal,
+        })
         .then((r) => r.data),
     ),
   zip: (id: string, version: number) =>

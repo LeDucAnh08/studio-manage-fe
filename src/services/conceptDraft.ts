@@ -1,4 +1,4 @@
-import type { ConceptOrder, CostumeChoice, WardrobeMeasurement } from './conceptService';
+import type { ConceptOrder, CostumeChoice, Photographer, WardrobeMeasurement } from './conceptService';
 
 export const CONCEPT_DRAFT_KEY = 'yume-concept-draft-v1';
 export const conceptScreens = ['date', 'photographer', 'costumes', 'review'] as const;
@@ -7,6 +7,8 @@ export interface ConceptDraft {
   packageId: string;
   startAt: string;
   photographerId: string;
+  photographerName?: string;
+  availablePhotographers?: Photographer[];
   costumes: CostumeChoice[];
   wardrobeMeasurements: WardrobeMeasurement[];
   contactName: string;
@@ -41,6 +43,10 @@ export const conceptDraftFromOrder = (order: ConceptOrder, ownerId: string): Con
     packageId: order.package,
     startAt: order.startAt,
     photographerId: order.photographer,
+    photographerName: order.photographerName,
+    availablePhotographers: order.photographer
+      ? [{ _id: order.photographer, name: order.photographerName || '' }]
+      : undefined,
     wardrobeMeasurements: (order.wardrobeMeasurements || []).map((row) => ({ ...row })),
     contactName: order.contactName,
     phone: order.phone,
@@ -73,6 +79,9 @@ export function readConceptDraft(ownerId: string | null): ConceptDraft {
         wardrobeMeasurements: Array.isArray(draft.wardrobeMeasurements)
           ? draft.wardrobeMeasurements
           : [],
+        availablePhotographers: Array.isArray(draft.availablePhotographers)
+          ? draft.availablePhotographers
+          : undefined,
       };
   } catch {
     /* Storage may be unavailable. */
