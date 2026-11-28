@@ -13,7 +13,6 @@ vi.mock('../components/Layout/PublicSiteLayout', () => ({
 }));
 
 vi.mock('../config/features', () => ({
-  conceptBookingEnabled: false,
   get clientPortalEnabled() {
     return flags.portal;
   },

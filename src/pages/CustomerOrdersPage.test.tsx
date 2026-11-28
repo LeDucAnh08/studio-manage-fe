@@ -16,7 +16,6 @@ const mocks = vi.hoisted(() => ({
   read: vi.fn(),
 }));
 vi.mock('../config/features', () => ({
-  conceptBookingEnabled: false,
   clientPortalEnabled: true,
 }));
 vi.mock('../context/AuthContext', () => ({

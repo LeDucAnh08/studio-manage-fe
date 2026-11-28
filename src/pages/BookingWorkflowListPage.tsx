@@ -11,7 +11,6 @@ import { useCurrentTime } from '../components/customer/useCurrentTime';
 import { useShootWindowRefresh } from '../components/customer/useShootWindowRefresh';
 import PhotographerOrdersPage from './PhotographerOrdersPage';
 import { isPersonalPhotographer } from '../utils/staffRole';
-import { conceptBookingEnabled } from '../config/features';
 import { shootOrdersService, type ShootOrderSummary } from '../services/shootOrdersService';
 
 const money = (amount: number) => amount.toLocaleString('vi-VN') + ' đ';
@@ -34,9 +33,7 @@ function StaffBookingWorkflowListPage() {
   const [params, setParams] = useSearchParams();
   const requestedService = params.get('service') || '';
   const service =
-    requestedService === 'yearbook' || (requestedService === 'concept' && conceptBookingEnabled)
-      ? requestedService
-      : '';
+    requestedService === 'yearbook' || requestedService === 'concept' ? requestedService : '';
   const canSeeYearbook = !!user?.roles.some((role) => [0, 1, 3].includes(role));
   const requestedStage = params.get('view') || '';
   const filter: BookingOrderStage | '' = Object.keys(bookingOrderStageLabels).includes(
@@ -263,7 +260,7 @@ function StaffBookingWorkflowListPage() {
             }
           >
             <option value="">Tất cả</option>
-            {conceptBookingEnabled && <option value="concept">Concept</option>}
+            <option value="concept">Concept</option>
             {canSeeYearbook && <option value="yearbook">Kỉ yếu</option>}
           </select>
         </label>

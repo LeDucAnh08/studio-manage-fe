@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Badge, Button, DataTable, PageHeader, type Column } from '@/components/ui';
 import { useAuth } from '../context/AuthContext';
-import { conceptBookingEnabled } from '../config/features';
 import { bookingOrderStageLabels } from '../services/bookingWorkflowService';
 import {
   photographerOrdersService,
@@ -19,9 +18,7 @@ export default function PhotographerOrdersPage() {
   const [params, setParams] = useSearchParams();
   const requestedService = params.get('service') || '';
   const service =
-    requestedService === 'yearbook' || (requestedService === 'concept' && conceptBookingEnabled)
-      ? requestedService
-      : '';
+    requestedService === 'yearbook' || requestedService === 'concept' ? requestedService : '';
   const requestedStage = params.get('view') || '';
   const stage = Object.keys(bookingOrderStageLabels).includes(requestedStage) ? requestedStage : '';
   const requestedPage = Number(params.get('page') || 1);
@@ -171,7 +168,7 @@ export default function PhotographerOrdersPage() {
             onChange={(event) => changeFilter('service', event.target.value)}
           >
             <option value="">Tất cả</option>
-            {conceptBookingEnabled && <option value="concept">Concept</option>}
+            <option value="concept">Concept</option>
             <option value="yearbook">Kỉ yếu</option>
           </select>
         </label>

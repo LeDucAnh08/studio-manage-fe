@@ -6,7 +6,7 @@ import type { User } from './types';
 import App from './App';
 const mocks = vi.hoisted(() => ({
   auth: { user: null as User | null, isBootstrapping: false, logout: vi.fn() },
-  flags: { portal: true, concept: false },
+  flags: { portal: true },
 }));
 vi.mock('./context/AuthContext', () => ({
   AuthProvider: ({ children }: { children: ReactNode }) => children,
@@ -17,9 +17,6 @@ vi.mock('./context/ThemeContext', () => ({
   useTheme: () => ({ themeMode: 'light', resolvedTheme: 'light', setThemeMode: vi.fn() }),
 }));
 vi.mock('./config/features', () => ({
-  get conceptBookingEnabled() {
-    return mocks.flags.concept;
-  },
   get clientPortalEnabled() {
     return mocks.flags.portal;
   },
@@ -47,6 +44,7 @@ vi.mock('./pages/PublicDiscoveryPage', async () => {
   };
 });
 vi.mock('./pages/CustomerOrdersPage', () => ({ default: () => <h1>Đơn của tôi</h1> }));
+vi.mock('./pages/ConceptCatalogPage', () => ({ default: () => <h1>Danh mục concept</h1> }));
 vi.mock('./pages/BookingWorkflowDetailPage', () => ({
   default: ({ openDelivery }: { openDelivery?: boolean }) => (
     <h1>{openDelivery ? 'Hồ sơ thợ và các bước bàn giao' : 'Chi tiết chụp ảnh'}</h1>
@@ -100,7 +98,6 @@ describe('Public discovery and customer workspace', () => {
     mocks.auth.user = null;
     mocks.auth.isBootstrapping = false;
     mocks.flags.portal = true;
-    mocks.flags.concept = false;
     window.scrollTo = vi.fn();
   });
   it('shows only the portfolio and login entry without guest navigation or booking', () => {
@@ -133,7 +130,6 @@ describe('Public discovery and customer workspace', () => {
     '/concept-booking',
     '/concept-booking/packages/package-1/book/costumes',
   ])('requires a session before mounting %s', (path) => {
-    mocks.flags.concept = true;
     open(path);
     expect(window.location.pathname).toBe('/login');
     expect(screen.getByRole('heading', { name: 'Đăng nhập' })).toBeInTheDocument();
@@ -176,7 +172,7 @@ describe('Public discovery and customer workspace', () => {
   });
   it.each([
     ['/portfolio#services', '/services', ''],
-    ['/portfolio#gallery', '/account/orders', ''],
+    ['/portfolio#gallery', '/concepts', ''],
     ['/portfolio#packages', '/pricing', ''],
     ['/portfolio#process', '/services', '#process'],
     ['/consultation', '/services', ''],
@@ -185,6 +181,11 @@ describe('Public discovery and customer workspace', () => {
     open(from);
     expect(window.location.pathname).toBe(path);
     expect(window.location.hash).toBe(hash);
+  });
+  it.each(['/concepts', '/concept-booking'])('opens the concept catalog at %s', (path) => {
+    client();
+    open(path);
+    expect(screen.getByRole('heading', { name: 'Danh mục concept' })).toBeInTheDocument();
   });
   it.each(['/portfolio', '/account', '/account/orders'])('opens the workspace from %s', (path) => {
     client();
@@ -203,11 +204,13 @@ describe('Public discovery and customer workspace', () => {
   });
   it('has a single orders menu and an accessible account dropdown', async () => {
     client();
-    open('/concepts');
-    expect(window.location.pathname).toBe('/account/orders');
+    open('/account/orders');
     const header = within(screen.getByRole('banner'));
     const nav = within(header.getByRole('navigation', { name: 'Tài khoản khách hàng' }));
-    expect(nav.queryByRole('link', { name: 'Concept' })).not.toBeInTheDocument();
+    expect(nav.getByRole('link', { name: 'Chụp concept' })).toHaveAttribute(
+      'href',
+      '/concept-booking',
+    );
     expect(nav.getByRole('link', { name: 'Đơn của tôi' })).toHaveAttribute(
       'href',
       '/account/orders',

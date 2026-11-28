@@ -41,7 +41,6 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { conceptBookingEnabled } from '../config/features';
 import type { CalendarScheduleItem } from '../components/organisms/ScheduleCalendar';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
@@ -365,7 +364,6 @@ const StaffSchedulesPage = () => {
   const navigate = useNavigate();
   const [conceptHolds, setConceptHolds] = useState<CalendarScheduleItem[]>([]);
   useEffect(() => {
-    if (!conceptBookingEnabled) return;
     let active = true;
     const load = () =>
       api

@@ -22,7 +22,6 @@ vi.mock('../../services/bookingService', () => ({
 }));
 
 vi.mock('../../config/features', () => ({
-  conceptBookingEnabled: false,
   get clientPortalEnabled() {
     return mocks.flags.portal;
   },
@@ -123,6 +122,7 @@ describe('Customer shared navigation', () => {
 
       const navigation = screen.getByRole('navigation', { name: 'Tài khoản khách hàng' });
       expect(navLabels(navigation)).toEqual([
+        'Chụp concept',
         'Chụp kỉ yếu',
         'Trang phục',
         'Bảng giá',
@@ -202,6 +202,7 @@ describe('Customer shared navigation', () => {
       name: 'Điều hướng chính trên điện thoại',
     });
     expect(navLabels(navigation)).toEqual([
+      'Chụp concept',
       'Chụp kỉ yếu',
       'Trang phục',
       'Bảng giá',

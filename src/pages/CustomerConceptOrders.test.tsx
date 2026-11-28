@@ -8,7 +8,7 @@ import {
   type ConceptOrderStage,
 } from '../services/conceptService';
 
-vi.mock('../config/features', () => ({ conceptBookingEnabled: true, clientPortalEnabled: true }));
+vi.mock('../config/features', () => ({ clientPortalEnabled: true }));
 vi.mock('../context/AuthContext', () => ({
   useAuth: () => ({ user: { _id: 'client', roles: [6], emailVerifiedAt: '2026-01-01' } }),
 }));

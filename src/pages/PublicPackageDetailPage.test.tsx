@@ -9,7 +9,6 @@ vi.mock('../services/packageService', () => ({
   packageImageUrl: (id: string) => `/api/media/packages/${id}`,
 }));
 vi.mock('../config/features', () => ({
-  conceptBookingEnabled: false,
   get clientPortalEnabled() {
     return mocks.portal;
   },

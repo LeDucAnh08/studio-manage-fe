@@ -31,7 +31,7 @@ import CustomerSizePage from '../pages/CustomerSizePage';
 import PackagesPage from '../pages/PackagesPage';
 import FeedbackPage from '../pages/FeedbackPage';
 import BookingWorkflowListPage from '../pages/BookingWorkflowListPage';
-import { clientPortalEnabled, conceptBookingEnabled } from './features';
+import { clientPortalEnabled } from './features';
 import ConceptOrdersPage from '../pages/ConceptOrdersPage';
 import ConceptManagePage from '../pages/ConceptManagePage';
 import RentalListPage from '../pages/RentalListPage';
@@ -53,25 +53,21 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
-  ...(conceptBookingEnabled
-    ? [
-        {
-          to: '/concept-orders',
-          hidden: true,
-          label: 'Chụp concept',
-          icon: ClipboardList,
-          allowedRoles: [0, 1, 3] as UserRole[],
-          component: ConceptOrdersPage,
-        },
-        {
-          to: '/settings/concepts',
-          label: 'Quản lý concept',
-          icon: Layers,
-          allowedRoles: [0, 1] as UserRole[],
-          component: ConceptManagePage,
-        },
-      ]
-    : []),
+  {
+    to: '/concept-orders',
+    hidden: true,
+    label: 'Chụp concept',
+    icon: ClipboardList,
+    allowedRoles: [0, 1, 3] as UserRole[],
+    component: ConceptOrdersPage,
+  },
+  {
+    to: '/settings/concepts',
+    label: 'Quản lý concept',
+    icon: Layers,
+    allowedRoles: [0, 1] as UserRole[],
+    component: ConceptManagePage,
+  },
   ...(clientPortalEnabled
     ? [
         {
@@ -170,17 +166,13 @@ export const navItems: NavItem[] = [
       },
     ],
   },
-  ...(conceptBookingEnabled
-    ? [
-        {
-          to: '/my-portfolio',
-          label: 'Portfolio của tôi',
-          icon: Image,
-          allowedRoles: [3] as UserRole[],
-          component: PhotographerPortfolioPage,
-        },
-      ]
-    : []),
+  {
+    to: '/my-portfolio',
+    label: 'Portfolio của tôi',
+    icon: Image,
+    allowedRoles: [3] as UserRole[],
+    component: PhotographerPortfolioPage,
+  },
 ];
 
 export const adminItems: NavItem[] = [

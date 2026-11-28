@@ -10,7 +10,7 @@ import {
 
 const auth = vi.hoisted(() => ({ user: { _id: 'photo-1', roles: [3] } }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => auth }));
-vi.mock('../config/features', () => ({ conceptBookingEnabled: true, clientPortalEnabled: true }));
+vi.mock('../config/features', () => ({ clientPortalEnabled: true }));
 vi.mock('../services/photographerOrdersService', () => ({
   photographerOrdersService: { list: vi.fn() },
 }));

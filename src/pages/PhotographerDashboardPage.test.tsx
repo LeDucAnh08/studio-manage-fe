@@ -8,7 +8,6 @@ import {
 } from '../services/photographerDashboardService';
 const auth = vi.hoisted(() => ({ user: { _id: 'photo-1', name: 'Lê Minh Đức', roles: [3] } }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => auth }));
-vi.mock('../config/features', () => ({ conceptBookingEnabled: true }));
 vi.mock('../services/photographerDashboardService', async (original) => ({
   ...(await original<typeof import('../services/photographerDashboardService')>()),
   photographerDashboardService: { get: vi.fn() },

@@ -33,7 +33,6 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../context/AuthContext', () => ({ useAuth: () => mocks.auth }));
 vi.mock('../config/features', () => ({
-  conceptBookingEnabled: false,
   clientPortalEnabled: true,
 }));
 vi.mock('../services/bookingWorkflowService', async () => ({

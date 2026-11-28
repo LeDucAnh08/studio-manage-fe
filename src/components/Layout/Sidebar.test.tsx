@@ -10,7 +10,6 @@ vi.mock('../../context/AuthContext', () => ({
   useAuth: () => ({ user: { name: 'Quản trị viên', roles: mocks.roles }, logout: mocks.logout }),
 }));
 vi.mock('../../config/features', () => ({
-  conceptBookingEnabled: true,
   clientPortalEnabled: true,
 }));
 

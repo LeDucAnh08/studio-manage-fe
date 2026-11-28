@@ -10,7 +10,7 @@ const auth = vi.hoisted(() => ({
   logout: vi.fn(),
 }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => auth }));
-vi.mock('../config/features', () => ({ clientPortalEnabled: true, conceptBookingEnabled: true }));
+vi.mock('../config/features', () => ({ clientPortalEnabled: true }));
 vi.mock('../services/customerService', () => ({
   customerService: { portfolioStats: vi.fn().mockResolvedValue({ classes: 28, schools: 12 }) },
 }));

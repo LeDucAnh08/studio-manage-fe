@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { useAuth } from '../context/AuthContext';
-import { conceptBookingEnabled } from '../config/features';
 import { vietnamCalendarDate, vietnamDisplayDate } from '../utils/vietnamCalendarDate';
 import { bookingOrderStageLabels } from '../services/bookingWorkflowService';
 import {
@@ -54,8 +53,7 @@ export default function PhotographerDashboardPage() {
     ['month', 'previous', 'quarter', 'year'].includes(requestedPeriod) ? requestedPeriod : 'month'
   ) as PhotographerPeriod;
   const service =
-    params.get('service') === 'yearbook' ||
-    (params.get('service') === 'concept' && conceptBookingEnabled)
+    params.get('service') === 'yearbook' || params.get('service') === 'concept'
       ? params.get('service')!
       : '';
   const requestedMetric = params.get('metric') || '';
@@ -216,7 +214,7 @@ export default function PhotographerDashboardPage() {
           Loại dịch vụ
           <select value={service} onChange={(event) => update('service', event.target.value)}>
             <option value="">Tất cả dịch vụ</option>
-            {conceptBookingEnabled && <option value="concept">Concept</option>}
+            <option value="concept">Concept</option>
             <option value="yearbook">Kỉ yếu</option>
           </select>
         </label>

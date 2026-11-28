@@ -42,7 +42,7 @@ import CustomerToastContainer from './components/customer/CustomerToastContainer
 import 'react-toastify/dist/ReactToastify.css';
 import { usePageTitle } from './hooks/usePageTitle';
 import { TooltipProvider } from '@/components/ui';
-import { clientPortalEnabled, conceptBookingEnabled } from './config/features';
+import { clientPortalEnabled } from './config/features';
 import ConceptBookingPage from './pages/ConceptBookingPage';
 import ConceptCatalogPage from './pages/ConceptCatalogPage';
 import ConceptPackageDetailPage from './pages/ConceptPackageDetailPage';
@@ -154,14 +154,6 @@ function BookingRequestsRedirect() {
   );
 }
 
-function ConceptEntry() {
-  const { user, isBootstrapping } = useAuth();
-  if (isBootstrapping) return <p role="status">Đang xác thực...</p>;
-  if (clientPortalEnabled && user?.roles.includes(6))
-    return <Navigate to="/account/orders" replace />;
-  return <PublicDiscoveryPage page="concepts" />;
-}
-
 function SearchPreservingRedirect({ pathname }: { pathname: string }) {
   const location = useLocation();
   return (
@@ -224,9 +216,7 @@ function App() {
             <PageTitleManager />
             <SessionAccessGuard>
               <Routes>
-                {conceptBookingEnabled && (
-                  <Route path="/concept-albums/:publicId" element={<GuestConceptAlbumPage />} />
-                )}
+                <Route path="/concept-albums/:publicId" element={<GuestConceptAlbumPage />} />
                 <Route path="/albums/:publicId" element={<AlbumEntry />} />
                 <Route
                   path="/workflow-bookings/:id/album"
@@ -249,27 +239,20 @@ function App() {
                     }
                   />
                   <Route path="/services" element={<PublicDiscoveryPage page="services" />} />
+                  <Route path="/concepts" element={<ConceptCatalogPage />} />
+                  <Route path="/concept-booking" element={<ConceptCatalogPage />} />
                   <Route
-                    path="/concepts"
-                    element={conceptBookingEnabled ? <ConceptCatalogPage /> : <ConceptEntry />}
+                    path="/concept-booking/packages/:packageId/photographers/:photographerId"
+                    element={<ConceptPhotographerPage />}
                   />
-                  {conceptBookingEnabled && (
-                    <>
-                      <Route path="/concept-booking" element={<ConceptCatalogPage />} />
-                      <Route
-                        path="/concept-booking/packages/:packageId/photographers/:photographerId"
-                        element={<ConceptPhotographerPage />}
-                      />
-                      <Route
-                        path="/concept-booking/packages/:packageId"
-                        element={<ConceptPackageDetailPage />}
-                      />
-                      <Route
-                        path="/concept-booking/packages/:packageId/book/:screen"
-                        element={<ConceptBookingPage />}
-                      />
-                    </>
-                  )}
+                  <Route
+                    path="/concept-booking/packages/:packageId"
+                    element={<ConceptPackageDetailPage />}
+                  />
+                  <Route
+                    path="/concept-booking/packages/:packageId/book/:screen"
+                    element={<ConceptBookingPage />}
+                  />
                   <Route path="/pricing" element={<PublicDiscoveryPage page="pricing" />} />
                   <Route path="/pricing/:id" element={<PublicPackageDetailPage />} />
                   <Route path="/consultation" element={<Navigate to="/services" replace />} />
@@ -296,9 +279,7 @@ function App() {
                     >
                       <Route index element={<Navigate to="orders" replace />} />
                       <Route path="orders" element={<CustomerOrdersPage />} />
-                      {conceptBookingEnabled && (
-                        <Route path="concept-orders/:id" element={<ConceptOrderPage />} />
-                      )}
+                      <Route path="concept-orders/:id" element={<ConceptOrderPage />} />
                       <Route
                         path="bookings"
                         element={<Navigate to="/account/orders?tab=bookings" replace />}
@@ -307,16 +288,14 @@ function App() {
                       <Route path="bookings/:id" element={<BookingWorkflowDetailPage />} />
                       <Route path="bookings/:id/delivery" element={<BookingDeliveryPage />} />
                       <Route path="profile" element={<ProfilePage />} />
-                      {conceptBookingEnabled && (
-                        <Route
-                          path="concept-orders/:id"
-                          element={
-                            <ProtectedRoute allowedRoles={[0, 1, 3]}>
-                              <ConceptOrderPage />
-                            </ProtectedRoute>
-                          }
-                        />
-                      )}
+                      <Route
+                        path="concept-orders/:id"
+                        element={
+                          <ProtectedRoute allowedRoles={[0, 1, 3]}>
+                            <ConceptOrderPage />
+                          </ProtectedRoute>
+                        }
+                      />
                       <Route path="verify-email" element={<VerifyEmailPage />} />
                       <Route
                         path="rentals"
@@ -326,12 +305,10 @@ function App() {
                     </Route>
                   )}
                   <Route path="/portfolio" element={<PortfolioEntry />} />
-                  {conceptBookingEnabled && (
-                    <Route
-                      path="/photographers/:photographerId"
-                      element={<PhotographerPublicPage />}
-                    />
-                  )}
+                  <Route
+                    path="/photographers/:photographerId"
+                    element={<PhotographerPublicPage />}
+                  />
                   <Route path="/costumes" element={<RentalCatalogPage />} />
                   {clientPortalEnabled && (
                     <Route
@@ -384,16 +361,14 @@ function App() {
                       )}
                     />
                     <Route path="profile" element={<ProfilePage />} />
-                    {conceptBookingEnabled && (
-                      <Route
-                        path="concept-orders/:id"
-                        element={
-                          <ProtectedRoute allowedRoles={[0, 1, 3]}>
-                            <ConceptOrderPage />
-                          </ProtectedRoute>
-                        }
-                      />
-                    )}
+                    <Route
+                      path="concept-orders/:id"
+                      element={
+                        <ProtectedRoute allowedRoles={[0, 1, 3]}>
+                          <ConceptOrderPage />
+                        </ProtectedRoute>
+                      }
+                    />
                     <Route
                       path="settings/packages/:id/content"
                       element={
