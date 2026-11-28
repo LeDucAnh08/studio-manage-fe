@@ -1039,25 +1039,12 @@ export default function BookingWorkflowDetailPage({
 
   const depositPanel = (
     <>
-      {canSeeFinancials &&
+      {!isClient &&
+        canSeeFinancials &&
         booking.status === 'approved' &&
-        workflow.depositPayment &&
-        (isClient ? (
-          <section className="customer-order-surface">
-            <Button asChild>
-              <Link
-                to={`/account/bookings/${id}?payment=deposit`}
-                state={{ ordersReturnTo: backPath }}
-              >
-                {workflow.depositPayment.status === 'pending'
-                  ? 'Thanh toán tiền cọc'
-                  : 'Xem thanh toán cọc'}
-              </Link>
-            </Button>
-          </section>
-        ) : (
+        workflow.depositPayment && (
           <DepositPaymentPanel payment={workflow.depositPayment} />
-        ))}
+        )}
       {paymentRefreshError && (
         <p role="status" className="customer-order-notice">
           {paymentRefreshError}
@@ -1565,6 +1552,16 @@ export default function BookingWorkflowDetailPage({
             <span className="text-muted-foreground">Địa điểm: </span>
             {workflow.quote.proposedSchedule.location}
           </p>
+          {isClient && canSeeFinancials && booking.status === 'approved' && workflow.depositPayment && (
+            <Button asChild>
+              <Link
+                to={`/account/bookings/${id}?payment=deposit`}
+                state={{ ordersReturnTo: backPath }}
+              >
+                Thanh toán cọc
+              </Link>
+            </Button>
+          )}
           {!!workflow.quote.editingTerms.length && (
             <div>
               <h3 className={customer ? 'customer-order-title' : 'text-sm font-semibold'}>
@@ -2521,9 +2518,20 @@ export default function BookingWorkflowDetailPage({
     </Button>
   );
   const deliveryPath = `${customer ? '/account/bookings' : '/workflow-bookings'}/${id}/delivery`;
+  const deliveryStage = getBookingOrderStage(
+    booking.status,
+    workflow.lifecycle,
+    workflow.orderStage,
+    workflow.shootWindow,
+    now,
+  );
+  const canSeeDeliveryPanel =
+    isAdmin ||
+    isPhotographer ||
+    (isClient && ['editing', 'delivered', 'completed'].includes(deliveryStage));
   const deliveryPanel = (
     <>
-      {(isClient || isAdmin || isPhotographer) && workflow.progress && (
+      {canSeeDeliveryPanel && workflow.progress && (
         <section
           className={
             customer ? 'customer-order-surface' : 'space-y-4 rounded-2xl border p-5 sm:p-6'
